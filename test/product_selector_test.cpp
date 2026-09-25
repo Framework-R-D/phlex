@@ -1,6 +1,8 @@
 #include "phlex/core/product_selector.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <string>

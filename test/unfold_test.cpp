@@ -15,16 +15,20 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 #include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <spdlog/spdlog.h>
 
 #include <atomic>
+#include <chrono> // IWYU pragma: keep
 #include <string>
 #include <utility>
 #include <vector>

@@ -1,6 +1,17 @@
 #include "phlex/core/registration_api.hpp"
 
+#include "phlex/concurrency.hpp"
+#include "phlex/core/declared_output.hpp"
+#include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/detail/maybe_predicates.hpp"
+#include "phlex/core/registrar.hpp"
+
+#include <oneapi/tbb/flow_graph.h>
+
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace phlex::detail {
   output_api::output_api(registrar<declared_output_ptr> reg,

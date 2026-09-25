@@ -1,5 +1,7 @@
 #include "waveform_generator_input.hpp"
 
+#include <cstddef>
+
 demo::waveform_generator_input::waveform_generator_input(std::size_t size,
                                                          std::size_t run_id,
                                                          std::size_t subrun_id,

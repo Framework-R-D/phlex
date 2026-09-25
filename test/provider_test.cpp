@@ -1,14 +1,25 @@
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/source.hpp"
+#include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <cstddef>
+#include <string>
+#include <utility>
 
 using namespace phlex;
 using Catch::Matchers::ContainsSubstring;

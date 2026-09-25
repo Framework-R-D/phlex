@@ -1,14 +1,18 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/handle.hpp"
 #include "plugins/layer_generator.hpp"
+#include "test/demo-giantdata/summed_clamped_waveforms.hpp"
 #include "test/demo-giantdata/user_algorithms.hpp"
 #include "test/demo-giantdata/waveform_generator.hpp"
 #include "test/demo-giantdata/waveform_generator_input.hpp"
+#include "test/demo-giantdata/waveforms.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+#include <cstddef>
 
 using namespace phlex;
 

@@ -1,5 +1,6 @@
 #include "phlex/module.hpp"
 
+#include "phlex/core/product_selector.hpp"
 #include "test/plugins/add.hpp"
 
 #include <cassert>

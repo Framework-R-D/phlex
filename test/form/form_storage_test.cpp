@@ -1,11 +1,18 @@
 //Tests for FORM's storage layer's design requirements
 
+#include "core/cell_index.hpp"
+#include "core/placement.hpp"
+#include "core/technology.hpp"
+#include "core/token.hpp"
 #include "form/config.hpp"
+#include "persistence/ipersistence_reader.hpp"
+#include "persistence/ipersistence_writer.hpp"
 #include "persistence/persistence_reader.hpp"
-#include "persistence/persistence_writer.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
+#include "storage/factories.hpp"
 #include "storage/istorage.hpp"
+#include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
@@ -22,9 +29,9 @@
 #include <memory>
 #include <numbers>
 #include <numeric>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
-#include <utility>
 #include <vector>
 
 using namespace form::detail::experimental;

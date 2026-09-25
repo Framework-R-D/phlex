@@ -1,3 +1,5 @@
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/module.hpp"
 #include "test/plugins/resources_for_testing.hpp"
 

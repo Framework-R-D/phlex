@@ -5,10 +5,15 @@
 // N.B. Output nodes will eventually be replaced with preserver nodes.
 // =======================================================================================
 
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -16,6 +21,7 @@
 #include <ranges>
 #include <set>
 #include <string>
+#include <utility>
 
 using namespace phlex;
 

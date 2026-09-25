@@ -1,4 +1,5 @@
 #include "phlex/module.hpp"
+#include "phlex/utilities/sized_tuple.hpp"
 #include "test/mock-workflow/algorithm.hpp"
 #include "test/mock-workflow/types.hpp"
 

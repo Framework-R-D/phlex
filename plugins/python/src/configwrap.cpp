@@ -1,10 +1,15 @@
 #include "phlex/configuration.hpp"
 #include "wrap.hpp"
 
+#include <boost/json/kind.hpp>
+
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

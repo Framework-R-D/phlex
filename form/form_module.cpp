@@ -1,3 +1,4 @@
+#include "form/product_with_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/products.hpp"
@@ -13,9 +14,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <exception>
 #include <iostream>
-#include <stdexcept>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 

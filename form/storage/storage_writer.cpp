@@ -2,10 +2,19 @@
 
 #include "storage_writer.hpp"
 
+#include "core/placement.hpp"
+#include "core/technology.hpp"
+#include "form/config.hpp"
 #include "storage/factories.hpp"
+#include "storage/istorage.hpp"
 #include "storage_associative_write_container.hpp"
-#include "storage_file.hpp"
-#include "storage_write_association.hpp"
+
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 

@@ -1,15 +1,18 @@
 #include "phlex/model/data_cell_index.hpp"
 
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>
-#include <iterator>
-#include <map>
+#include <cstddef>
+#include <ostream>
 #include <ranges>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace std::string_literals;
 

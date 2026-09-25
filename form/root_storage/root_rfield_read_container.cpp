@@ -5,14 +5,23 @@
 #include "demangle_name.hpp"
 #include "handle_rexception.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_read_container.hpp"
 
+#include <ROOT/RError.hxx>
 #include <ROOT/RNTupleReader.hxx>
+#include <ROOT/RNTupleTypes.hxx>
 #include <ROOT/RNTupleView.hxx>
 #include <TDictionary.h>
-#include <TFile.h>
+#include <TFile.h> // IWYU pragma: keep
 
-#include <exception>
+#include <cassert>
+#include <cstring>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <utility>
 
 namespace {

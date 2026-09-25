@@ -1,14 +1,14 @@
 #include "phlex/app/run.hpp"
 #include "phlex/app/version.hpp"
-#include "phlex/concurrency.hpp"
 
-#include <boost/program_options.hpp>
+#include <boost/json/parse.hpp>
+#include <boost/program_options.hpp> // IWYU pragma: keep
 #include <fmt/format.h>
 #include <libjsonnet++.h>
 #include <oneapi/tbb/info.h>
 
+#include <exception>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <string_view>

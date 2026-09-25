@@ -1,6 +1,16 @@
 #include "phlex/core/product_selector.hpp"
 
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
+
 #include <fmt/format.h>
+
+#include <compare>
+#include <string>
+#include <string_view>
+#include <tuple>
 
 namespace phlex {
   // Check that all products selected by /other/ would satisfy this query

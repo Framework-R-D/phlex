@@ -3,8 +3,10 @@
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <memory>
 #include <sstream>
 
 using namespace phlex;

@@ -1,12 +1,13 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <concepts>
-#include <optional>
 #include <string>
-#include <vector>
+#include <utility>
 
 using namespace phlex;
 using namespace phlex::experimental::literals;

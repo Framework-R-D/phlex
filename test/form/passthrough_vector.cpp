@@ -1,5 +1,7 @@
+#include "phlex/core/product_selector.hpp"
 #include "phlex/module.hpp"
 
+#include <string>
 #include <vector>
 
 using namespace phlex;

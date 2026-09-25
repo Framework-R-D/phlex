@@ -1,7 +1,9 @@
-#include "identifier.hpp"
+#include "phlex/model/identifier.hpp"
 
-#include <boost/hash2/hash_append.hpp>
-#include <boost/hash2/xxhash.hpp>
+#include <compare>
+#include <cstddef>
+#include <string_view>
+#include <utility>
 
 namespace phlex::experimental {
   identifier::identifier(std::string_view str) : content_(str), hash_(hash_string(content_)) {}

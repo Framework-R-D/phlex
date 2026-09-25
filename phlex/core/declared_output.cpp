@@ -1,7 +1,15 @@
 #include "phlex/core/declared_output.hpp"
 
-#include "phlex/configuration.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
+#include "phlex/core/message.hpp"
+
+#include <oneapi/tbb/flow_graph.h>
+
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::detail {
   declared_output::declared_output(phlex::experimental::algorithm_name name,

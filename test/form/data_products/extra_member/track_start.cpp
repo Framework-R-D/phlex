@@ -1,5 +1,7 @@
 #include "track_start.hpp"
 
+#include <ostream>
+
 track_start::track_start() : x_(0), y_(0), z_(0), index_(0) {}
 
 track_start::track_start(float x, float y, float z, int index) : x_(x), y_(y), z_(z), index_(index)

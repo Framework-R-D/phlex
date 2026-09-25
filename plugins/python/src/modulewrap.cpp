@@ -1,24 +1,30 @@
 #include "dyncall.hpp"
+#include "phlex/concurrency.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "wrap.hpp"
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
-#include <algorithm>
 #include <array>
-#include <functional>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
-#include <numpy/arrayobject.h>
+#include <numpy/arrayobject.h> // IWYU pragma: keep
 
 // Python algorithms are supported by inserting nodes from C++ -> Python,
 // followed by the intended call, and another from Python -> C++.

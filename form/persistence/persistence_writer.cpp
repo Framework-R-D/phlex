@@ -3,7 +3,13 @@
 #include "persistence_writer.hpp"
 
 #include "core/cell_index.hpp"
+#include "core/container_naming.hpp"
+#include "core/placement.hpp"
+#include "core/technology.hpp"
+#include "core/token.hpp"
 #include "navigation_naming.hpp"
+#include "persistence/ipersistence_writer.hpp"
+#include "storage/istorage.hpp"
 
 #include <array>
 #include <cstddef>
@@ -16,6 +22,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 using namespace form::detail::experimental;
 

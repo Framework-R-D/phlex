@@ -2,6 +2,10 @@
 
 #include "storage_write_association.hpp"
 
+#include "storage/storage_write_container.hpp"
+
+#include <string>
+
 using namespace form::detail::experimental;
 
 namespace {

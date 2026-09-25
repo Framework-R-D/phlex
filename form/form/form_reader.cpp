@@ -2,8 +2,13 @@
 
 #include "form_reader.hpp"
 
+#include "form/config.hpp"
+#include "form/product_with_name.hpp"
+#include "persistence/ipersistence_reader.hpp"
+
 #include <stdexcept>
 #include <typeinfo>
+#include <vector>
 
 namespace form::experimental {
 

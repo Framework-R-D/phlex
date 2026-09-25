@@ -3,10 +3,18 @@
 #include "root_ttree_write_container.hpp"
 
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_write_association.hpp"
 
-#include <TFile.h>
+#include <TFile.h> // IWYU pragma: keep
 #include <TTree.h>
 #include <gsl/pointers>
+
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 

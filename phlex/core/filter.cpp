@@ -1,12 +1,15 @@
 #include "phlex/core/filter.hpp"
 
 #include "phlex/core/declared_output.hpp"
+#include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 
-#include <fmt/std.h>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
+#include <iterator>
 #include <ranges>
 
 using namespace phlex::detail;

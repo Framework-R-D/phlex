@@ -3,6 +3,8 @@
 // phlex command line, or configuration) agrees with what is expected.
 // =======================================================================================
 
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/module.hpp"
 
 #include <cassert>

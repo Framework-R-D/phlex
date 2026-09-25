@@ -2,7 +2,11 @@
 
 #include "dune_example_hit_maker.hpp"
 
+#include "test/form/data_products/dune_example/hit.hpp"
+#include "test/form/data_products/dune_example/hit_candidate.hpp"
+
 #include <utility>
+#include <vector>
 
 namespace {
 

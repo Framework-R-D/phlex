@@ -2,7 +2,12 @@
 
 #include "storage_read_container.hpp"
 
-#include "storage_file.hpp"
+#include "storage/istorage.hpp"
+
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 

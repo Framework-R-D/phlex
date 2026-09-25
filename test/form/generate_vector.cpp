@@ -1,4 +1,6 @@
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
 

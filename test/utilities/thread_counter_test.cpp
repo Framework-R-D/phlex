@@ -1,8 +1,12 @@
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <oneapi/tbb/flow_graph.h>
+
+#include <chrono> // IWYU pragma: keep
 
 using namespace phlex::detail;
 using namespace oneapi::tbb;

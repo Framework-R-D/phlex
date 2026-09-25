@@ -3,8 +3,9 @@
 #include "core/cell_index.hpp"
 #include "core/technology.hpp"
 #include "data_products/track_start.hpp"
+#include "form/config.hpp"
 #include "form/form_writer.hpp"
-#include "test_helpers.hpp"
+#include "form/product_with_name.hpp"
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
@@ -19,6 +20,7 @@
 #include <iostream>
 #include <random>
 #include <ranges>
+#include <string>
 #include <vector>
 
 static int const number_event = 4;

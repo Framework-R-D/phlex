@@ -1,7 +1,14 @@
 #include "phlex/model/flush_gate.hpp"
 
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/utilities/signed_size.hpp"
+
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <functional>
+#include <mutex>
 #include <ranges>
 #include <utility>
 
