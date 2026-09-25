@@ -68,7 +68,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   constexpr int num_events = 25;
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = num_events});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<archived_count_source>("archived_count_source");
 
@@ -97,6 +97,16 @@ TEST_CASE("Querying products in different ways", "[graph]")
       .output_product_suffixes("event_number");
     g.execute();
     CHECK(g.execution_count("all_fields") == num_events);
+  }
+
+  SECTION("Graph stage name selects current producers")
+  {
+    g.transform("named_stage", [](int const& i) { return i + 1; })
+      .input_family(product_selector{
+        .creator = "input", .layer = "event", .suffix = "evt_number", .stage = "test"_id})
+      .output_product_suffixes("event_number");
+    g.execute();
+    CHECK(g.execution_count("named_stage") == num_events);
   }
 
   SECTION("Creator and suffix without layer")

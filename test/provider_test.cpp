@@ -8,6 +8,8 @@
 #include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
+#include <cassert>
+
 using namespace phlex;
 using Catch::Matchers::ContainsSubstring;
 
@@ -66,6 +68,21 @@ namespace {
     }
   };
 
+  class current_stage_source : public phlex::source {
+  public:
+    provider_bundles create_providers(product_selector const& selector) override
+    {
+      experimental::product_specification spec{
+        "vertices_maker", "happy_vertices", experimental::make_type_id<toy::vertex_collection>()};
+      assert(selector.match(spec, "job"_id, "CURRENT"_id));
+      return {{.provider_function = give_me_vertices_erased,
+               .max_concurrency = concurrency::unlimited,
+               .spec = std::move(spec),
+               .layer = "job",
+               .stage = "CURRENT"}};
+    }
+  };
+
   unsigned pass_on(toy::vertex_collection const& vertices) { return vertices.data; }
 }
 
@@ -76,7 +93,7 @@ TEST_CASE("Explicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
@@ -87,20 +104,51 @@ TEST_CASE("Explicit providers")
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.observe(
      "verify_explicit_stage",
-     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "CURRENT"); },
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
+  g.observe(
+     "verify_named_stage",
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
+     concurrency::unlimited)
+    .input_family(product_selector{.creator = "vertices_maker",
+                                   .layer = "spill",
+                                   .suffix = "happy_vertices",
+                                   .stage = "test"_id});
   g.execute();
 
   CHECK(g.execution_count("passer") == num_spills);
   CHECK(g.execution_count("my_name_here") == num_spills);
   CHECK(g.execution_count("verify_explicit_stage") == num_spills);
+  CHECK(g.execution_count("verify_named_stage") == num_spills);
+}
+
+TEST_CASE("Specifying current stage does not match a provider from another stage")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  g.provide("provide_previous_vertices", give_me_vertices, concurrency::unlimited)
+    .output_product("vertices_maker", "happy_vertices", "job", "previous_process");
+
+  std::string_view stage_name;
+  SECTION("Specify named current stage") { stage_name = "test"; }
+  SECTION("Specify CURRENT stage") { stage_name = "CURRENT"; }
+
+  // The following is run for *both* sections above.
+  g.observe(
+     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "vertices_maker",
+                                   .layer = "job",
+                                   .suffix = "happy_vertices",
+                                   .stage = phlex::experimental::identifier{stage_name}});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("No provider found for the following required products:"));
 }
 
 TEST_CASE("Explicit Provider Ambiguity")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register two providers that can provide the same product
   g.provide("provide_vertices", give_me_vertices, concurrency::unlimited)
@@ -126,7 +174,7 @@ TEST_CASE("Implicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<vertices_source>("vertices_source");
 
@@ -147,9 +195,23 @@ TEST_CASE("Implicit providers")
   CHECK(g.execution_count("verify_implicit_stage") == num_spills);
 }
 
+TEST_CASE("Implicit provider cannot use the reserved CURRENT stage")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  g.add_source<current_stage_source>("current_stage_source");
+  g.observe(
+     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "job", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("Implicit provider for product") &&
+                      ContainsSubstring("has stage 'CURRENT', which is reserved"));
+}
+
 TEST_CASE("Throw when two sources with the same name are registered")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   g.add_source<vertices_source>("vertices_source");
   g.add_source<vertices_source>("vertices_source");
 
@@ -159,7 +221,7 @@ TEST_CASE("Throw when two sources with the same name are registered")
 
 TEST_CASE("Throw when no provider found for required product")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register an observer that needs a product from a creator that does not exist in the graph.
   // Since there is no matching provider, make_computational_edges should throw listing all
@@ -175,7 +237,7 @@ TEST_CASE("Throw when no provider found for required product")
 
 TEST_CASE("Throw when two implicit providers are found for the same product")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register two sources that can provide the same product
   g.add_source<vertices_source>("vertices_source_1");
@@ -197,7 +259,7 @@ TEST_CASE("Throw when implicit provider insertion fails")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(std::move(gen));
   g.add_source<vertices_source>("duplicate_vertices_source");
 

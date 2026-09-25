@@ -31,7 +31,8 @@ namespace phlex::detail {
   std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
   make_computational_edges(node_catalog& nodes,
                            std::map<std::string, filter>& filters,
-                           tbb::flow::graph& g);
+                           tbb::flow::graph& g,
+                           phlex::experimental::identifier const& stage);
 
 }
 

@@ -8,7 +8,7 @@
 namespace phlex::detail::internal {
 
   repeater_node::repeater_node(tbb::flow::graph& g,
-                               std::string node_name,
+                               phlex::experimental::algorithm_name node_name,
                                phlex::experimental::identifier layer_name) :
     base_t{g},
     indexer_{g},
@@ -60,15 +60,16 @@ namespace phlex::detail::internal {
       return;
     }
 
-    spdlog::warn("[{}/{}] Cached messages: {}", node_name_, layer_, cached_products_.size());
+    spdlog::warn(
+      "[{}/{}] Cached messages: {}", node_name_.to_string(), layer_, cached_products_.size());
     for (auto const& [_, cache] : cached_products_) {
       if (cache.data_msg) {
         spdlog::warn("[{}/{}]   Product for {}",
-                     node_name_,
+                     node_name_.to_string(),
                      layer_,
                      cache.data_msg->store->index()->to_string());
       } else {
-        spdlog::warn("[{}/{}]   Product not yet received", node_name_, layer_);
+        spdlog::warn("[{}/{}]   Product not yet received", node_name_.to_string(), layer_);
       }
     }
   }

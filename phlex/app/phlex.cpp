@@ -19,7 +19,6 @@ namespace bpo = boost::program_options;
 
 namespace {
   bpo::options_description make_options_description(std::string_view const executable,
-                                                    int const max_concurrency,
                                                     std::string& config_file)
   {
     bpo::options_description result{
@@ -32,8 +31,9 @@ namespace {
       ("help,h", "Produce help message")
       ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
       ("parallel,j",
-       bpo::value<int>()->default_value(max_concurrency),
+       bpo::value<int>()->default_value(oneapi::tbb::info::default_concurrency()),
        "Maximum parallelism requested for the program")
+      ("stage", bpo::value<std::string>(), "Name to assign to the phlex invocation")
       ("version", ("Print phlex version ("s + phlex::detail::version() + ")").c_str());
     // clang-format on
 
@@ -45,9 +45,8 @@ namespace {
 // from potentially-throwing calls should be handled internally, not propagated from main
 int main(int argc, char* argv[])
 {
-  auto max_concurrency = oneapi::tbb::info::default_concurrency();
   std::string config_file;
-  auto desc = make_options_description(argv[0], max_concurrency, config_file);
+  auto desc = make_options_description(argv[0], config_file);
 
   // Parse the command line.
   bpo::variables_map vm;
@@ -96,18 +95,26 @@ int main(int argc, char* argv[])
   }
 
   // Check configuration...
+  phlex::detail::overridable_configuration overrides{.max_parallelism = vm["parallel"].as<int>()};
   auto configurations = json::parse(config_str).as_object();
   if (auto const* specified_concurrency = configurations.if_contains("max_concurrency")) {
-    max_concurrency = specified_concurrency->to_number<int>();
+    overrides.max_parallelism = specified_concurrency->to_number<int>();
     configurations.erase("max_concurrency"); // Remove consumed parameters
+  }
+  if (auto const* specified_stage = configurations.if_contains("stage")) {
+    overrides.stage = specified_stage->as_string().c_str();
+    configurations.erase("stage"); // Remove consumed parameters
   }
 
   // ...but command-line always wins.
   if (not vm["parallel"].defaulted()) {
-    max_concurrency = vm["parallel"].as<int>();
+    overrides.max_parallelism = vm["parallel"].as<int>();
+  }
+  if (vm.contains("stage")) {
+    overrides.stage = vm["stage"].as<std::string>();
   }
   try {
-    phlex::detail::run(configurations, max_concurrency);
+    phlex::detail::run(configurations, overrides);
   } catch (std::exception const& e) {
     std::cerr << e.what() << '\n';
     return 1;

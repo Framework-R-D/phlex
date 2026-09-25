@@ -17,7 +17,7 @@ try {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = max_events, .start_at = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
