@@ -34,240 +34,244 @@ PyObject* phlex::experimental::wrap_configuration(configuration const& config)
   return reinterpret_cast<PyObject*>(pyconfig);
 }
 
-static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
-{
-  auto* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
-  if (!pcm) {
-    return nullptr;
-  }
+namespace {
 
-  pcm->ph_config_cache = PyDict_New();
-
-  return pcm;
-}
-
-static void pcm_dealloc(py_config_map* pcm)
-{
-  Py_DECREF(pcm->ph_config_cache);
-  Py_TYPE(pcm)->tp_free(reinterpret_cast<PyObject*>(pcm));
-}
-
-static PyObject* pcm_get(py_config_map* pcm, PyObject* args)
-{
-  PyObject* pykey = nullptr;
-  PyObject* pydefval = nullptr;
-  if (!PyArg_ParseTuple(args, "OO", &pykey, &pydefval)) {
-    // error already set by argument parser
-    return nullptr;
-  }
-
-  PyObject* value =
-    Py_TYPE(pcm)->tp_as_mapping->mp_subscript(reinterpret_cast<PyObject*>(pcm), pykey);
-  if (!value) {
-    if (!PyErr_ExceptionMatches(PyExc_KeyError)) {
+  py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
+  {
+    auto* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
+    if (!pcm) {
       return nullptr;
+    }
+
+    pcm->ph_config_cache = PyDict_New();
+
+    return pcm;
+  }
+
+  void pcm_dealloc(py_config_map* pcm)
+  {
+    Py_DECREF(pcm->ph_config_cache);
+    Py_TYPE(pcm)->tp_free(reinterpret_cast<PyObject*>(pcm));
+  }
+
+  PyObject* pcm_get(py_config_map* pcm, PyObject* args)
+  {
+    PyObject* pykey = nullptr;
+    PyObject* pydefval = nullptr;
+    if (!PyArg_ParseTuple(args, "OO", &pykey, &pydefval)) {
+      // error already set by argument parser
+      return nullptr;
+    }
+
+    PyObject* value =
+      Py_TYPE(pcm)->tp_as_mapping->mp_subscript(reinterpret_cast<PyObject*>(pcm), pykey);
+    if (!value) {
+      if (!PyErr_ExceptionMatches(PyExc_KeyError)) {
+        return nullptr;
+      }
+      PyErr_Clear();
+      Py_INCREF(pydefval);
+      return pydefval;
+    }
+
+    return value;
+  }
+
+  // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  std::array<PyMethodDef, 2> pcm_methods{
+    {{.ml_name = "get",
+      .ml_meth = reinterpret_cast<PyCFunction>(pcm_get),
+      .ml_flags = METH_VARARGS,
+      .ml_doc = "lookup an entry by name or return the given default"},
+     {}}};
+
+  // Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
+  // OverflowError) if the size exceeds PY_SSIZE_T_MAX.
+  std::optional<Py_ssize_t> checked_tuple_size(std::size_t n)
+  {
+    if (n > static_cast<std::size_t>(PY_SSIZE_T_MAX)) {
+      PyErr_Format(PyExc_OverflowError, "array is too large to convert to a Python tuple");
+      return std::nullopt;
+    }
+    return static_cast<Py_ssize_t>(n);
+  }
+
+  PyObject* string_map_to_python(std::map<std::string, std::string> const& value)
+  {
+    PyObject* result = PyDict_New();
+    if (!result) {
+      return nullptr;
+    }
+
+    for (auto const& [key, item] : value) {
+      PyObject* pyitem =
+        PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
+      if (!pyitem) {
+        Py_DECREF(result);
+        return nullptr;
+      }
+      int const status = PyDict_SetItemString(result, key.c_str(), pyitem);
+      Py_DECREF(pyitem);
+      if (status < 0) {
+        Py_DECREF(result);
+        return nullptr;
+      }
+    }
+    return result;
+  }
+
+  template <typename T, typename Converter>
+  PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter const& convert)
+  {
+    auto const size = checked_tuple_size(values.size());
+    if (!size) {
+      return nullptr;
+    }
+
+    PyObject* result = PyTuple_New(*size);
+    if (!result) {
+      return nullptr;
+    }
+    for (Py_ssize_t i = 0; i < *size; ++i) {
+      PyObject* item = convert(values[static_cast<std::size_t>(i)]);
+      // LCOV_EXCL_START
+      if (!item) {
+        // Practically speaking, this only happens when there's an allocation failure.
+        Py_DECREF(result);
+        return nullptr;
+      }
+      // LCOV_EXCL_STOP
+      PyTuple_SET_ITEM(result, i, item);
+    }
+    return result;
+  }
+
+  PyObject* configuration_array_to_python(phlex::configuration const& config,
+                                          std::string const& key,
+                                          boost::json::kind kind)
+  {
+    if (kind == boost::json::kind::bool_) {
+      auto const& value = config.get<std::vector<bool>>(key);
+      return vector_to_python_tuple(
+        value, [](bool item) { return PyBool_FromLong(static_cast<long>(item)); });
+    }
+    if (kind == boost::json::kind::int64) {
+      auto const& value = config.get<std::vector<std::int64_t>>(key);
+      return vector_to_python_tuple(value,
+                                    [](std::int64_t item) { return PyLong_FromLongLong(item); });
+    }
+    if (kind == boost::json::kind::uint64) {
+      auto const& value = config.get<std::vector<std::uint64_t>>(key);
+      return vector_to_python_tuple(
+        value, [](std::uint64_t item) { return PyLong_FromUnsignedLongLong(item); });
+    }
+    if (kind == boost::json::kind::double_) {
+      auto const& value = config.get<std::vector<double>>(key);
+      return vector_to_python_tuple(value, PyFloat_FromDouble);
+    }
+    if (kind == boost::json::kind::string) {
+      auto const& value = config.get<std::vector<std::string>>(key);
+      return vector_to_python_tuple(value, [](std::string const& item) {
+        return PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
+      });
+    }
+    if (kind == boost::json::kind::object) {
+      auto const& value = config.get<std::vector<std::map<std::string, std::string>>>(key);
+      return vector_to_python_tuple(value, string_map_to_python);
+    }
+    if (kind == boost::json::kind::null) {
+      return PyTuple_New(0);
+    }
+    return nullptr;
+  }
+
+  PyObject* configuration_scalar_to_python(phlex::configuration const& config,
+                                           std::string const& key,
+                                           boost::json::kind kind)
+  {
+    // Python 3.14 adds PyLong_FromInt64/PyLong_FromUInt64 to replace these variants.
+    static_assert(sizeof(long long) >= sizeof(std::int64_t));
+    static_assert(sizeof(unsigned long long) >= sizeof(std::uint64_t));
+
+    if (kind == boost::json::kind::bool_) {
+      return PyBool_FromLong(static_cast<long>(config.get<bool>(key)));
+    }
+    if (kind == boost::json::kind::int64) {
+      return PyLong_FromLongLong(config.get<std::int64_t>(key));
+    }
+    if (kind == boost::json::kind::uint64) {
+      return PyLong_FromUnsignedLongLong(config.get<std::uint64_t>(key));
+    }
+    if (kind == boost::json::kind::double_) {
+      return PyFloat_FromDouble(config.get<double>(key));
+    }
+    if (kind == boost::json::kind::string) {
+      auto const& value = config.get<std::string>(key);
+      return PyUnicode_FromStringAndSize(value.c_str(), static_cast<Py_ssize_t>(value.size()));
+    }
+    if (kind == boost::json::kind::object) {
+      return string_map_to_python(config.get<std::map<std::string, std::string>>(key));
+    }
+    return nullptr;
+  }
+
+  PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
+  {
+    // Retrieve a named configuration setting.
+    //
+    // Configuration should have a single in-memory representation, which is why
+    // the current approach retrieves it from the equivalent C++ object, ie. after
+    // the JSON input has been parsed, even as there are Python JSON parsers.
+    //
+    // pykey: the lookup key to retrieve the configuration value
+
+    if (!PyUnicode_Check(pykey)) {
+      PyErr_SetString(PyExc_TypeError, "__getitem__ expects a string key");
+      return nullptr;
+    }
+
+    // cached lookup
+    PyObject* cached_value = PyDict_GetItem(pycmap->ph_config_cache, pykey);
+    if (cached_value) {
+      Py_INCREF(cached_value);
+      return cached_value;
     }
     PyErr_Clear();
-    Py_INCREF(pydefval);
-    return pydefval;
-  }
 
-  return value;
-}
-
-// PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static std::array<PyMethodDef, 2> pcm_methods{
-  {{.ml_name = "get",
-    .ml_meth = reinterpret_cast<PyCFunction>(pcm_get),
-    .ml_flags = METH_VARARGS,
-    .ml_doc = "lookup an entry by name or return the given default"},
-   {}}};
-
-// Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
-// OverflowError) if the size exceeds PY_SSIZE_T_MAX.
-static std::optional<Py_ssize_t> checked_tuple_size(std::size_t n)
-{
-  if (n > static_cast<std::size_t>(PY_SSIZE_T_MAX)) {
-    PyErr_Format(PyExc_OverflowError, "array is too large to convert to a Python tuple");
-    return std::nullopt;
-  }
-  return static_cast<Py_ssize_t>(n);
-}
-
-static PyObject* string_map_to_python(std::map<std::string, std::string> const& value)
-{
-  PyObject* result = PyDict_New();
-  if (!result) {
-    return nullptr;
-  }
-
-  for (auto const& [key, item] : value) {
-    PyObject* pyitem =
-      PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
-    if (!pyitem) {
-      Py_DECREF(result);
+    char const* key_text = PyUnicode_AsUTF8(pykey);
+    if (!key_text) {
       return nullptr;
     }
-    int const status = PyDict_SetItemString(result, key.c_str(), pyitem);
-    Py_DECREF(pyitem);
-    if (status < 0) {
-      Py_DECREF(result);
-      return nullptr;
+    std::string const ckey = key_text;
+
+    PyObject* pyvalue = nullptr;
+    try {
+      auto const [kind, is_array] = pycmap->ph_config->prototype_internal_kind(ckey);
+      pyvalue = is_array ? configuration_array_to_python(*pycmap->ph_config, ckey, kind)
+                         : configuration_scalar_to_python(*pycmap->ph_config, ckey, kind);
+    } catch (std::runtime_error const& e) {
+      PyErr_Format(
+        PyExc_KeyError, "failed to retrieve property \"%s\" (%s)", ckey.c_str(), e.what());
     }
-  }
-  return result;
-}
 
-template <typename T, typename Converter>
-static PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter const& convert)
-{
-  auto const size = checked_tuple_size(values.size());
-  if (!size) {
-    return nullptr;
-  }
-
-  PyObject* result = PyTuple_New(*size);
-  if (!result) {
-    return nullptr;
-  }
-  for (Py_ssize_t i = 0; i < *size; ++i) {
-    PyObject* item = convert(values[static_cast<std::size_t>(i)]);
-    // LCOV_EXCL_START
-    if (!item) {
-      // Practically speaking, this only happens when there's an allocation failure.
-      Py_DECREF(result);
-      return nullptr;
+    // cache if found
+    if (pyvalue) {
+      PyDict_SetItem(pycmap->ph_config_cache, pykey, pyvalue);
+    } else if (!PyErr_Occurred()) {
+      PyErr_Format(PyExc_KeyError, "property \"%s\" is of unknown type", ckey.c_str());
     }
-    // LCOV_EXCL_STOP
-    PyTuple_SET_ITEM(result, i, item);
-  }
-  return result;
-}
 
-static PyObject* configuration_array_to_python(phlex::configuration const& config,
-                                               std::string const& key,
-                                               boost::json::kind kind)
-{
-  if (kind == boost::json::kind::bool_) {
-    auto const& value = config.get<std::vector<bool>>(key);
-    return vector_to_python_tuple(
-      value, [](bool item) { return PyBool_FromLong(static_cast<long>(item)); });
-  }
-  if (kind == boost::json::kind::int64) {
-    auto const& value = config.get<std::vector<std::int64_t>>(key);
-    return vector_to_python_tuple(value,
-                                  [](std::int64_t item) { return PyLong_FromLongLong(item); });
-  }
-  if (kind == boost::json::kind::uint64) {
-    auto const& value = config.get<std::vector<std::uint64_t>>(key);
-    return vector_to_python_tuple(
-      value, [](std::uint64_t item) { return PyLong_FromUnsignedLongLong(item); });
-  }
-  if (kind == boost::json::kind::double_) {
-    auto const& value = config.get<std::vector<double>>(key);
-    return vector_to_python_tuple(value, PyFloat_FromDouble);
-  }
-  if (kind == boost::json::kind::string) {
-    auto const& value = config.get<std::vector<std::string>>(key);
-    return vector_to_python_tuple(value, [](std::string const& item) {
-      return PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
-    });
-  }
-  if (kind == boost::json::kind::object) {
-    auto const& value = config.get<std::vector<std::map<std::string, std::string>>>(key);
-    return vector_to_python_tuple(value, string_map_to_python);
-  }
-  if (kind == boost::json::kind::null) {
-    return PyTuple_New(0);
-  }
-  return nullptr;
-}
-
-static PyObject* configuration_scalar_to_python(phlex::configuration const& config,
-                                                std::string const& key,
-                                                boost::json::kind kind)
-{
-  // Python 3.14 adds PyLong_FromInt64/PyLong_FromUInt64 to replace these variants.
-  static_assert(sizeof(long long) >= sizeof(std::int64_t));
-  static_assert(sizeof(unsigned long long) >= sizeof(std::uint64_t));
-
-  if (kind == boost::json::kind::bool_) {
-    return PyBool_FromLong(static_cast<long>(config.get<bool>(key)));
-  }
-  if (kind == boost::json::kind::int64) {
-    return PyLong_FromLongLong(config.get<std::int64_t>(key));
-  }
-  if (kind == boost::json::kind::uint64) {
-    return PyLong_FromUnsignedLongLong(config.get<std::uint64_t>(key));
-  }
-  if (kind == boost::json::kind::double_) {
-    return PyFloat_FromDouble(config.get<double>(key));
-  }
-  if (kind == boost::json::kind::string) {
-    auto const& value = config.get<std::string>(key);
-    return PyUnicode_FromStringAndSize(value.c_str(), static_cast<Py_ssize_t>(value.size()));
-  }
-  if (kind == boost::json::kind::object) {
-    return string_map_to_python(config.get<std::map<std::string, std::string>>(key));
-  }
-  return nullptr;
-}
-
-static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
-{
-  // Retrieve a named configuration setting.
-  //
-  // Configuration should have a single in-memory representation, which is why
-  // the current approach retrieves it from the equivalent C++ object, ie. after
-  // the JSON input has been parsed, even as there are Python JSON parsers.
-  //
-  // pykey: the lookup key to retrieve the configuration value
-
-  if (!PyUnicode_Check(pykey)) {
-    PyErr_SetString(PyExc_TypeError, "__getitem__ expects a string key");
-    return nullptr;
+    return pyvalue;
   }
 
-  // cached lookup
-  PyObject* cached_value = PyDict_GetItem(pycmap->ph_config_cache, pykey);
-  if (cached_value) {
-    Py_INCREF(cached_value);
-    return cached_value;
-  }
-  PyErr_Clear();
+  // PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  PyMappingMethods pcm_as_mapping = {.mp_length = nullptr,
+                                     .mp_subscript = reinterpret_cast<binaryfunc>(pcm_subscript),
+                                     .mp_ass_subscript = nullptr};
 
-  char const* key_text = PyUnicode_AsUTF8(pykey);
-  if (!key_text) {
-    return nullptr;
-  }
-  std::string const ckey = key_text;
-
-  PyObject* pyvalue = nullptr;
-  try {
-    auto const [kind, is_array] = pycmap->ph_config->prototype_internal_kind(ckey);
-    pyvalue = is_array ? configuration_array_to_python(*pycmap->ph_config, ckey, kind)
-                       : configuration_scalar_to_python(*pycmap->ph_config, ckey, kind);
-  } catch (std::runtime_error const& e) {
-    PyErr_Format(PyExc_KeyError, "failed to retrieve property \"%s\" (%s)", ckey.c_str(), e.what());
-  }
-
-  // cache if found
-  if (pyvalue) {
-    PyDict_SetItem(pycmap->ph_config_cache, pykey, pyvalue);
-  } else if (!PyErr_Occurred()) {
-    PyErr_Format(PyExc_KeyError, "property \"%s\" is of unknown type", ckey.c_str());
-  }
-
-  return pyvalue;
-}
-
-// PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMappingMethods pcm_as_mapping = {.mp_length = nullptr,
-                                          .mp_subscript =
-                                            reinterpret_cast<binaryfunc>(pcm_subscript),
-                                          .mp_ass_subscript = nullptr};
+} // namespace
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)

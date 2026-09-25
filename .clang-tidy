@@ -21,6 +21,7 @@ Checks:
   - '-llvm-header-guard' # Use scripts/fix_header_guards.py instead
   - 'misc-*'
   - '-misc-non-private-member-variables-in-classes'
+  - '-misc-use-anonymous-namespace' # Only way to suppress 'static' used in macros
   - '-misc-no-recursion'
   - 'modernize-*'
   - '-modernize-use-trailing-return-type'
