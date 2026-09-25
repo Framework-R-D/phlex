@@ -243,7 +243,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
   std::vector<phlex::source const*> sources{};
   auto src = std::make_unique<test_source>();
   sources.push_back(src.get());
-  detail::driver_proxy proxy{sources};
+  detail::driver_proxy const proxy{sources};
 
   SECTION("Throw when source parameter count mismatches")
   {
@@ -265,7 +265,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
 
 TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
 {
-  detail::driver_proxy proxy{{}};
+  detail::driver_proxy const proxy{{}};
   auto const bundle = proxy.driver(std::make_shared<test_driver_builder>());
 
   CHECK(static_cast<bool>(bundle.driver));

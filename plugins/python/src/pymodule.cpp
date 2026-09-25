@@ -15,7 +15,6 @@
 
 using namespace phlex::experimental;
 using namespace phlex;
-using phlex::detail::framework_graph;
 
 static bool initialize();
 
@@ -26,7 +25,7 @@ namespace pymodule_register_providers {
   {
     initialize();
 
-    py_gilraii g;
+    py_gilraii const g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -66,7 +65,7 @@ namespace pymodule_register_algorithms {
   {
     initialize();
 
-    py_gilraii g;
+    py_gilraii const g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -113,7 +112,7 @@ static void import_numpy(bool control_interpreter)
 
 static void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
 {
-  std::string prefix_path_str(cmake_prefix_path);
+  std::string const prefix_path_str(cmake_prefix_path);
   std::istringstream iss(prefix_path_str);
   std::string path_entry;
   std::vector<std::string> site_package_paths;
@@ -121,8 +120,9 @@ static void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
   // Build site-packages paths from each CMAKE_PREFIX_PATH token
   while (std::getline(iss, path_entry, ':')) {
     if (!path_entry.empty()) {
-      std::string site_packages = path_entry + "/lib/python" + std::to_string(PY_MAJOR_VERSION) +
-                                  "." + std::to_string(PY_MINOR_VERSION) + "/site-packages";
+      std::string const site_packages = path_entry + "/lib/python" +
+                                        std::to_string(PY_MAJOR_VERSION) + "." +
+                                        std::to_string(PY_MINOR_VERSION) + "/site-packages";
       site_package_paths.push_back(site_packages);
     }
   }
@@ -160,7 +160,7 @@ static bool initialize()
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetString(&config, &config.program_name, L"phlex");
 
-  PyStatus status = Py_InitializeFromConfig(&config);
+  PyStatus const status = Py_InitializeFromConfig(&config);
   PyConfig_Clear(&config);
   if (PyStatus_Exception(status)) {
     throw std::runtime_error("Python initialization failed");

@@ -66,7 +66,7 @@ static bool format_traceback(std::string& msg,
 
 bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
 {
-  py_gilraii g;
+  py_gilraii const g;
 
   if (check_error) {
     if (!PyErr_Occurred()) {
@@ -80,7 +80,7 @@ bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
   PyObject* traceback = nullptr;
   PyErr_Fetch(&type, &value, &traceback);
   if (value) {
-    bool tb_ok = format_traceback(msg, type, value, traceback);
+    bool const tb_ok = format_traceback(msg, type, value, traceback);
     // LCOV_EXCL_START
     if (!tb_ok) {
       PyObject* pymsg = PyObject_Str(value);

@@ -350,7 +350,7 @@ namespace phlex::detail {
       return nullptr;
     }
 
-    std::string msg = fmt::format(
+    std::string const msg = fmt::format(
       "Multiple layers match specification {}:\n{}",
       layer_path,
       bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));

@@ -65,7 +65,7 @@ namespace phlex::detail {
     }
 
     if (candidates.size() > 1ull) {
-      std::string msg =
+      std::string const msg =
         fmt::format("The following data layers match the specification {}:\n\n{}"
                     "\n\nPlease specify the full layer path to disambiguate between them.",
                     layer,

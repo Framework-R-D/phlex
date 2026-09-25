@@ -20,7 +20,7 @@ TEST_CASE("algorithm_name tests", "[model]")
 
   SECTION("Default constructor")
   {
-    algorithm_name an;
+    algorithm_name const an;
     CHECK(an.to_string().empty());
   }
   SECTION("Create from string with colon")
@@ -45,14 +45,14 @@ TEST_CASE("algorithm_name tests", "[model]")
   }
   SECTION("Match both")
   {
-    algorithm_name an = algorithm_name::create("p:a");
+    algorithm_name const an = algorithm_name::create("p:a");
     CHECK(an.match(algorithm_name::create("p:a")));
     CHECK_FALSE(an.match(algorithm_name::create("p:b")));
   }
   SECTION("Bulleted list of algorithm_name")
   {
-    std::vector<algorithm_name> ans = {algorithm_name::create("p:a1"),
-                                       algorithm_name::create("p:a2")};
+    std::vector<algorithm_name> const ans = {algorithm_name::create("p:a1"),
+                                             algorithm_name::create("p:a2")};
     CHECK(bulleted_list(ans) == "  - p:a1\n  - p:a2");
   }
   SECTION("Empty bulleted list")
@@ -66,7 +66,7 @@ TEST_CASE("consumer tests", "[core]")
 {
   using namespace phlex::experimental::literals;
   auto an = phlex::experimental::algorithm_name::create("p:a");
-  phlex::detail::consumer c(an, {"pred1"});
+  phlex::detail::consumer const c(an, {"pred1"});
 
   CHECK(c.name().to_string() == "p:a");
   CHECK(c.plugin() == "p"_idq);
@@ -86,13 +86,13 @@ TEST_CASE("verify_name tests", "[core]")
   {
     boost::json::object obj;
     obj["module_label"] = "my_module";
-    phlex::configuration config{obj};
+    phlex::configuration const config{obj};
 
     try {
       verify_name("", &config);
       FAIL("Should have thrown");
     } catch (std::runtime_error const& e) {
-      std::string msg = e.what();
+      std::string const msg = e.what();
       CHECK(msg.contains("my_module"));
     }
   }
