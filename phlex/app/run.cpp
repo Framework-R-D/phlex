@@ -1,9 +1,10 @@
 #include "phlex/app/run.hpp"
 
-#include "fmt/format.h"
 #include "phlex/app/load_module.hpp"
 #include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+
+#include <fmt/format.h>
 
 #include <stdexcept>
 #include <string>
