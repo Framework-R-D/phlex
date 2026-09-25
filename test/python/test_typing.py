@@ -111,23 +111,12 @@ class TestTYPING:
         assert count_optional_arguments(None) == 0
 
         # proper cases
-        def a0():
-            pass
-
-        def a1o0(a0):
-            pass
-
-        def a1o1(a0=1):
-            pass
-
-        def a2o0(a0, a1):
-            pass
-
-        def a2o1(a0, a1=1):
-            pass
-
-        def a2o2(a0=0, a1=1):
-            pass
+        def a0(): pass
+        def a1o0(a0): pass
+        def a1o1(a0=1): pass
+        def a2o0(a0, a1): pass
+        def a2o1(a0, a1=1): pass
+        def a2o2(a0=0, a1=1): pass
 
         assert count_optional_arguments(a0) == 0
         assert count_optional_arguments(a1o0) == 0

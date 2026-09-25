@@ -257,7 +257,7 @@ def count_optional_arguments(pycall: Callable[..., Any]) -> int:
     try:
         sig = inspect.signature(pycall)
     except (ValueError, TypeError):
-        return 0  # unknown or not a callable
+        return 0   # unknown or not a callable
 
     nopt = 0
     for p in sig.parameters.values():

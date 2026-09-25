@@ -72,15 +72,13 @@ class ConfigConsumer:
             pass  # all good as exception was raised
 
         # hit a few error paths for converage
-        for args, msg in [
-            ((1, 2, 3), "takes exactly 2 arguments"),
-            ((1, 2), "expects a string key"),
-        ]:
+        for args, msg in [((1, 2, 3), "takes exactly 2 arguments"),
+                          ((1, 2), "expects a string key"),]:
             try:
                 config.get(*args)
                 assert not "supposed to be here"
             except TypeError as e:
-                assert msg in str(e)
+                 assert msg in str(e)
 
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
