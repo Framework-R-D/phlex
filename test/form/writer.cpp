@@ -26,25 +26,27 @@
 static int const number_event = 4;
 static int const number_segment = 15;
 
-struct generator {
-  generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
+namespace {
+  struct generator {
+    generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
 
-  void operator()(std::vector<float>& vrand, int size)
-  {
-    assert(size > 1);
-    std::uniform_int_distribution size_dist(0, size - 1);
-    size_t const how_many = size_dist(gen_);
-    vrand.resize(how_many);
+    void operator()(std::vector<float>& vrand, int size)
+    {
+      assert(size > 1);
+      std::uniform_int_distribution size_dist(0, size - 1);
+      size_t const how_many = size_dist(gen_);
+      vrand.resize(how_many);
 
-    for (auto& rand : vrand) {
-      rand = dist_(gen_);
+      for (auto& rand : vrand) {
+        rand = dist_(gen_);
+      }
     }
-  }
 
-private:
-  std::mt19937 gen_;
-  std::uniform_real_distribution<float> dist_;
-};
+  private:
+    std::mt19937 gen_;
+    std::uniform_real_distribution<float> dist_;
+  };
+} // namespace
 
 int main(int argc, char** argv)
 {

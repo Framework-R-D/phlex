@@ -8,12 +8,12 @@ using namespace phlex;
 
 // Provide selected (for now) access to Phlex's data_cell_index instances.
 // clang-format off
-namespace phlex::experimental {
+namespace {
   struct py_data_cell_index {
     PyObject_HEAD
     data_cell_index const* ph_dci;
   };
-}
+} // namespace
 // clang-format on
 
 PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)

@@ -255,15 +255,17 @@ TEST_CASE("storage_writer: committing an unknown placement throws", "[form]")
   CHECK_THROWS_AS(writer->commit_containers(absent), std::runtime_error);
 }
 
-template <class T>
-void test_fundamental(T const expected)
-{
-  SECTION(form::test::get_type_name<T>())
+namespace {
+  template <class T>
+  void test_fundamental(T const expected)
   {
-    form::test::write(technology, expected);
-    auto const [result] = form::test::read<T>(technology);
-    REQUIRE(result != nullptr);
-    CHECK(*result == expected);
+    SECTION(form::test::get_type_name<T>())
+    {
+      form::test::write(technology, expected);
+      auto const [result] = form::test::read<T>(technology);
+      REQUIRE(result != nullptr);
+      CHECK(*result == expected);
+    }
   }
 }
 

@@ -23,15 +23,17 @@ static int const number_segment = 15;
 
 static float const tolerance = 1e-3f;
 
-// Structs to hold expected checksums
-struct seg_checksum {
-  float check;
-  float cpx, cpy, cpz;
-};
+namespace {
+  // Structs to hold expected checksums
+  struct seg_checksum {
+    float check;
+    float cpx, cpy, cpz;
+  };
 
-struct evt_checksum {
-  float check;
-};
+  struct evt_checksum {
+    float check;
+  };
+} // namespace
 
 int main(int argc, char** argv)
 {
