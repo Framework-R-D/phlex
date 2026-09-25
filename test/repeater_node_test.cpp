@@ -73,8 +73,8 @@ namespace {
 
   class repeater_test_fixture {
   public:
-    explicit repeater_test_fixture(std::string node_name) :
-      repeater_{g_, std::move(node_name), "run"_id}, consumer_{g_}
+    explicit repeater_test_fixture(std::string const& node_name) :
+      repeater_{g_, node_name, "run"_id}, consumer_{g_}
     {
       make_edge(repeater_, consumer_);
     }
