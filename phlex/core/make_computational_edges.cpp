@@ -52,7 +52,18 @@ namespace phlex::detail {
     {
       provider_bundles result;
       for (auto const& src : sources | std::views::values) {
-        result.append_range(src->create_providers(input_product));
+        // FIXME: Eventually, make it impossible to create a stage named "CURRENT"
+        // so that we can remove this check.
+        auto implicit_providers = src->create_providers(input_product);
+        for (auto const& provider : implicit_providers) {
+          if (provider.stage == "CURRENT") {
+            throw std::runtime_error(fmt::format(
+              "Implicit provider for product '{}' has stage 'CURRENT', which is reserved.\nThe "
+              "implicit provider must provide a stage that is not 'CURRENT'.",
+              input_product.to_string()));
+          }
+        }
+        result.append_range(std::views::as_rvalue(implicit_providers));
       }
       return result;
     }

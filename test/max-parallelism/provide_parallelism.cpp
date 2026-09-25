@@ -13,7 +13,7 @@ namespace {
       using namespace phlex::experimental;
       phlex::provider_bundles bundles;
       std::string const layer = "job";
-      std::string const stage = "CURRENT";
+      std::string const stage = "stage0";
       product_specification spec{"input", "max_parallelism", make_type_id<std::size_t>()};
 
       using phlex::detail::max_allowed_parallelism;

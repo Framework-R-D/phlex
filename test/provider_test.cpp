@@ -8,6 +8,8 @@
 #include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
+#include <cassert>
+
 using namespace phlex;
 using Catch::Matchers::ContainsSubstring;
 
@@ -66,6 +68,21 @@ namespace {
     }
   };
 
+  class current_stage_source : public phlex::source {
+  public:
+    provider_bundles create_providers(product_selector const& selector) override
+    {
+      experimental::product_specification spec{
+        "vertices_maker", "happy_vertices", experimental::make_type_id<toy::vertex_collection>()};
+      assert(selector.match(spec, "job"_id, "CURRENT"_id));
+      return {{.provider_function = give_me_vertices_erased,
+               .max_concurrency = concurrency::unlimited,
+               .spec = std::move(spec),
+               .layer = "job",
+               .stage = "CURRENT"}};
+    }
+  };
+
   unsigned pass_on(toy::vertex_collection const& vertices) { return vertices.data; }
 }
 
@@ -121,6 +138,22 @@ TEST_CASE("Named graph stage does not match a provider from another stage")
                     ContainsSubstring("No provider found for the following required products:"));
 }
 
+TEST_CASE("CURRENT stage does not match a provider from another stage")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  g.provide("provide_previous_vertices", give_me_vertices, concurrency::unlimited)
+    .output_product("vertices_maker", "happy_vertices", "job", "previous_process");
+  g.observe(
+     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "vertices_maker",
+                                   .layer = "job",
+                                   .suffix = "happy_vertices",
+                                   .stage = "CURRENT"_id});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("No provider found for the following required products:"));
+}
+
 TEST_CASE("Explicit Provider Ambiguity")
 {
   auto g = phlex::detail::framework_graph::with_default_driver("test");
@@ -168,6 +201,20 @@ TEST_CASE("Implicit providers")
   CHECK(g.execution_count("vertices_maker") == num_spills);
   CHECK(g.execution_count("passer") == num_spills);
   CHECK(g.execution_count("verify_implicit_stage") == num_spills);
+}
+
+TEST_CASE("Implicit provider cannot use the reserved CURRENT stage")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  g.add_source<current_stage_source>("current_stage_source");
+  g.observe(
+     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "job", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("Implicit provider for product") &&
+                      ContainsSubstring("has stage 'CURRENT', which is reserved"));
 }
 
 TEST_CASE("Throw when two sources with the same name are registered")
