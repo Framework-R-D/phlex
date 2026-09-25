@@ -76,6 +76,18 @@ TEST_CASE("A stage is required to run phlex", "[config]")
   CHECK_THROWS_WITH(phlex::detail::run({}, {}), "Must provide a 'stage' name.");
 }
 
+TEST_CASE("An empty stage cannot be used to run phlex", "[config]")
+{
+  phlex::detail::overridable_configuration const overrides{.stage = ""};
+  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "Stage name cannot be empty.");
+}
+
+TEST_CASE("CURRENT is a reserved stage name for running phlex", "[config]")
+{
+  phlex::detail::overridable_configuration const overrides{.stage = "CURRENT"};
+  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "'CURRENT' is a reserved stage name.");
+}
+
 TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
 {
   boost::json::object configurations;
