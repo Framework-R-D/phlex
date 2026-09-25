@@ -61,18 +61,18 @@ namespace form::detail::experimental {
         "root_rfield_write_container_imp::fill No parent RNTuple set up before first fill() call");
     }
 
-    std::uint64_t nEntries = std::numeric_limits<std::uint64_t>::max();
+    std::uint64_t n_entries = std::numeric_limits<std::uint64_t>::max();
     try {
       rntuple_parent_->get_entry().BindRawPtr(col_name(), data);
 
       // Unlike a TBranch, an RNTuple entry is only written on commit();
       // every field bound before that commit shares one entry.
       // Return the 0-based index that pending entry will occupy (the current entry count).
-      nEntries = static_cast<std::uint64_t>(rntuple_parent_->get_writer().GetNEntries());
+      n_entries = static_cast<std::uint64_t>(rntuple_parent_->get_writer().GetNEntries());
     } catch (ROOT::RException const& e) {
       handle_rexception("failed to fill", e);
     }
-    return nEntries;
+    return n_entries;
   }
 
   void root_rfield_write_container_imp::commit()
