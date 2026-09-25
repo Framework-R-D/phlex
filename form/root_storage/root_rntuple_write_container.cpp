@@ -1,8 +1,8 @@
 //A root_rntuple_write_container_imp is a storage_write_association that coordinates the RNTuple-specific, file-based resources (writer, model, entry) shared by several root_rfield_write_container_imps; it does not itself write a data product (see root_rfield_write_container_imp for the per-field write path).
 
 #include "root_rntuple_write_container.hpp"
-#include "handle_rexception.hpp"
 
+#include "handle_rexception.hpp"
 #include "root_tfile.hpp"
 
 #include <ROOT/RNTupleReader.hxx>
