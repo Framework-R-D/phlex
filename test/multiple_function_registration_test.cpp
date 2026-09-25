@@ -2,7 +2,7 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <numeric>

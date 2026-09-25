@@ -1,16 +1,15 @@
 #ifndef PHLEX_CORE_DECLARED_OUTPUT_HPP
 #define PHLEX_CORE_DECLARED_OUTPUT_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cstddef>
 #include <functional>

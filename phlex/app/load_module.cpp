@@ -1,13 +1,15 @@
 #include "phlex/app/load_module.hpp"
+
 #include "phlex/configuration.hpp"
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/module.hpp"
+#include "phlex/resource.hpp"
 #include "phlex/source.hpp"
 
-#include "boost/algorithm/string.hpp"
-#include "boost/dll/shared_library.hpp"
-#include "boost/json.hpp"
+#include <boost/algorithm/string.hpp>
+#include <boost/dll/shared_library.hpp>
+#include <boost/json.hpp>
 
 #include <cstdlib>
 #include <optional>
@@ -38,9 +40,19 @@ namespace phlex::detail {
       boost::dll::shared_library lib;
       internal::source_creator_t* fn{};
 
-      void operator()(source_bundle bundle, configuration const& config) const
+      void operator()(graph_registration_bundle bundle, configuration const& config) const
       {
         fn(bundle, config);
+      }
+    };
+
+    struct resource_plugin {
+      boost::dll::shared_library lib;
+      internal::resource_creator_t* fn{};
+
+      void operator()(resources_graph_proxy const& proxy, configuration const& config) const
+      {
+        fn(proxy, config);
       }
     };
 
@@ -56,12 +68,12 @@ namespace phlex::detail {
       }
     };
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<module_plugin> create_module;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<source_plugin> create_source;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    std::vector<resource_plugin> create_resources;
     std::optional<driver_plugin> create_driver;
+    // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
     template <typename CreatorT>
     std::pair<boost::dll::shared_library, CreatorT*> plugin_loader(std::string const& spec,
@@ -132,6 +144,24 @@ namespace phlex::detail {
     creator(g.module_proxy(config), config);
   }
 
+  void load_resource(framework_graph& g, std::string const& label, boost::json::object raw_config)
+  {
+    auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
+
+    auto const* cpp = adjusted_config.if_contains("cpp");
+    if (not cpp) {
+      throw std::runtime_error(
+        fmt::format("Missing 'cpp' parameter for {} -- only C++ resources are supported.", label));
+    }
+    auto const& spec = value_to<std::string>(*cpp);
+    auto [lib, fn] = plugin_loader<internal::resource_creator_t>(spec, "create_resources");
+    auto& creator = create_resources.emplace_back(resource_plugin{.lib = std::move(lib), .fn = fn});
+
+    configuration const config{adjusted_config};
+    auto const proxy = resources_graph_proxy{g.registration_bundle(config)};
+    creator(proxy, config);
+  }
+
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
     auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
@@ -146,7 +176,7 @@ namespace phlex::detail {
     // adjusted_config["module_label"] = label;       // already set by adjust_config
 
     configuration const config{adjusted_config};
-    creator(g.source_proxy(config), config);
+    creator(g.registration_bundle(config), config);
   }
 
   void load_driver(framework_graph& g, boost::json::object const& raw_config)

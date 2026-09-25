@@ -1,7 +1,7 @@
 #ifndef PHLEX_DETAIL_PLUGIN_MACROS_HPP
 #define PHLEX_DETAIL_PLUGIN_MACROS_HPP
 
-#include "boost/preprocessor.hpp"
+#include <boost/preprocessor.hpp>
 
 // NOLINTBEGIN(bugprone-macro-parentheses)
 // `bugprone-macro-parentheses` is appropriate for expression-like macros, but these macros expand
@@ -36,7 +36,7 @@
 // Source plugin entry-points cannot use extern "C" directly because the user-facing proxy types
 // (providers_graph_proxy, source_graph_proxy) are C++ templates.  Instead we:
 //   1. Forward-declare the user's C++ implementation (takes the proxy by reference).
-//   2. Define a thin extern "C" shim that accepts source_bundle by value (matching
+//   2. Define a thin extern "C" shim that accepts graph_registration_bundle by value (matching
 //      source_creator_t exactly), constructs the appropriate proxy from the bundle,
 //      and calls the user's implementation.
 //   3. Open the user's implementation definition for the body that follows the macro.
@@ -54,7 +54,7 @@
 
 #define PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(token_type, func_name, dll_alias, ...)                 \
   static PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, __VA_ARGS__);                 \
-  extern "C" void dll_alias(phlex::detail::source_bundle __phlex_bundle,                           \
+  extern "C" void dll_alias(phlex::detail::graph_registration_bundle __phlex_bundle,               \
                             phlex::configuration const& __phlex_config)                            \
   {                                                                                                \
     func_name(token_type<phlex::detail::void_tag>{__phlex_bundle}, __phlex_config);                \

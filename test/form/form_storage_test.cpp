@@ -1,7 +1,5 @@
 //Tests for FORM's storage layer's design requirements
 
-#include "test/form/test_utils.hpp"
-
 #include "form/config.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
@@ -11,11 +9,11 @@
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
+#include "test/form/test_utils.hpp"
 
-#include "TBranch.h"
-#include "TFile.h"
-#include "TTree.h"
-
+#include <TBranch.h>
+#include <TFile.h>
+#include <TTree.h>
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 

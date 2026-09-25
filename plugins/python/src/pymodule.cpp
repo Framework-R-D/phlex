@@ -1,20 +1,18 @@
-#include <atomic>
-#include <dlfcn.h>
-#include <stdexcept>
-#include <string>
-
 #include "phlex/core/framework_graph.hpp"
-
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/source.hpp"
 #include "wrap.hpp"
 
+#include <dlfcn.h>
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
 
-#include "phlex/model/data_cell_index.hpp"
-#include "phlex/source.hpp"
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 
 using namespace phlex::experimental;
 using namespace phlex;

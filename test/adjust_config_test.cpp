@@ -1,9 +1,9 @@
 #include "phlex/app/load_module.hpp"
+#include "phlex/core/framework_graph.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
-
-#include "boost/json.hpp"
+#include <boost/json.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 using namespace phlex::detail::internal;
 
@@ -58,4 +58,14 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
   - cpp: my_other_python_phlex_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed3", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
+}
+
+TEST_CASE("Loading resources requires a cpp parameter", "[config]")
+{
+  auto graph = phlex::detail::framework_graph::without_driver();
+
+  CHECK_THROWS_WITH(
+    phlex::detail::load_resource(graph, "my_resource", {}),
+    Catch::Matchers::ContainsSubstring(
+      "Missing 'cpp' parameter for my_resource -- only C++ resources are supported."));
 }

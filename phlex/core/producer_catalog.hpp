@@ -1,14 +1,13 @@
 #ifndef PHLEX_CORE_PRODUCER_CATALOG_HPP
 #define PHLEX_CORE_PRODUCER_CATALOG_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/message.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <map>
 #include <ranges>
@@ -28,7 +27,7 @@ namespace phlex::detail {
       phlex::experimental::type_id type;
     };
 
-    named_output_port const* find_producer(
+    std::vector<named_output_port const*> find_producers(
       product_selector const& query,
       phlex::experimental::algorithm_name const& consumer_name) const;
     auto values() const { return producers_ | std::views::values; }

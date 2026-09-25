@@ -13,13 +13,12 @@
 // created by make_filter_edges().
 // =========================================================================================
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/filter.hpp"
 #include "phlex/core/index_router.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <map>
 #include <string>

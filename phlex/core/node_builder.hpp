@@ -3,9 +3,8 @@
 
 #include "phlex/core/resource_api.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
-
 #include <gsl/span>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <array>
 #include <cstddef>

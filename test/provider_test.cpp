@@ -3,10 +3,10 @@
 #include "phlex/source.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 using namespace phlex;
 using Catch::Matchers::ContainsSubstring;

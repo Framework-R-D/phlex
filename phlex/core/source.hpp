@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_SOURCE_HPP
 #define PHLEX_CORE_SOURCE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/provider_node.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -10,6 +8,7 @@
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <functional>

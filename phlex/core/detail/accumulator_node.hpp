@@ -6,10 +6,10 @@
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_queue.h"
-#include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
+#include <oneapi/tbb/concurrent_hash_map.h>
+#include <oneapi/tbb/concurrent_queue.h>
+#include <oneapi/tbb/flow_graph.h>
+#include <spdlog/spdlog.h>
 
 #include <atomic>
 #include <cassert>

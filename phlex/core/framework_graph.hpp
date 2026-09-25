@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 #define PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/index_router.hpp"
@@ -16,12 +14,13 @@
 #include "phlex/model/flush_messages.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
-#include "oneapi/tbb/info.h"
+#include <oneapi/tbb/flow_graph.h>
+#include <oneapi/tbb/info.h>
 
 #include <concepts>
 #include <cstdint>
@@ -76,7 +75,7 @@ namespace phlex::detail {
       return {config, graph_, nodes_, registration_errors_, resources_};
     }
 
-    source_bundle source_proxy(configuration const& config)
+    graph_registration_bundle registration_bundle(configuration const& config)
     {
       return {.config = config,
               .graph = graph_,

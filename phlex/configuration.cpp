@@ -1,4 +1,5 @@
 #include "phlex/configuration.hpp"
+
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"

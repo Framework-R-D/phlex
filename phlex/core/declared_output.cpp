@@ -1,4 +1,5 @@
 #include "phlex/core/declared_output.hpp"
+
 #include "phlex/configuration.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
 

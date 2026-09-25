@@ -2,9 +2,8 @@
 #include "phlex/model/index_generator.hpp"
 #include "phlex/utilities/resumable_driver.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-
-#include "tbb/flow_graph.h"
+#include <catch2/catch_test_macros.hpp>
+#include <tbb/flow_graph.h>
 
 #include <ranges>
 #include <vector>

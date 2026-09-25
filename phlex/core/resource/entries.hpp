@@ -3,9 +3,8 @@
 
 #include "phlex/core/resource/concepts.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
-
 #include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
 #include <utility>

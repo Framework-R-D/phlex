@@ -63,8 +63,6 @@ int main(int argc, char** argv)
   tech_config.container_settings[form::technology::root_ttree]["trackStart"].emplace_back(
     "auto_flush", "1");
   tech_config.file_settings[technology]["toy.root"].emplace_back("compression", "kZSTD");
-  tech_config.container_settings[form::technology::root_rntuple]["Toy_Tracker/trackStartPoints"]
-    .emplace_back("force_streamer_field", "true");
 
   form::experimental::form_writer_interface form(config_items, tech_config);
 

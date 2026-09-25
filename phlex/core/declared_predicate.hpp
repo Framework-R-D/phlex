@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_PREDICATE_HPP
 #define PHLEX_CORE_DECLARED_PREDICATE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
@@ -18,9 +16,10 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <cstddef>
@@ -40,7 +39,8 @@ namespace phlex::detail {
   public:
     declared_predicate(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_selectors input_products);
+                       product_selectors input_products,
+                       tbb::flow::graph& graph);
     ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
@@ -72,7 +72,7 @@ namespace phlex::detail {
                    AlgorithmBits alg,
                    product_selectors input_products,
                    resource_catalog& resources) :
-      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
       predicate_{builder::make(
         g,

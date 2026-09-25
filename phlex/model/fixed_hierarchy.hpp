@@ -1,10 +1,9 @@
 #ifndef PHLEX_MODEL_FIXED_HIERARCHY_HPP
 #define PHLEX_MODEL_FIXED_HIERARCHY_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/layer_path.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <gsl/pointers>
 

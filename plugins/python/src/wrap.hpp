@@ -16,15 +16,15 @@
 //
 // =======================================================================================
 
-#include "Python.h"
-
-#include <memory>
-#include <string>
-
 #include "phlex/configuration.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
+
+#include <Python.h>
+
+#include <memory>
+#include <string>
 
 namespace phlex::experimental {
 

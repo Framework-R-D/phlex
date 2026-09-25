@@ -1,4 +1,5 @@
 #include "phlex/app/run.hpp"
+
 #include "phlex/app/load_module.hpp"
 #include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
@@ -18,6 +19,15 @@ namespace phlex::detail {
   void run(boost::json::object const& configurations, int const max_parallelism)
   {
     auto g = framework_graph::without_driver(max_parallelism);
+
+    boost::json::object resource_configs;
+    if (configurations.contains("resources")) {
+      resource_configs = object_decorate_exception(configurations, "resources");
+    }
+
+    for (auto const& [key, value] : resource_configs) {
+      load_resource(g, key, value.as_object());
+    }
 
     // It is allowed for users to not specify any modules
     boost::json::object module_configs;

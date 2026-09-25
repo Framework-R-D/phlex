@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 #define PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -10,19 +8,24 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
 namespace phlex::detail {
   enum class require_layers : char { never, multi_input_only, always };
   class PHLEX_CORE_EXPORT products_consumer : public consumer {
+    using layer_check_node_t = tbb::flow::multifunction_node<message, message_tuple<1UZ>>;
+
   public:
     products_consumer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
                       product_selectors input_products,
+                      tbb::flow::graph& graph,
                       require_layers layers_required);
 
     virtual ~products_consumer();
@@ -46,9 +49,10 @@ namespace phlex::detail {
 
   private:
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
-
+    std::reference_wrapper<tbb::flow::graph> graph_;
     product_selectors input_products_;
     std::vector<phlex::experimental::identifier> layers_;
+    std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
   };
 }
 

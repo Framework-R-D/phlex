@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -17,9 +15,10 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <concepts>
@@ -62,6 +61,7 @@ namespace phlex::detail {
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
                     product_selectors input_products,
+                    tbb::flow::graph& graph,
                     std::string child_layer);
     ~declared_unfold() override;
 
@@ -134,6 +134,7 @@ namespace phlex::detail {
       declared_unfold{std::move(algo_name),
                       std::move(predicates),
                       std::move(input_products),
+                      g,
                       std::move(child_layer_name)},
       output_{to_product_specifications(name(),
                                         std::move(output_product_suffixes),

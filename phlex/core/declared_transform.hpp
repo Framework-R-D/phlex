@@ -23,8 +23,8 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_unordered_map.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
 #include <concepts>
@@ -45,7 +45,8 @@ namespace phlex::detail {
   public:
     declared_transform(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_selectors input_products);
+                       product_selectors input_products,
+                       tbb::flow::graph& graph);
     ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
@@ -81,7 +82,7 @@ namespace phlex::detail {
                    product_selectors input_products,
                    std::vector<std::string> output,
                    resource_catalog& resources) :
-      declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       output_{
         to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},

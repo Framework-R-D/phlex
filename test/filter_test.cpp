@@ -1,15 +1,14 @@
-#include <algorithm>
-
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/concurrent_vector.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/concurrent_vector.h>
+#include <spdlog/spdlog.h>
 
-#include "spdlog/spdlog.h"
+#include <algorithm>
 
 using namespace phlex;
 using namespace phlex::detail;

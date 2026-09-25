@@ -1,18 +1,17 @@
 #ifndef PHLEX_CORE_MESSAGE_HPP
 #define PHLEX_CORE_MESSAGE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
-#include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
+#include <oneapi/tbb/flow_graph.h> // <-- belongs somewhere else
 
 #include <cstddef>
 #include <optional>

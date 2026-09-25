@@ -1,9 +1,10 @@
 #include "phlex/core/declared_unfold.hpp"
+
 #include "phlex/model/handle.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 namespace phlex::detail {
 
@@ -30,9 +31,13 @@ namespace phlex::detail {
   declared_unfold::declared_unfold(phlex::experimental::algorithm_name name,
                                    std::vector<std::string> predicates,
                                    product_selectors input_products,
+                                   tbb::flow::graph& graph,
                                    std::string child_layer) :
-    products_consumer{
-      std::move(name), std::move(predicates), std::move(input_products), require_layers::always},
+    products_consumer{std::move(name),
+                      std::move(predicates),
+                      std::move(input_products),
+                      graph,
+                      require_layers::always},
     child_layer_{std::move(child_layer)}
   {
   }

@@ -1,6 +1,6 @@
 #include "phlex/core/product_selector.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 namespace phlex {
   // Check that all products selected by /other/ would satisfy this query
@@ -106,6 +106,12 @@ namespace phlex {
   experimental::product_specification const* resolve_in_store(
     product_selector const& query, experimental::product_store const& store)
   {
+    // Protect against layer mismatch
+    if (query.layer) {
+      if (store.index()->layer_name() != *query.layer) {
+        return nullptr;
+      }
+    }
     for (auto const& [spec, _] : store) {
       if (query.match(spec)) {
         return &spec;

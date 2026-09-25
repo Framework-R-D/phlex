@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_FOLD_HPP
 #define PHLEX_CORE_DECLARED_FOLD_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fold/send.hpp"
@@ -18,10 +16,11 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_unordered_map.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cassert>
@@ -41,6 +40,7 @@ namespace phlex::detail {
     declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
                   product_selectors input_products,
+                  tbb::flow::graph& graph,
                   std::string partition_layer);
     ~declared_fold() override;
 
@@ -106,6 +106,7 @@ namespace phlex::detail {
       declared_fold{std::move(algo_name),
                     std::move(predicates),
                     std::move(input_products),
+                    g,
                     std::move(partition_layer)},
       output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       join_{g,

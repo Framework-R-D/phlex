@@ -1,6 +1,6 @@
 #include "phlex/core/node_catalog.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <string>
 #include <vector>

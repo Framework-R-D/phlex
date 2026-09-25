@@ -1,8 +1,8 @@
 #include "phlex/configuration.hpp"
 
-#include "boost/json.hpp"
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
+#include <boost/json.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 using namespace phlex;
 using namespace Catch::Matchers;

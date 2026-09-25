@@ -1,7 +1,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 
 #include <tuple>
 #include <vector>

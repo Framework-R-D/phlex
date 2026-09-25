@@ -1,10 +1,9 @@
+#include "phlex/concurrency.hpp"
 #include "phlex/core/node_builder.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 
-#include "phlex/concurrency.hpp"
-
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/parallel_for.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/parallel_for.h>
 
 #include <atomic>
 #include <chrono>

@@ -8,7 +8,7 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <memory>
@@ -22,6 +22,17 @@ namespace phlex {
 }
 
 namespace phlex::detail {
+  struct graph_registration_bundle {
+    // Non-owning references to framework-owned resources; this is a short-lived struct.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    configuration const& config;
+    tbb::flow::graph& graph;
+    node_catalog& nodes;
+    resource_catalog& resources;
+    std::vector<std::string>& registration_errors;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  };
+
   // ==============================================================================
   // Registering user functions
 

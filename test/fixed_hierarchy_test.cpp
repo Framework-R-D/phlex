@@ -2,8 +2,8 @@
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/utilities/resumable_driver.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 using namespace phlex;
 using namespace phlex::experimental;

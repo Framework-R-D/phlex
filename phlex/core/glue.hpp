@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_GLUE_HPP
 #define PHLEX_CORE_GLUE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/registrar.hpp"
@@ -10,8 +8,9 @@
 #include "phlex/core/resource_api.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
 #include <memory>

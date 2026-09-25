@@ -1,8 +1,9 @@
 #include "phlex/core/message.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <iterator>

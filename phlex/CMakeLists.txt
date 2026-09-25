@@ -34,7 +34,24 @@ cet_make_library(
   phlex::configuration
 )
 
-install(FILES concurrency.hpp driver.hpp module.hpp source.hpp DESTINATION include/phlex)
+cet_make_library(
+  LIBRARY_NAME
+  phlex_resource
+  EXPORT_NAME
+  resource
+  INTERFACE
+  NO_SOURCE
+  LIBRARIES
+  Boost::boost
+  Boost::json
+  phlex::core
+  phlex::configuration
+)
+
+install(
+  FILES concurrency.hpp driver.hpp module.hpp resource.hpp source.hpp
+  DESTINATION include/phlex
+)
 install(FILES detail/plugin_macros.hpp DESTINATION include/phlex/detail)
 
 cet_make_library(

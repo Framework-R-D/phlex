@@ -1,4 +1,5 @@
 #include "phlex/core/detail/make_algorithm_name.hpp"
+
 #include "phlex/configuration.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"

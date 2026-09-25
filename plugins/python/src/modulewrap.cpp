@@ -1,7 +1,6 @@
 #include "dyncall.hpp"
-#include "wrap.hpp"
-
 #include "phlex/model/data_cell_index.hpp"
+#include "wrap.hpp"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>

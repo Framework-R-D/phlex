@@ -3,7 +3,7 @@
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 
-#include "boost/mp11/algorithm.hpp"
+#include <boost/mp11/algorithm.hpp>
 
 #include <cstddef>
 #include <functional>
