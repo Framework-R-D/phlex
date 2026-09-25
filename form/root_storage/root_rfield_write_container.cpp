@@ -3,6 +3,7 @@
 #include "root_rfield_write_container.hpp"
 
 #include "demangle_name.hpp"
+#include "handle_rexception.hpp"
 #include "root_rntuple_write_container.hpp"
 #include "root_tfile.hpp"
 
@@ -60,12 +61,18 @@ namespace form::detail::experimental {
         "root_rfield_write_container_imp::fill No parent RNTuple set up before first fill() call");
     }
 
-    rntuple_parent_->get_entry().BindRawPtr(col_name(), data);
+    std::uint64_t n_entries = std::numeric_limits<std::uint64_t>::max();
+    try {
+      rntuple_parent_->get_entry().BindRawPtr(col_name(), data);
 
-    // Unlike a TBranch, an RNTuple entry is only written on commit();
-    // every field bound before that commit shares one entry.
-    // Return the 0-based index that pending entry will occupy (the current entry count).
-    return static_cast<std::uint64_t>(rntuple_parent_->get_writer().GetNEntries());
+      // Unlike a TBranch, an RNTuple entry is only written on commit();
+      // every field bound before that commit shares one entry.
+      // Return the 0-based index that pending entry will occupy (the current entry count).
+      n_entries = static_cast<std::uint64_t>(rntuple_parent_->get_writer().GetNEntries());
+    } catch (ROOT::RException const& e) {
+      handle_rexception("failed to fill", e);
+    }
+    return n_entries;
   }
 
   void root_rfield_write_container_imp::commit()
@@ -82,7 +89,11 @@ namespace form::detail::experimental {
                                "You may have called commit() without calling setup_write() first.");
     }
 
-    rntuple_parent_->get_writer().Fill(rntuple_parent_->get_entry());
+    try {
+      rntuple_parent_->get_writer().Fill(rntuple_parent_->get_entry());
+    } catch (ROOT::RException const& e) {
+      handle_rexception("failed to Fill() RNTuple", e);
+    }
   }
 
   //setup_write() may not be called after the first time fill() is called.
@@ -98,25 +109,29 @@ namespace form::detail::experimental {
     auto const& type_name = demangle_name(type);
     std::unique_ptr<ROOT::RFieldBase> field;
 
-    if (force_streamer_field_) {
-      field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
-    } else {
-      auto field_result = ROOT::RFieldBase::Create(col_name(), type_name);
-      if (field_result) {
-        field = field_result.Unwrap();
-      } else {
-        std::cerr
-          << "root_rfield_write_container_imp::setup_write could not create column-wise storage "
-             "for "
-          << type_name
-          << ".  This class is probably using something obsolete like TLorentzVector.  Storing it "
-             "in streamer mode to keep the application going."
-          << '\n';
+    try {
+      if (force_streamer_field_) {
         field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
+      } else {
+        auto field_result = ROOT::RFieldBase::Create(col_name(), type_name);
+        if (field_result) {
+          field = field_result.Unwrap();
+        } else {
+          std::cerr
+            << "root_rfield_write_container_imp::setup_write could not create column-wise storage "
+               "for "
+            << type_name
+            << ".  This class is probably using something obsolete like TLorentzVector.  Storing "
+               "it in streamer mode to keep the application going.\n";
+          field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
+        }
       }
-    }
 
-    assert(rntuple_parent_->get_model());
-    rntuple_parent_->get_model()->AddField(std::move(field));
+      assert(rntuple_parent_->get_model());
+      rntuple_parent_->get_model()->AddField(std::move(field));
+    } catch (ROOT::RException const& e) {
+      handle_rexception("failed to create a field for " + col_name() + " with type " + type_name,
+                        e);
+    }
   }
 }

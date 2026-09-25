@@ -19,6 +19,7 @@ if(FORM_USE_RNTUPLE_STORAGE)
     root_rfield_read_container.cpp
     root_rfield_write_container.cpp
     root_rntuple_write_container.cpp
+    handle_rexception.cpp
   )
 endif()
 
