@@ -114,6 +114,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return provider_api{config_,
                           name,
+                          stage_,
                           algorithm_bits{bound_obj_, std::move(f)},
                           c,
                           graph_,

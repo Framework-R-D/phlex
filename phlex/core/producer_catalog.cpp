@@ -51,13 +51,15 @@ namespace {
   }
 
   bool providers_only(product_selector const& query,
-                      std::multimap<product_suffix_t, named_output_port> const& producers)
+                      std::multimap<product_suffix_t, named_output_port> const& producers,
+                      identifier const& stage)
   {
-    // Will need an update when we have a way to set the current stage name
-    if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq) {
+    if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq &&
+        query.stage.value() != stage) {
       spdlog::debug(
-        "{} requires a stage other than the current one. Assuming it comes from a provider.",
-        query.to_string());
+        "{} requires a stage other than the current one ({}). Assuming it comes from a provider.",
+        query.to_string(),
+        stage);
       return true;
     }
     if (producers.empty()) {
@@ -163,9 +165,11 @@ namespace {
 
 namespace phlex::detail {
   std::vector<producer_catalog::named_output_port const*> producer_catalog::find_producers(
-    product_selector const& query, phlex::experimental::algorithm_name const& consumer_name) const
+    product_selector const& query,
+    phlex::experimental::algorithm_name const& consumer_name,
+    phlex::experimental::identifier const& stage) const
   {
-    if (providers_only(query, producers_)) {
+    if (providers_only(query, producers_, stage)) {
       return {};
     }
     auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix)

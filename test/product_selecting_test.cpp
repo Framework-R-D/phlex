@@ -99,6 +99,16 @@ TEST_CASE("Querying products in different ways", "[graph]")
     CHECK(g.execution_count("all_fields") == num_events);
   }
 
+  SECTION("Graph stage name selects current producers")
+  {
+    g.transform("named_stage", [](int const& i) { return i + 1; })
+      .input_family(product_selector{
+        .creator = "input", .layer = "event", .suffix = "evt_number", .stage = "test"_id})
+      .output_product_suffixes("event_number");
+    g.execute();
+    CHECK(g.execution_count("named_stage") == num_events);
+  }
+
   SECTION("Creator and suffix without layer")
   {
     g.transform("creator_and_suffix_without_layer", [](int const& i) { return i + 1; })

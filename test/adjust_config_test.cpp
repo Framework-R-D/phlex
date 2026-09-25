@@ -63,7 +63,7 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
 
 TEST_CASE("Loading resources requires a cpp parameter", "[config]")
 {
-  auto graph = phlex::detail::framework_graph::without_driver();
+  auto graph = phlex::detail::framework_graph::without_driver("test");
 
   CHECK_THROWS_WITH(
     phlex::detail::load_resource(graph, "my_resource", {}),

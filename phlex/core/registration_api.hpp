@@ -179,6 +179,7 @@ namespace phlex::detail {
   public:
     provider_api(configuration const* config,
                  std::string_view name,
+                 phlex::experimental::identifier const& stage,
                  AlgorithmBits alg,
                  concurrency c,
                  tbb::flow::graph& g,
@@ -187,6 +188,7 @@ namespace phlex::detail {
                  resource_catalog& resources) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
+      stage_{stage},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -201,6 +203,11 @@ namespace phlex::detail {
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
       using namespace phlex::experimental;
+
+      // "CURRENT" is special and means "use the stage configured for this program execution."
+      if (stage == "CURRENT"_id) {
+        stage = stage_;
+      }
 
       using return_type_t = return_type<typename AlgorithmBits::algorithm_type>;
       product_specification output_spec(
@@ -229,6 +236,8 @@ namespace phlex::detail {
   private:
     configuration const* config_;
     phlex::experimental::algorithm_name name_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier const& stage_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.

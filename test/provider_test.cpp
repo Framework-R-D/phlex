@@ -87,15 +87,38 @@ TEST_CASE("Explicit providers")
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.observe(
      "verify_explicit_stage",
-     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "CURRENT"); },
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
+  g.observe(
+     "verify_named_stage",
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
+     concurrency::unlimited)
+    .input_family(product_selector{.creator = "vertices_maker",
+                                   .layer = "spill",
+                                   .suffix = "happy_vertices",
+                                   .stage = "test"_id});
   g.execute();
 
   CHECK(g.execution_count("passer") == num_spills);
   CHECK(g.execution_count("my_name_here") == num_spills);
   CHECK(g.execution_count("verify_explicit_stage") == num_spills);
+  CHECK(g.execution_count("verify_named_stage") == num_spills);
+}
+
+TEST_CASE("Named graph stage does not match a provider from another stage")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  g.provide("provide_previous_vertices", give_me_vertices, concurrency::unlimited)
+    .output_product("vertices_maker", "happy_vertices", "job", "previous_process");
+  g.observe(
+     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+    .input_family(product_selector{
+      .creator = "vertices_maker", .layer = "job", .suffix = "happy_vertices", .stage = "test"_id});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("No provider found for the following required products:"));
 }
 
 TEST_CASE("Explicit Provider Ambiguity")
