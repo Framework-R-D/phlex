@@ -53,7 +53,7 @@ namespace {
 
       // Build FORM configuration
       form::experimental::config::item_config output_cfg;
-      form::experimental::config::tech_setting_config tech_cfg;
+      form::experimental::config::tech_setting_config const tech_cfg;
 
       // FIXME: Temporary solution to accommodate Phlex limitation.
       // Eventually, Phlex will communicate to FORM which products will be written

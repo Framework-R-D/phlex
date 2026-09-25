@@ -26,7 +26,7 @@ namespace phlex::detail {
     }
     std::string prefix =
       fmt::format("{blank:{indent}s}- ", fmt::arg("blank", ""), fmt::arg("indent", indent));
-    std::string prefix_with_newline = fmt::format("\n{}", prefix);
+    std::string const prefix_with_newline = fmt::format("\n{}", prefix);
     return fmt::format("{}{}", prefix, fmt::join(rng, prefix_with_newline));
   }
 
@@ -39,7 +39,7 @@ namespace phlex::detail {
     }
     std::string prefix =
       fmt::format("{blank:{indent}s}- ", fmt::arg("blank", ""), fmt::arg("indent", indent));
-    std::string prefix_with_newline = fmt::format("\n{}", prefix);
+    std::string const prefix_with_newline = fmt::format("\n{}", prefix);
     return fmt::format(
       "{}{}",
       prefix,

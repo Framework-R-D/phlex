@@ -125,19 +125,19 @@ namespace {
     py_callback_base(PyObject* callable_object, void* cb) : callable(callable_object), ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
-      py_gilraii gil;
+      py_gilraii const gil;
       Py_INCREF(callable);
     }
     py_callback_base(py_callback_base const& pc) : callable(pc.callable), ccallback(pc.ccallback)
     {
       // Must hold GIL when manipulating reference counts
-      py_gilraii gil;
+      py_gilraii const gil;
       Py_INCREF(callable);
     }
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
-        py_gilraii gil;
+        py_gilraii const gil;
         Py_INCREF(pc.callable);
         Py_DECREF(callable);
         callable = pc.callable;
@@ -176,7 +176,7 @@ namespace {
       (argsv.push_back(lifeline_transform(args)), ...);
       argsv.emplace_back(nullptr);
 
-      py_gilraii gil;
+      py_gilraii const gil;
 
       dcarg result{nullptr};
       dyncall(ccallback, result, argsv, 1);
@@ -276,7 +276,7 @@ namespace {
     if (!allow_optionals && !(c.has_value() && l.has_value())) {
       return std::nullopt;
     }
-    std::optional<identifier> s = try_item(pysel, "suffix", true); // always optional
+    std::optional<identifier> const s = try_item(pysel, "suffix", true); // always optional
     if (!s.has_value() && PyErr_Occurred()) {
       return std::nullopt;
     }
@@ -301,10 +301,10 @@ namespace {
       return cargs;
     }
 
-    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    Py_ssize_t const len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
 
-    PyObject** items = PySequence_Fast_ITEMS(coll);
+    PyObject* const* items = PySequence_Fast_ITEMS(coll);
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
 
@@ -337,10 +337,10 @@ namespace {
       return cargs;
     }
 
-    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    Py_ssize_t const len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
 
-    PyObject** items = PySequence_Fast_ITEMS(coll);
+    PyObject* const* items = PySequence_Fast_ITEMS(coll);
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
       if (!PyUnicode_Check(item)) {
@@ -393,7 +393,7 @@ namespace {
       return false;
     }
 
-    int result = PyObject_IsInstance(obj, cfunc_type);
+    int const result = PyObject_IsInstance(obj, cfunc_type);
     return result == 1;
   }
 
@@ -530,7 +530,7 @@ namespace {
   bool pylong_as_bool(PyObject* pyobject)
   {
     // range-checking python integer to C++ bool conversion
-    long l = PyLong_AsLong(pyobject);
+    long const l = PyLong_AsLong(pyobject);
     // fail to pass float -> bool; the problem is rounding (0.1 -> 0 -> False)
     if ((l != 0 && l != 1) || PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_ValueError, "boolean value should be bool, or integer 1 or 0");
@@ -551,7 +551,7 @@ namespace {
       // convert to Python int first, then to C long, that way we get a Python
       // OverflowError if out-of-range
       PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
-      long result = PyLong_AsLong(pylong);
+      long const result = PyLong_AsLong(pylong);
       Py_DECREF(pylong);
       return result;
     }
@@ -573,7 +573,7 @@ namespace {
       // convert to Python int first, then to C unsigned long, that way we get a
       // Python OverflowError if out-of-range
       PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
-      unsigned long result = PyLong_AsUnsignedLong(pylong);
+      unsigned long const result = PyLong_AsUnsignedLong(pylong);
       Py_DECREF(pylong);
       return result;
     }
@@ -584,7 +584,7 @@ namespace {
     // NOLINTNEXTLINE(modernize-use-integer-sign-comparison)
     if (ul == static_cast<unsigned long>(-1) && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
-      long i = PyLong_AS_LONG(pyobject);
+      long const i = PyLong_AS_LONG(pyobject);
       if (0 <= i) {
         ul = static_cast<unsigned long>(i);
       } else {
@@ -603,7 +603,7 @@ namespace {
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
   static dcarg name##_to_py(cpptype a)                                                             \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
     return dcarg{topy(a)};                                                                         \
   }                                                                                                \
                                                                                                    \
@@ -611,7 +611,7 @@ namespace {
                                                                                                    \
   static cpptype py_to_##name(dcarg a)                                                             \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
     auto i = static_cast<cpptype>(frompy(pyobj));                                                  \
     std::string msg;                                                                               \
@@ -629,11 +629,11 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     cpptype operator()(data_cell_index const& id)                                                  \
     {                                                                                              \
-      py_gilraii gil;                                                                              \
+      py_gilraii const gil;                                                                        \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
+      dcarg const res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */   \
       PyObject* pyres = res.get<PyObject*>();                                                      \
-      cpptype cres = frompy(pyres);                                                                \
+      cpptype const cres = frompy(pyres);                                                          \
       std::string msg;                                                                             \
       if (msg_from_py_error(msg, true)) {                                                          \
         Py_DECREF(pyres);                                                                          \
@@ -655,7 +655,7 @@ namespace {
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
   static dcarg name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                        \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
                                                                                                    \
     if (!v) {                                                                                      \
       Py_INCREF(Py_None);                                                                          \
@@ -704,18 +704,18 @@ namespace {
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
   static std::shared_ptr<std::vector<cpptype>> py_to_##name(dcarg a)                               \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check(pyobj)) {                                                                    \
-      PyArrayObject* arr = reinterpret_cast<PyArrayObject*>(pyobj);                                \
+      PyArrayObject const* arr = reinterpret_cast<PyArrayObject*>(pyobj);                          \
                                                                                                    \
       /* TODO: flattening the array here seems to be the only workable solution */                 \
-      npy_intp* dims = PyArray_DIMS(arr);                                                          \
-      int nd = PyArray_NDIM(arr);                                                                  \
+      npy_intp const* dims = PyArray_DIMS(arr);                                                    \
+      int const nd = PyArray_NDIM(arr);                                                            \
       size_t total = 1;                                                                            \
       for (int i = 0; i < nd; ++i)                                                                 \
         total *= static_cast<size_t>(dims[i]);                                                     \
@@ -725,7 +725,7 @@ namespace {
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
     } else if (PyList_Check(pyobj)) {                                                              \
-      Py_ssize_t total = PyList_Size(pyobj);                                                       \
+      Py_ssize_t const total = PyList_Size(pyobj);                                                 \
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(pyobj, i);                                                 \
@@ -752,10 +752,10 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
     {                                                                                              \
-      py_gilraii gil;                                                                              \
+      py_gilraii const gil;                                                                        \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      dcarg pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */       \
-      auto cres = py_to_##name(pyres);                                    /* decrefs pyres */      \
+      dcarg const pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */ \
+      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
       return cres;                                                                                 \
     }                                                                                              \
   };
@@ -913,7 +913,7 @@ static PyObject* parse_args(PyObject* args,
       if (opt_counter) {
         PyObject* optcnt = PyObject_CallOneArg(opt_counter, callable);
         if (optcnt) {
-          long l = PyLong_AsLong(optcnt);
+          long const l = PyLong_AsLong(optcnt);
           Py_DECREF(optcnt);
           // I'd use -1l if clang-tidy would allow it, but it insists on -1L ...
           if (l != static_cast<long>(-1)) {
@@ -984,7 +984,7 @@ static bool insert_input_converters(py_phlex_module* mod,
     // to be properly types, so every option is made explicit
 
     std::string const& pyname = input_converter_name(cname, i);
-    std::string output =
+    std::string const output =
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
     if (inp_type == "bool") {
@@ -1201,8 +1201,9 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
     // clang-tidy is incorrect here, b/c the condition "rt_size == (Is + 1)" is only ever
     // true once, so the forward is only called once, and func is never used after move
     // NOLINTBEGIN(bugprone-use-after-move)
-    bool matched = (... || ((rt_size == (Is + 1))
-                              ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
+    bool const matched =
+      (... ||
+       ((rt_size == (Is + 1)) ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
                               : false));
     // NOLINTEND(bugprone-use-after-move)
 
@@ -1230,12 +1231,12 @@ static std::optional<product_selector> register_transform_callback(
   auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     constexpr std::size_t n = sizeof...(Is);
     if (ccallf) {
-      jit_callback<dcarg, n> callback{callable, ccallf, output_type};
+      jit_callback<dcarg, n> const callback{callable, ccallf, output_type};
       mod->ph_module->transform(pyname, callback, nconcur)
         .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
     } else {
-      py_callback<dcarg, n> callback{callable};
+      py_callback<dcarg, n> const callback{callable};
       mod->ph_module->transform(pyname, callback, nconcur)
         .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
@@ -1369,8 +1370,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
     auto make_product_selector = [&](size_t i) {
       auto const& pq = input_selectors[i];
-      std::string c = input_converter_name(cname, i);
-      std::string suff =
+      std::string const c = input_converter_name(cname, i);
+      std::string const suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
 
       // make a copy of "layer" so we can move it without involving a temporary
@@ -1650,9 +1651,9 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  algorithm_name creator = algorithm_name::create(std::string_view(*opq.value().creator));
-  identifier layer = opq.value().layer;
-  identifier suffix = opq.value().suffix.value_or("");
+  algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
+  identifier const layer = opq.value().layer;
+  identifier const suffix = opq.value().suffix.value_or("");
 
   // Provider callbacks retain the callable for the graph lifetime. A translator node
   // cannot be used here because sources do not have a module for adding one.

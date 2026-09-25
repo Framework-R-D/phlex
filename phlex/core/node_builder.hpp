@@ -20,9 +20,13 @@ namespace phlex::detail {
   template <typename... Resources>
   inline constexpr auto resource_local_indices = [] {
     std::array<std::size_t, sizeof...(Resources)> indices{};
+    // The following variables are incremented in the fold expression below.
+    // clang-tidy does not recognize this, so we suppress the warning about const correctness.
+    // NOLINTBEGIN(misc-const-correctness)
     std::size_t serialized = 0;
     std::size_t unlimited = 0;
     std::size_t i = 0;
+    // NOLINTEND(misc-const-correctness)
     // gsl::at used to avoid cppcoreguidelines-pro-bounds-constant-array-index clang-tidy warning.
     ((gsl::at(indices, i++) = unlimited_resource<Resources> ? unlimited++ : serialized++), ...);
     return indices;

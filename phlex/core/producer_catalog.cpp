@@ -137,10 +137,11 @@ namespace {
     };
     static auto const deref_view =
       std::views::transform([]<typename T>(T const* p) -> T const& { return *p; });
-    std::string msg = fmt::format("More than one candidate matches the query {}: \n{}",
-                                  query.to_string(),
-                                  bulleted_list(std::views::transform(candidates, port_to_node),
-                                                /*indent=*/1));
+    std::string const msg =
+      fmt::format("More than one candidate matches the query {}: \n{}",
+                  query.to_string(),
+                  bulleted_list(std::views::transform(candidates, port_to_node),
+                                /*indent=*/1));
     if (suffixes.size() == 1 && creators.size() == 1 && types.size() == 1) {
       spdlog::debug(msg);
       spdlog::debug("This is permitted -- layers may differ");

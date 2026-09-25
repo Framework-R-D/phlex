@@ -190,7 +190,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const technology = form::technology::from_string(tech_string);
 
   form::experimental::config::item_config input_cfg;
-  form::experimental::config::tech_setting_config tech_cfg;
+  form::experimental::config::tech_setting_config const tech_cfg;
   for (auto const& name : products) {
     input_cfg.add_item(name, input_file, technology);
   }

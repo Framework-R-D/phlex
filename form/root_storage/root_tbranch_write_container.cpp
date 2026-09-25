@@ -117,7 +117,7 @@ std::uint64_t root_tbranch_write_container_imp::fill(void const* data)
   if (branch_ == nullptr) {
     throw std::runtime_error("root_tbranch_write_container_imp::fill no branch found");
   }
-  TLeaf* leaf = branch_->GetLeaf(col_name().c_str());
+  TLeaf const* leaf = branch_->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
     branch_->SetAddress(const_cast<void*>(data));

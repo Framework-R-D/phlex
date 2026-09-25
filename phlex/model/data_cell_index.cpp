@@ -54,7 +54,7 @@ namespace phlex {
 
   data_cell_index_ptr data_cell_index::job()
   {
-    static data_cell_index_ptr job_index{new data_cell_index};
+    static data_cell_index_ptr const job_index{new data_cell_index};
     return job_index;
   }
 
@@ -127,9 +127,9 @@ namespace phlex {
   std::string data_cell_index::to_string() const
   {
     // FIXME: prefix needs to be adjusted esp. if a root name can be supplied by the user.
-    std::string prefix{"["}; //"root: ["};
+    std::string const prefix{"["}; //"root: ["};
     std::string result;
-    std::string suffix{"]"};
+    std::string const suffix{"]"};
 
     if (number_ != -1ull) {
       result = to_string_this_layer();

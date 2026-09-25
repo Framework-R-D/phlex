@@ -9,14 +9,14 @@ using namespace phlex::experimental;
 
 TEST_CASE("Layer path tests", "[layer_path]")
 {
-  layer_path job = "/job";
-  layer_path run = "/job/run";
-  layer_path lumiblock = "/job/run/lumiblock";
-  layer_path subrun = "/job/run/subrun";
-  layer_path event = "/job/run/subrun/event";
+  layer_path const job = "/job";
+  layer_path const run = "/job/run";
+  layer_path const lumiblock = "/job/run/lumiblock";
+  layer_path const subrun = "/job/run/subrun";
+  layer_path const event = "/job/run/subrun/event";
 
-  identifier event_id = "event";
-  layer_path partial_event = "subrun/event";
+  identifier const event_id = "event";
+  layer_path const partial_event = "subrun/event";
 
   CHECK(run.is_complete());
   CHECK(run.is_strict_prefix_of(event));

@@ -228,9 +228,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     unsigned int begin;
     unsigned int end;
   };
-  std::vector<predicate_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
-                                        {.name = "exclude_6_to_7", .begin = 6, .end = 7},
-                                        {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
+  std::vector<predicate_config> const configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                              {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                              {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});

@@ -201,7 +201,7 @@ namespace {
 
 TEST_CASE("token default constructor", "[form]")
 {
-  token t;
+  token const t;
   CHECK(t.file_name().empty());
   CHECK(t.container_name().empty());
   CHECK(t.technology() == form::technology::id{});
@@ -211,7 +211,7 @@ TEST_CASE("token default constructor", "[form]")
 
 TEST_CASE("token basics", "[form]")
 {
-  token t("file.root", "container", form::technology::root_ttree, 42);
+  token const t("file.root", "container", form::technology::root_ttree, 42);
   CHECK(t.file_name() == "file.root");
   CHECK(t.container_name() == "container");
   CHECK(t.technology() == form::technology::root_ttree);
@@ -423,13 +423,13 @@ TEST_CASE("storage_reader basic operations", "[form]")
   auto storage = create_storage_reader();
   REQUIRE(storage != nullptr);
 
-  form::experimental::config::tech_setting_config settings;
+  form::experimental::config::tech_setting_config const settings;
 
-  token product_token("file.root", "cont", form::technology::id{}, 1);
+  token const product_token("file.root", "cont", form::technology::id{}, 1);
   void const* read_data = nullptr;
   storage->read_container(product_token, &read_data, typeid(int), settings);
 
-  int index = storage->get_index(product_token, "some_id", settings);
+  int const index = storage->get_index(product_token, "some_id", settings);
   CHECK(index == 0);
 }
 
@@ -438,7 +438,7 @@ TEST_CASE("storage_writer basic operations", "[form]")
   auto storage = create_storage_writer();
   REQUIRE(storage != nullptr);
 
-  form::experimental::config::tech_setting_config settings;
+  form::experimental::config::tech_setting_config const settings;
 
   std::map<std::unique_ptr<placement>, std::type_info const*> containers;
   auto p = std::make_unique<placement>("file.root", "cont", form::technology::id{});
@@ -446,7 +446,7 @@ TEST_CASE("storage_writer basic operations", "[form]")
 
   storage->create_containers(containers, settings);
 
-  placement p2("file.root", "cont", form::technology::id{});
+  placement const p2("file.root", "cont", form::technology::id{});
   int data = 42;
   storage->fill_container(p2, &data, typeid(int));
   storage->commit_containers(p2);
@@ -463,7 +463,7 @@ TEST_CASE("persistence_reader basic operations", "[form]")
   out_cfg.add_item("parent/child", "file.root", form::technology::id{});
   p->configure(out_cfg);
 
-  tech_setting_config tech_cfg;
+  tech_setting_config const tech_cfg;
   p->configure_tech_settings(tech_cfg);
 
   SECTION("Full Lifecycle")
@@ -605,7 +605,7 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
   cfg.add_item("prod", "dummy_writer_test.root", form::technology::id{});
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
 
-  form::experimental::product_with_name product{
+  form::experimental::product_with_name const product{
     .label = "missing", .data = nullptr, .type = &typeid(int)};
   CHECK_NOTHROW(writer.write("creator", event_cell(1), product));
 }
@@ -622,7 +622,7 @@ TEST_CASE("form_writer_interface creates containers once across events", "[form]
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name product{
+  form::experimental::product_with_name const product{
     .label = "prod", .data = &payload, .type = &typeid(int)};
 
   writer.write("creator", event_cell(1), std::vector{product});
@@ -648,7 +648,7 @@ TEST_CASE("form_writer_interface fans a product out to multiple destinations", "
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name product{
+  form::experimental::product_with_name const product{
     .label = "prod", .data = &payload, .type = &typeid(int)};
 
   writer.write("creator", event_cell(1), std::vector{product});
@@ -677,7 +677,7 @@ TEST_CASE("form_writer_interface skips unconfigured products in a vector write",
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name unconfigured{
+  form::experimental::product_with_name const unconfigured{
     .label = "missing", .data = &payload, .type = &typeid(int)};
 
   CHECK_NOTHROW(writer.write("creator", event_cell(1), std::vector{unconfigured}));
@@ -715,9 +715,9 @@ TEST_CASE("form_writer_interface rejects a product first appearing at a sealed p
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name early{
+  form::experimental::product_with_name const early{
     .label = "early", .data = &payload, .type = &typeid(int)};
-  form::experimental::product_with_name late{
+  form::experimental::product_with_name const late{
     .label = "late", .data = &payload, .type = &typeid(int)};
 
   // Record 1 writes "early", sealing the place's container structure.
@@ -741,8 +741,10 @@ TEST_CASE("form_writer_interface commits only the places written this record", "
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name a{.label = "a", .data = &payload, .type = &typeid(int)};
-  form::experimental::product_with_name b{.label = "b", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name const a{
+    .label = "a", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name const b{
+    .label = "b", .data = &payload, .type = &typeid(int)};
 
   // Record 1 writes both products: both places are committed.
   writer.write("creator", event_cell(1), std::vector{a, b});
@@ -779,7 +781,8 @@ TEST_CASE("form_writer_interface destruction survives a failing finalize", "[for
   {
     auto spy = std::make_unique<failing_finalize_writer>();
     CHECK_NOTHROW([&] {
-      form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+      form::experimental::form_writer_interface const writer{
+        cfg, tech_setting_config{}, std::move(spy)};
     }());
   }
 
@@ -788,7 +791,8 @@ TEST_CASE("form_writer_interface destruction survives a failing finalize", "[for
     auto spy = std::make_unique<failing_finalize_writer>();
     spy->throw_std_exception = false;
     CHECK_NOTHROW([&] {
-      form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+      form::experimental::form_writer_interface const writer{
+        cfg, tech_setting_config{}, std::move(spy)};
     }());
   }
 }
@@ -814,7 +818,7 @@ TEST_CASE("form_writer_interface is closed once finalized", "[form]")
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
 
   int payload = 7;
-  form::experimental::product_with_name prod{
+  form::experimental::product_with_name const prod{
     .label = "prod", .data = &payload, .type = &typeid(int)};
   writer.write("creator", event_cell(1), std::vector{prod});
 
@@ -1102,7 +1106,7 @@ TEST_CASE("navigation: a creator whose products disagree on their row is rejecte
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
   int payload = 0;
-  std::vector<std::pair<placement, std::type_info const*>> containers{
+  std::vector<std::pair<placement, std::type_info const*>> const containers{
     {product_place("tracker", "hits"), &typeid(int)},
     {product_place("tracker", "tracks"), &typeid(int)}};
   writer.create_containers(containers);
@@ -1126,7 +1130,7 @@ TEST_CASE("navigation: a failed product write abandons the whole record", "[form
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
   int payload = 0;
-  std::vector<std::pair<placement, std::type_info const*>> containers{
+  std::vector<std::pair<placement, std::type_info const*>> const containers{
     {product_place("tracker", "hits"), &typeid(int)},
     {product_place("tracker", "tracks"), &typeid(int)}};
   writer.create_containers(containers);
@@ -1239,7 +1243,7 @@ TEST_CASE("navigation: the reserved container prefix is rejected", "[form]")
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
   // Reserve the "nav_" prefix for navigation containers.
-  std::vector<std::pair<placement, std::type_info const*>> containers{
+  std::vector<std::pair<placement, std::type_info const*>> const containers{
     {product_place("nav_generic_cells_event", "hits"), &typeid(int)}};
   CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
 }

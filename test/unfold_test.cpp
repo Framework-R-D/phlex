@@ -124,7 +124,7 @@ namespace {
 
     static auto unfold(unsigned int i, unfold_resource* resource)
     {
-      detail::thread_counter guard{resource->concurrent_unfolds};
+      detail::thread_counter const guard{resource->concurrent_unfolds};
       detail::spin_for(1ms);
       return std::make_pair(i + 1, i);
     }

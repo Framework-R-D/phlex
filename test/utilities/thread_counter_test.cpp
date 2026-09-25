@@ -32,21 +32,21 @@ TEST_CASE("Thread counter in flow graph", "[multithreading]")
   thread_counter::counter_type unlimited_counter{};
   flow::function_node<unsigned int, unsigned int> unlimited_node{
     g, flow::unlimited, [&unlimited_counter](unsigned int const i) {
-      thread_counter c{unlimited_counter, -1u};
+      thread_counter const c{unlimited_counter, -1u};
       sleep_for(5ms);
       return i;
     }};
   thread_counter::counter_type serial_counter{};
   flow::function_node<unsigned int, unsigned int> serial_node{
     g, flow::serial, [&serial_counter](unsigned int const i) {
-      thread_counter c{serial_counter};
+      thread_counter const c{serial_counter};
       sleep_for(10ms);
       return i;
     }};
   thread_counter::counter_type max_counter{};
   flow::function_node<unsigned int, unsigned int> max_node{
     g, 4, [&max_counter](unsigned int const i) {
-      thread_counter c{max_counter, 4};
+      thread_counter const c{max_counter, 4};
       sleep_for(10ms);
       return i;
     }};

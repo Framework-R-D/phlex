@@ -56,8 +56,8 @@ TEST_CASE("Handle copies and moves", "[data model]")
 {
   int const two{2};
   int const four{4};
-  spec_t two_spec{"two"};
-  spec_t four_spec{"four"};
+  spec_t const two_spec{"two"};
+  spec_t const four_spec{"four"};
 
   auto job_data_cell = data_cell_index::job();
   auto subrun_6_data_cell = job_data_cell->make_child("subrun", 6);
@@ -86,8 +86,8 @@ TEST_CASE("Handle comparisons", "[data model]")
 {
   int const seventeen{17};
   int const eighteen{18};
-  spec_t seventeen_spec{"seventeen"};
-  spec_t eighteen_spec{"eighteen"};
+  spec_t const seventeen_spec{"seventeen"};
+  spec_t const eighteen_spec{"eighteen"};
   handle const h17{seventeen, *data_cell_index::job(), seventeen_spec, "test_stage"_id};
   handle const h18{eighteen, *data_cell_index::job(), eighteen_spec, "test_stage"_id};
   CHECK(h17 == h17);
@@ -105,7 +105,7 @@ TEST_CASE("Handle comparisons", "[data model]")
 TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 {
   int const number{3};
-  spec_t spec{"number"};
+  spec_t const spec{"number"};
   handle const h{number, *data_cell_index::job(), spec, "test_stage"_id};
   CHECK(h.data_cell_index() == *data_cell_index::job());
 
@@ -116,14 +116,14 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   CHECK(*num_ptr == number);
 
   composer const elgar{"Elgar"};
-  spec_t composer_spec{"composer"};
+  spec_t const composer_spec{"composer"};
   CHECK(handle{elgar, *data_cell_index::job(), composer_spec, "test_stage"_id}->name == "Elgar");
 }
 
 TEST_CASE("Retrieve product specification from handle", "[data model]")
 {
   int const number{3};
-  spec_t spec{"creator/three"};
+  spec_t const spec{"creator/three"};
 
   handle const h{number, *data_cell_index::job(), spec, "test_stage"_id};
   CHECK(h.creator().algorithm == "creator");
@@ -135,7 +135,7 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
 TEST_CASE("Retrieve stage from handle", "[data model]")
 {
   int const number{3};
-  spec_t spec("creator/three");
+  spec_t const spec("creator/three");
 
   handle const h{number, *data_cell_index::job(), spec, "last"};
   CHECK(h.stage() == "last");

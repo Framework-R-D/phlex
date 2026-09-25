@@ -226,7 +226,7 @@ TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
   std::atomic<unsigned int> expected_numbers_seen{};
   auto verify_number = [&counter, &expected_numbers_seen](int const num, pointer_resource const*) {
     // Both observers share one resource token and must not run concurrently.
-    thread_counter throw_if_more_than_one_thread{counter};
+    thread_counter const throw_if_more_than_one_thread{counter};
     if (num == 42) {
       ++expected_numbers_seen;
     }
