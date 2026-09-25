@@ -1,6 +1,12 @@
 #include "phlex/model/product_store.hpp"
 
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/products.hpp"
+
+#include <gsl/pointers>
 
 #include <memory>
 #include <utility>

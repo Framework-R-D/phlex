@@ -2,8 +2,13 @@
 
 #include "storage_write_container.hpp"
 
-#include "storage_file.hpp"
+#include "storage/istorage.hpp"
 
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <utility>
 
 using namespace form::detail::experimental;

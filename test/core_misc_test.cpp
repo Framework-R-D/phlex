@@ -3,9 +3,10 @@
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include <boost/json.hpp>
+#include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>

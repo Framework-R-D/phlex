@@ -2,8 +2,6 @@
 
 #include "phlex/model/data_cell_index.hpp"
 
-#include <cstdint>
-
 using namespace phlex;
 
 PHLEX_REGISTER_PROVIDERS(s)

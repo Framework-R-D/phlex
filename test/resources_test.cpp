@@ -1,16 +1,25 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/resource/catalog.hpp"
+#include "phlex/core/resource/concepts.hpp"
+#include "phlex/core/resource/dependencies.hpp"
 #include "phlex/core/resource_api.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 
+#include <boost/mp11/list.hpp> // IWYU pragma: keep
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <array>
 #include <atomic>
-#include <chrono>
+#include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <utility>
 
 using namespace phlex;
 using namespace phlex::detail;

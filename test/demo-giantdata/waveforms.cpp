@@ -1,5 +1,7 @@
 #include "waveforms.hpp"
 
+#include <cstddef>
+
 std::size_t demo::waveforms::size() const { return data.size(); }
 
 demo::waveforms::waveforms(

@@ -1,11 +1,11 @@
 #include "phlex/utilities/thread_counter.hpp"
 
 #include <catch2/catch_test_macros.hpp>
-#include <fmt/std.h>
 #include <oneapi/tbb/flow_graph.h>
-#include <spdlog/spdlog.h>
 
 #include <atomic>
+#include <cstddef>
+#include <tuple>
 #include <vector>
 
 using phlex::detail::thread_counter;

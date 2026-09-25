@@ -2,6 +2,8 @@
 
 #include "storage_file.hpp"
 
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 using namespace form::detail::experimental;

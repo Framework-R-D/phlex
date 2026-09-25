@@ -1,5 +1,10 @@
 #include "form/config.hpp"
 
+#include "core/technology.hpp"
+
+#include <optional>
+#include <string>
+
 namespace {
   template <class MapLike>
   auto const_lookup(MapLike const& map, typename MapLike::key_type const& key)

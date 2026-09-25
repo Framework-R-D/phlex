@@ -1,8 +1,14 @@
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <gsl/pointers>
 
+#include <memory>
 #include <tuple>
 #include <vector>
 

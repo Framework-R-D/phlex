@@ -1,11 +1,20 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
 
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <iterator>
+#include <map>
+#include <memory>
 #include <ranges>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace {
   std::string const& maybe_name(std::string const& name)

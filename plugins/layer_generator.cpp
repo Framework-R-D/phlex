@@ -1,13 +1,21 @@
 #include "plugins/layer_generator.hpp"
 
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fixed_hierarchy.hpp"
+#include "phlex/model/index_generator.hpp"
+
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <ranges>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::experimental {
 

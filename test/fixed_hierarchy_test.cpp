@@ -1,9 +1,14 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fixed_hierarchy.hpp"
-#include "phlex/utilities/resumable_driver.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/layer_path.hpp"
+#include "phlex/utilities/resumable_driver.hpp" // IWYU pragma: keep
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::experimental;

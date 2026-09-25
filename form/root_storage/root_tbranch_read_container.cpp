@@ -4,15 +4,23 @@
 
 #include "demangle_name.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_read_container.hpp"
 
+#include <RtypesCore.h>
 #include <TBranch.h>
-#include <TFile.h>
-#include <TLeaf.h>
+#include <TClass.h>
+#include <TDataType.h>
+#include <TDictionary.h>
+#include <TFile.h> // IWYU pragma: keep
 #include <TTree.h>
 #include <gsl/pointers>
 
+#include <memory>
 #include <mutex>
-#include <unordered_map>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 

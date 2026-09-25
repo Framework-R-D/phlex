@@ -2,9 +2,12 @@
 #include "phlex/app/run.hpp"
 #include "phlex/core/framework_graph.hpp"
 
-#include <boost/json.hpp>
+#include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+
+#include <utility>
 
 using namespace phlex::detail::internal;
 

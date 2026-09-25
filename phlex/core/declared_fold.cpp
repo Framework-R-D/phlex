@@ -1,5 +1,15 @@
 #include "phlex/core/declared_fold.hpp"
 
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/model/algorithm_name.hpp"
+
+#include <oneapi/tbb/flow_graph.h>
+
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace phlex::detail {
   declared_fold::declared_fold(phlex::experimental::algorithm_name name,
                                std::vector<std::string> predicates,

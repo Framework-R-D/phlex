@@ -6,12 +6,23 @@
 #include "handle_rexception.hpp"
 #include "root_rntuple_write_container.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_associative_write_container.hpp"
+#include "storage/storage_write_container.hpp"
 
+#include <ROOT/RField.hxx>
+#include <ROOT/RFieldBase.hxx>
 #include <ROOT/RNTupleWriter.hxx>
-#include <TFile.h>
 
-#include <exception>
+#include <cassert>
+#include <cstdint>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <utility>
 
 namespace form::detail::experimental {
   root_rfield_write_container_imp::root_rfield_write_container_imp(std::string const& name) :

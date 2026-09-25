@@ -1,9 +1,19 @@
 #include "phlex/core/detail/repeater_node.hpp"
 
+#include "phlex/core/message.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/utilities/signed_size.hpp"
+
 #include <gsl/assert>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <cstddef>
+#include <memory>
+#include <tuple>
+#include <utility>
 
 namespace phlex::detail::internal {
 

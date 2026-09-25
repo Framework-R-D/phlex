@@ -2,7 +2,11 @@
 
 #include <TClassEdit.h>
 
+#include <cstdlib>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 namespace {
   class char_string_holder {

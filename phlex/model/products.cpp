@@ -1,8 +1,13 @@
 #include "phlex/model/products.hpp"
 
+#include "phlex/model/product_specification.hpp"
+
 #include <boost/core/demangle.hpp>
+#include <fmt/format.h>
+#include <gsl/pointers>
 
 #include <algorithm>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 

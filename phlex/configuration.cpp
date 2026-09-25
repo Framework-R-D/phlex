@@ -2,12 +2,19 @@
 
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
+
+#include <boost/json/conversion.hpp>
+#include <boost/json/object.hpp>
+#include <boost/json/value.hpp>
+#include <boost/json/value_to.hpp>
 
 #include <algorithm>
-#include <array>
+#include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace phlex::detail {
   std::optional<experimental::identifier> value_if_exists(

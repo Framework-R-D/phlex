@@ -6,6 +6,8 @@
 #include <array>
 #include <atomic>
 #include <functional>
+#include <tuple>
+#include <type_traits>
 #include <vector>
 
 using phlex::experimental::make_type_id;

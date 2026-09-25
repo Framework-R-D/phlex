@@ -1,6 +1,9 @@
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/layer_path.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+
+#include <vector>
 
 using namespace phlex::experimental;
 

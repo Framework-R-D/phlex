@@ -1,7 +1,16 @@
 #include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <gsl/pointers>
+
+#include <cstddef>
+#include <memory>
+#include <vector>
 
 using namespace phlex::detail;
 

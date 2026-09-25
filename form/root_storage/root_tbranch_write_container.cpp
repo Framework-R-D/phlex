@@ -5,13 +5,22 @@
 #include "demangle_name.hpp"
 #include "root_tfile.hpp"
 #include "root_ttree_write_container.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_associative_write_container.hpp"
 
+#include <RtypesCore.h>
 #include <TBranch.h>
-#include <TFile.h>
+#include <TDataType.h>
+#include <TDictionary.h>
 #include <TLeaf.h>
 #include <TTree.h>
 
-#include <unordered_map>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 

@@ -1,8 +1,14 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+
 #include <algorithm>
 #include <cassert>
-#include <string>
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace {
   phlex::product_selectors const& for_output_only()

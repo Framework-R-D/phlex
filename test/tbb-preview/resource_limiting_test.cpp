@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include <atomic>
+#include <chrono> // IWYU pragma: keep
 #include <string>
 #include <string_view>
 #include <tuple>
