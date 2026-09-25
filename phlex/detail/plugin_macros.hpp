@@ -1,7 +1,7 @@
 #ifndef PHLEX_DETAIL_PLUGIN_MACROS_HPP
 #define PHLEX_DETAIL_PLUGIN_MACROS_HPP
 
-#include "boost/preprocessor.hpp"
+#include <boost/preprocessor.hpp>
 
 // NOLINTBEGIN(bugprone-macro-parentheses)
 // `bugprone-macro-parentheses` is appropriate for expression-like macros, but these macros expand

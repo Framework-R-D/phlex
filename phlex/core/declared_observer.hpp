@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_OBSERVER_HPP
 #define PHLEX_CORE_DECLARED_OBSERVER_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -18,9 +16,10 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <cstddef>

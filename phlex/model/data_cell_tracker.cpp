@@ -1,6 +1,6 @@
 #include "phlex/model/data_cell_tracker.hpp"
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <ranges>

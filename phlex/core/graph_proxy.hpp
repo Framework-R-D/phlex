@@ -8,7 +8,7 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <memory>

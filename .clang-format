@@ -141,19 +141,26 @@ ForEachMacros:
   - BOOST_FOREACH
 IfMacros:
   - KJ_IF_MAYBE
-IncludeBlocks: Preserve
+IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"(llvm|llvm-c|clang|clang-c)/'
-    Priority: 2
-    SortPriority: 0
-    CaseSensitive: false
-  - Regex: '^(<|"(gtest|gmock|isl|json)/)'
-    Priority: 3
-    SortPriority: 0
-    CaseSensitive: false
-  - Regex: ".*"
+  # Project headers.
+  - Regex: '^".*"'
     Priority: 1
-    SortPriority: 0
+    SortPriority: 1
+    CaseSensitive: false
+  # C++ standard library headers.
+  - Regex: '^<[a-z_]+>$'
+    Priority: 3
+    SortPriority: 3
+    CaseSensitive: false
+  # Third-party library headers.
+  - Regex: '^<.*>'
+    Priority: 2
+    SortPriority: 2
+    CaseSensitive: false
+  - Regex: '.*'
+    Priority: 3
+    SortPriority: 3
     CaseSensitive: false
 IncludeIsMainRegex: "(Test)?$"
 IncludeIsMainSourceRegex: ""

@@ -1,14 +1,13 @@
 #ifndef PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 #define PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/message.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_queue.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_hash_map.h>
+#include <oneapi/tbb/concurrent_queue.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cstddef>

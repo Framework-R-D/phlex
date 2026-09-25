@@ -1,4 +1,5 @@
 #include "phlex/model/product_specification.hpp"
+
 #include "phlex/model/algorithm_name.hpp"
 
 #include <cassert>

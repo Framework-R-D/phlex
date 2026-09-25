@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 #define PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -10,8 +8,9 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <functional>
 #include <string>

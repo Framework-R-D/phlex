@@ -1,14 +1,13 @@
 // Copyright (C) 2025 ...
 
 #include "storage_reader.hpp"
+
+#include "storage/factories.hpp"
 #include "storage_file.hpp"
 #include "storage_read_container.hpp"
 
-#include "storage/factories.hpp"
-
 #include <algorithm>
 #include <cctype>
-
 #include <map>
 #include <optional>
 #include <stdexcept>

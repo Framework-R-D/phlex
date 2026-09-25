@@ -5,7 +5,7 @@
 #include "phlex/utilities/hashing.hpp"
 #include "phlex/utilities/resumable_driver.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <ranges>

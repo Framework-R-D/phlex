@@ -30,7 +30,7 @@
 #include "phlex/utilities/thread_counter.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
 #include <numeric>

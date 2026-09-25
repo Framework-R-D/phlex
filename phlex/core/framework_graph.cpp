@@ -5,10 +5,10 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include "fmt/format.h"
-#include "fmt/ranges.h"
-#include "spdlog/cfg/env.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <spdlog/cfg/env.h>
+#include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <format>

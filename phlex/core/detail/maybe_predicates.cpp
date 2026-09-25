@@ -1,4 +1,5 @@
 #include "phlex/core/detail/maybe_predicates.hpp"
+
 #include "phlex/configuration.hpp"
 
 namespace phlex::detail::internal {

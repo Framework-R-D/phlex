@@ -1,14 +1,13 @@
 #include "phlex/model/identifier.hpp"
-#include <phlex/configuration.hpp>
 
-#include "catch2/catch_test_macros.hpp"
+#include <boost/json.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <fmt/format.h>
+#include <phlex/configuration.hpp>
 
 #include <algorithm>
 #include <array>
 #include <string_view>
-
-#include <boost/json.hpp>
-#include <fmt/format.h>
 
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;

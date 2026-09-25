@@ -2,12 +2,11 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/source.hpp"
-
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "fmt/format.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <fmt/format.h>
 
 #include <array>
 #include <string>

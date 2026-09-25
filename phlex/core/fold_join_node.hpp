@@ -5,7 +5,7 @@
 #include "phlex/core/detail/repeater_node.hpp"
 #include "phlex/core/message.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
 #include <set>

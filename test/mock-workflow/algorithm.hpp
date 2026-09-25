@@ -6,8 +6,8 @@
 #include "phlex/core/product_selector.hpp"
 #include "test/mock-workflow/timed_busy.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <array>

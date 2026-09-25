@@ -1,7 +1,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 using namespace phlex::detail;
 using phlex::data_cell_index;

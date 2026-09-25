@@ -1,4 +1,5 @@
 #include "toy_tracker.hpp"
+
 #include "data_products/track_start.hpp"
 
 #include <algorithm>

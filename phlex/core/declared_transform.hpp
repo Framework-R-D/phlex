@@ -23,8 +23,8 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_unordered_map.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
 #include <concepts>

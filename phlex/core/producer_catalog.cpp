@@ -1,10 +1,12 @@
 #include "phlex/core/producer_catalog.hpp"
+
 #include "phlex/utilities/bulleted_list.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include "fmt/format.h"
-#include "fmt/ranges.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <spdlog/spdlog.h>
+
 #include <concepts>
 #include <ranges>
 #include <string_view>

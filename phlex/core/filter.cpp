@@ -1,9 +1,10 @@
 #include "phlex/core/filter.hpp"
+
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/products_consumer.hpp"
 
-#include "fmt/std.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <fmt/std.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
 #include <ranges>

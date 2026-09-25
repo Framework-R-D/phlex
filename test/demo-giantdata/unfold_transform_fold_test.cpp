@@ -2,12 +2,11 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "plugins/layer_generator.hpp"
-
 #include "test/demo-giantdata/user_algorithms.hpp"
 #include "test/demo-giantdata/waveform_generator.hpp"
 #include "test/demo-giantdata/waveform_generator_input.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
 

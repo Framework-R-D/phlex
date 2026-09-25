@@ -1,9 +1,10 @@
 #include "phlex/core/declared_unfold.hpp"
+
 #include "phlex/model/handle.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 namespace phlex::detail {
 

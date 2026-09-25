@@ -6,7 +6,7 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
 #include <optional>

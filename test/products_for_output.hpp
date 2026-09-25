@@ -3,8 +3,8 @@
 
 #include "phlex/model/product_store.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 #include <sstream>
 

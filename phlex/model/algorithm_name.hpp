@@ -1,9 +1,8 @@
 #ifndef PHLEX_MODEL_ALGORITHM_NAME_HPP
 #define PHLEX_MODEL_ALGORITHM_NAME_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/identifier.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <cstdint>
 

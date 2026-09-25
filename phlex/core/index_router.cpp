@@ -4,9 +4,9 @@
 #include "phlex/utilities/bulleted_list.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include "fmt/std.h"
-#include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
+#include <fmt/std.h>
+#include <oneapi/tbb/flow_graph.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cassert>
