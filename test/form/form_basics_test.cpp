@@ -1,5 +1,6 @@
 #include "core/cell_index.hpp"
 #include "core/container_naming.hpp"
+#include "core/product_identity.hpp"
 #include "core/technology.hpp"
 #include "core/token.hpp"
 #include "form/config.hpp"
@@ -16,6 +17,7 @@
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
+#include "test_helpers.hpp"
 #ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
@@ -48,6 +50,7 @@ namespace {
     int create_calls = 0;
     std::vector<std::string> created_containers;
     std::vector<std::string> written_containers;
+    std::vector<product_identity> written_products;
     int commit_calls = 0;
 
     void configure_tech_settings(
@@ -64,11 +67,13 @@ namespace {
       }
     }
 
-    token register_write(placement const& plcmnt,
+    token register_write(product_identity const& product,
+                         placement const& plcmnt,
                          void const* /*data*/,
                          std::type_info const& /*type*/) override
     {
       written_containers.push_back(plcmnt.container_name());
+      written_products.push_back(product);
       return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), 0};
     }
 
@@ -185,11 +190,22 @@ namespace {
                       .layer_values = {event, segment}};
   }
 
+  using form::test::test_stage;
+
   placement product_place(std::string const& creator,
                           std::string const& label,
-                          form::technology::id tech = form::technology::id{})
+                          form::technology::id tech = form::technology::id{},
+                          std::string const& stage = test_stage)
   {
-    return placement{"nav_test.root", build_full_label(creator, label), tech};
+    return placement{
+      "nav_test.root", build_full_label(build_row_space_name(creator, stage), label), tech};
+  }
+
+  product_identity product_of(std::string const& creator,
+                              std::string const& label,
+                              std::string const& stage = test_stage)
+  {
+    return product_identity{.creator = creator, .stage = stage, .label = label};
   }
 }
 
@@ -464,7 +480,7 @@ TEST_CASE("persistence_reader basic operations", "[form]")
   {
     void const* data = nullptr;
     // This will call get_token -> get_index (returns 0 for Storage_Container) -> read_container
-    CHECK_NOTHROW(p->read("my_creator", "prod", "event_1", &data, typeid(int)));
+    CHECK_NOTHROW(p->read("my_creator", test_stage, "prod", "event_1", &data, typeid(int)));
   }
 }
 
@@ -483,7 +499,8 @@ TEST_CASE("persistence_writer: register_write rejects a non-row-addressed backen
   p->create_containers({{generic, &typeid(int)}});
 
   int val = 42;
-  CHECK_THROWS_AS(p->register_write(generic, &val, typeid(int)), std::runtime_error);
+  CHECK_THROWS_AS(p->register_write(product_of("my_creator", "prod"), generic, &val, typeid(int)),
+                  std::runtime_error);
 }
 
 TEST_CASE("form::experimental::config tests", "[form]")
@@ -561,8 +578,9 @@ TEST_CASE("persistence_reader: throws for missing product in config", "[form]")
   reader->configure(item_config{});
   reader->configure_tech_settings(tech_setting_config{});
 
-  CHECK_THROWS_AS(reader->prime("creator", "nonexistent", typeid(int)), std::runtime_error);
-  CHECK_THROWS_AS(reader->list_indices("creator", "nonexistent"), std::runtime_error);
+  CHECK_THROWS_AS(reader->prime("creator", test_stage, "nonexistent", typeid(int)),
+                  std::runtime_error);
+  CHECK_THROWS_AS(reader->list_indices("creator", test_stage, "nonexistent"), std::runtime_error);
 }
 
 TEST_CASE("form_reader_interface::indices exercises persistence list_indices path", "[form]")
@@ -575,7 +593,7 @@ TEST_CASE("form_reader_interface::indices exercises persistence list_indices pat
 
   // indices() calls persistence list_indices; with tech=0 the index container is
   // always empty, so it throws -- but the call itself covers form_reader.cpp L48.
-  CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
+  CHECK_THROWS_AS(reader.indices("creator", test_stage, "prod"), std::runtime_error);
 }
 
 TEST_CASE("form_reader_interface::read throws for missing product config", "[form]")
@@ -588,7 +606,7 @@ TEST_CASE("form_reader_interface::read throws for missing product config", "[for
 
   form::experimental::product_with_name product{
     .label = "missing", .data = nullptr, .type = &typeid(int)};
-  CHECK_THROWS_AS(reader.read("creator", "segment", product), std::runtime_error);
+  CHECK_THROWS_AS(reader.read("creator", test_stage, "segment", product), std::runtime_error);
 }
 
 TEST_CASE("form_writer_interface handles missing product config without crashing", "[form]")
@@ -601,7 +619,7 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
 
   form::experimental::product_with_name product{
     .label = "missing", .data = nullptr, .type = &typeid(int)};
-  CHECK_NOTHROW(writer.write("creator", event_cell(1), product));
+  CHECK_NOTHROW(writer.write("creator", test_stage, event_cell(1), product));
 }
 
 TEST_CASE("form_writer_interface creates containers once across events", "[form]")
@@ -619,8 +637,8 @@ TEST_CASE("form_writer_interface creates containers once across events", "[form]
   form::experimental::product_with_name product{
     .label = "prod", .data = &payload, .type = &typeid(int)};
 
-  writer.write("creator", event_cell(1), std::vector{product});
-  writer.write("creator", event_cell(2), std::vector{product});
+  writer.write("creator", test_stage, event_cell(1), std::vector{product});
+  writer.write("creator", test_stage, event_cell(2), std::vector{product});
 
   // Containers are created on the first event only; writes and commits still happen every event.
   CHECK(spy_raw->create_calls == 1);
@@ -645,8 +663,8 @@ TEST_CASE("form_writer_interface fans a product out to multiple destinations", "
   form::experimental::product_with_name product{
     .label = "prod", .data = &payload, .type = &typeid(int)};
 
-  writer.write("creator", event_cell(1), std::vector{product});
-  writer.write("creator", event_cell(2), std::vector{product});
+  writer.write("creator", test_stage, event_cell(1), std::vector{product});
+  writer.write("creator", test_stage, event_cell(2), std::vector{product});
 
   // FORM names only the two product placements (the index is persistence's concern now), created
   // once on the first event.
@@ -674,7 +692,7 @@ TEST_CASE("form_writer_interface skips unconfigured products in a vector write",
   form::experimental::product_with_name unconfigured{
     .label = "missing", .data = &payload, .type = &typeid(int)};
 
-  CHECK_NOTHROW(writer.write("creator", event_cell(1), std::vector{unconfigured}));
+  CHECK_NOTHROW(writer.write("creator", test_stage, event_cell(1), std::vector{unconfigured}));
 
   // Nothing is configured for "missing": no container created, nothing written or committed.
   CHECK(spy_raw->create_calls == 0);
@@ -715,10 +733,11 @@ TEST_CASE("form_writer_interface rejects a product first appearing at a sealed p
     .label = "late", .data = &payload, .type = &typeid(int)};
 
   // Record 1 writes "early", sealing the place's container structure.
-  writer.write("creator", event_cell(1), std::vector{early});
+  writer.write("creator", test_stage, event_cell(1), std::vector{early});
   // Record 2 introduces "late" at that already-sealed place: FORM rejects it rather than let the
   // backend crash adding a container after first write.
-  CHECK_THROWS_AS(writer.write("creator", event_cell(2), std::vector{late}), std::runtime_error);
+  CHECK_THROWS_AS(writer.write("creator", test_stage, event_cell(2), std::vector{late}),
+                  std::runtime_error);
 }
 
 TEST_CASE("form_writer_interface commits only the places written this record", "[form]")
@@ -739,9 +758,9 @@ TEST_CASE("form_writer_interface commits only the places written this record", "
   form::experimental::product_with_name b{.label = "b", .data = &payload, .type = &typeid(int)};
 
   // Record 1 writes both products: both places are committed.
-  writer.write("creator", event_cell(1), std::vector{a, b});
+  writer.write("creator", test_stage, event_cell(1), std::vector{a, b});
   // Record 2 writes only "a": "b"'s place is known but received no data, so it is not committed.
-  writer.write("creator", event_cell(2), std::vector{a});
+  writer.write("creator", test_stage, event_cell(2), std::vector{a});
 
   // 2 commits on record 1 (a, b) + 1 commit on record 2 (a only) = 3.
   CHECK(spy_raw->commit_calls == 3);
@@ -810,7 +829,7 @@ TEST_CASE("form_writer_interface is closed once finalized", "[form]")
   int payload = 7;
   form::experimental::product_with_name prod{
     .label = "prod", .data = &payload, .type = &typeid(int)};
-  writer.write("creator", event_cell(1), std::vector{prod});
+  writer.write("creator", test_stage, event_cell(1), std::vector{prod});
 
   writer.finalize();
   REQUIRE(spy_raw->finalize_calls == 1);
@@ -823,7 +842,8 @@ TEST_CASE("form_writer_interface is closed once finalized", "[form]")
 
   SECTION("writing after finalize is rejected")
   {
-    CHECK_THROWS_AS(writer.write("creator", event_cell(2), std::vector{prod}), std::runtime_error);
+    CHECK_THROWS_AS(writer.write("creator", test_stage, event_cell(2), std::vector{prod}),
+                    std::runtime_error);
   }
 }
 
@@ -938,7 +958,7 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
   {
     CHECK(sanitize_name("plugin:algorithm") == "plugin_algorithm");
     CHECK(sanitize_name("a.b") == "a_b");
-    CHECK(navigation_row_column("plugin:algorithm") == "plugin_algorithm_row");
+    CHECK(navigation_row_column("plugin:algorithm", "stage1") == "plugin_algorithm_stage1_row");
     CHECK(hierarchy_key(cell_hierarchy{{"a.b", "c"}}) == "a_b_c");
   }
 
@@ -970,25 +990,39 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
 }
 
 namespace {
-  // Write one record through persistence.
+  // Write one record of a (creator, stage) stream through persistence.
+  void write_stage_record(form::detail::experimental::persistence_writer& writer,
+                          std::string const& creator,
+                          std::string const& stage,
+                          std::vector<std::string> const& labels,
+                          cell_index const& cell,
+                          form::technology::id tech = form::technology::id{})
+  {
+    int payload = 0;
+    std::vector<std::pair<placement, std::type_info const*>> containers;
+    containers.reserve(labels.size());
+    for (auto const& label : labels) {
+      containers.emplace_back(product_place(creator, label, tech, stage), &typeid(int));
+    }
+    writer.create_containers(containers);
+
+    for (auto const& label : labels) {
+      writer.register_write(product_of(creator, label, stage),
+                            product_place(creator, label, tech, stage),
+                            &payload,
+                            typeid(int));
+    }
+    writer.commit_place(product_place(creator, labels.front(), tech, stage), cell);
+  }
+
+  // Write one record at the test stage.
   void write_record(form::detail::experimental::persistence_writer& writer,
                     std::string const& creator,
                     std::vector<std::string> const& labels,
                     cell_index const& cell,
                     form::technology::id tech = form::technology::id{})
   {
-    int payload = 0;
-    std::vector<std::pair<placement, std::type_info const*>> containers;
-    containers.reserve(labels.size());
-    for (auto const& label : labels) {
-      containers.emplace_back(product_place(creator, label, tech), &typeid(int));
-    }
-    writer.create_containers(containers);
-
-    for (auto const& label : labels) {
-      writer.register_write(product_place(creator, label, tech), &payload, typeid(int));
-    }
-    writer.commit_place(product_place(creator, labels.front(), tech), cell);
+    write_stage_record(writer, creator, test_stage, labels, cell, tech);
   }
 }
 
@@ -1009,11 +1043,12 @@ TEST_CASE("navigation: one container per hierarchy, with that hierarchy's layer 
 
   // Each hierarchy carries its own layer columns, named as the data cell named them.
   auto const& segment_table = store->tables.at("nav_generic_cells_event_segment");
-  CHECK(segment_table.columns == std::vector<std::string>{"event", "segment", "tracker_row"});
+  CHECK(segment_table.columns ==
+        std::vector<std::string>{"event", "segment", "tracker_test_stage_row"});
   CHECK(segment_table.rows.size() == 2);
 
   auto const& event_table = store->tables.at("nav_generic_cells_event");
-  CHECK(event_table.columns == std::vector<std::string>{"event", "event_maker_row"});
+  CHECK(event_table.columns == std::vector<std::string>{"event", "event_maker_test_stage_row"});
   CHECK(event_table.rows.size() == 1);
 }
 
@@ -1036,7 +1071,7 @@ TEST_CASE("navigation: two technologies in one file each get their own container
   CHECK(store->tables.at("nav_root_rntuple_cells_event").rows.size() == 1);
 }
 
-TEST_CASE("navigation: a data cell appears once, with one row per creator", "[form]")
+TEST_CASE("navigation: a data cell appears once, with one column per stream", "[form]")
 {
   auto spy = std::make_unique<spy_storage_writer>();
   auto* store = spy.get();
@@ -1049,7 +1084,8 @@ TEST_CASE("navigation: a data cell appears once, with one row per creator", "[fo
   writer.finalize();
 
   auto const& table = store->tables.at("nav_generic_cells_event");
-  CHECK(table.columns == std::vector<std::string>{"event", "shower_row", "tracker_row"});
+  CHECK(table.columns ==
+        std::vector<std::string>{"event", "shower_test_stage_row", "tracker_test_stage_row"});
   REQUIRE(table.rows.size() == 2);
 
   // event 1: both creators wrote, each at its own container's row 0.
@@ -1058,7 +1094,7 @@ TEST_CASE("navigation: a data cell appears once, with one row per creator", "[fo
   CHECK(table.rows[1] == std::vector<std::string>{num(2), num(invalid_row_id), num(1)});
 }
 
-TEST_CASE("navigation: the product dictionary resolves a product to its creator's column", "[form]")
+TEST_CASE("navigation: the product dictionary resolves a product to its stream's column", "[form]")
 {
   auto spy = std::make_unique<spy_storage_writer>();
   auto* store = spy.get();
@@ -1072,6 +1108,7 @@ TEST_CASE("navigation: the product dictionary resolves a product to its creator'
   // Technology is part of the dictionary identity, not a column.
   CHECK(dictionary.columns == std::vector<std::string>{"product_name",
                                                        "creator",
+                                                       "stage",
                                                        "container_name",
                                                        "hierarchy_key",
                                                        "navigation_container",
@@ -1082,11 +1119,12 @@ TEST_CASE("navigation: the product dictionary resolves a product to its creator'
   auto const& hits = dictionary.rows[0];
   CHECK(hits[0] == "hits");
   CHECK(hits[1] == "tracker");
-  CHECK(hits[2] == "tracker/hits");
-  CHECK(hits[3] == "event");
+  CHECK(hits[2] == test_stage);
+  CHECK(hits[3] == "tracker_test_stage/hits");
+  CHECK(hits[4] == "event");
   // The navigation container names the object that actually exists on disk.
-  CHECK(hits[4] == "nav_generic_cells_event");
-  CHECK(hits[5] == "tracker_row");
+  CHECK(hits[5] == "nav_generic_cells_event");
+  CHECK(hits[6] == "tracker_test_stage_row");
 }
 
 TEST_CASE("navigation: a creator whose products disagree on their row is rejected", "[form]")
@@ -1102,14 +1140,16 @@ TEST_CASE("navigation: a creator whose products disagree on their row is rejecte
   writer.create_containers(containers);
 
   // Force the two product containers to have different rows.
-  store->set_next_row("tracker/tracks", 7);
-  writer.register_write(product_place("tracker", "hits"), &payload, typeid(int));
-  writer.register_write(product_place("tracker", "tracks"), &payload, typeid(int));
+  store->set_next_row("tracker_test_stage/tracks", 7);
+  writer.register_write(
+    product_of("tracker", "hits"), product_place("tracker", "hits"), &payload, typeid(int));
+  writer.register_write(
+    product_of("tracker", "tracks"), product_place("tracker", "tracks"), &payload, typeid(int));
 
   CHECK_THROWS_AS(writer.commit_place(product_place("tracker", "hits"), event_cell(1)),
                   std::runtime_error);
 
-  CHECK(std::ranges::find(store->filled_containers, "tracker/index") ==
+  CHECK(std::ranges::find(store->filled_containers, "tracker_test_stage/index") ==
         store->filled_containers.end());
 }
 
@@ -1125,12 +1165,15 @@ TEST_CASE("navigation: a failed product write abandons the whole record", "[form
     {product_place("tracker", "tracks"), &typeid(int)}};
   writer.create_containers(containers);
 
-  writer.register_write(product_place("tracker", "hits"), &payload, typeid(int));
+  writer.register_write(
+    product_of("tracker", "hits"), product_place("tracker", "hits"), &payload, typeid(int));
 
   // The backend fails on the record's second product.
-  store->throw_on_fill = "tracker/tracks";
-  CHECK_THROWS_AS(writer.register_write(product_place("tracker", "tracks"), &payload, typeid(int)),
-                  std::runtime_error);
+  store->throw_on_fill = "tracker_test_stage/tracks";
+  CHECK_THROWS_AS(
+    writer.register_write(
+      product_of("tracker", "tracks"), product_place("tracker", "tracks"), &payload, typeid(int)),
+    std::runtime_error);
   store->throw_on_fill.clear();
 
   // The first product's pending write was discarded because a partial record must not be navigable
@@ -1139,24 +1182,25 @@ TEST_CASE("navigation: a failed product write abandons the whole record", "[form
   CHECK_FALSE(store->tables.contains("nav_generic_cells_event"));
 }
 
-TEST_CASE("navigation: a creator writing one data cell twice is rejected", "[form]")
+TEST_CASE("navigation: a stream writing one data cell twice is rejected", "[form]")
 {
   auto spy = std::make_unique<spy_storage_writer>();
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
-  // The wide table holds one row per creator per data cell, so the second write has nowhere to go.
+  // The wide table holds one row per stream per data cell, so the second write has nowhere to go.
   write_record(writer, "tracker", {"hits"}, event_cell(1));
   CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, event_cell(1)), std::runtime_error);
 }
 
-TEST_CASE("navigation: a layer column colliding with a creator column is rejected", "[form]")
+TEST_CASE("navigation: a layer column colliding with a stream column is rejected", "[form]")
 {
   auto spy = std::make_unique<spy_storage_writer>();
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
-  // A layer named "tracker_row" yields the same column name as creator "tracker" does.
-  cell_index const cell{
-    .id = "[tracker_row:1]", .hierarchy = {{"tracker_row"}}, .layer_values = {1}};
+  // A layer named "tracker_test_stage_row" yields the same column name as the tracker's stream.
+  cell_index const cell{.id = "[tracker_test_stage_row:1]",
+                        .hierarchy = {{"tracker_test_stage_row"}},
+                        .layer_values = {1}};
 
   // The record that introduces the clash is where it throws, so the job can still report it.
   CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, cell), std::runtime_error);
@@ -1173,7 +1217,7 @@ TEST_CASE("navigation: the job cell is a hierarchy with no layer columns", "[for
   writer.finalize();
 
   auto const& table = store->tables.at("nav_generic_cells_job");
-  CHECK(table.columns == std::vector<std::string>{"tracker_row"});
+  CHECK(table.columns == std::vector<std::string>{"tracker_test_stage_row"});
   REQUIRE(table.rows.size() == 1);
   CHECK(table.rows[0] == std::vector<std::string>{num(0)});
 }
@@ -1251,12 +1295,12 @@ TEST_CASE("navigation: finalize is idempotent", "[form]")
   // Written once, not twice.
   CHECK(store->tables.at("nav_generic_cells_event").rows.size() == 1);
   CHECK(store->tables.at("nav_generic_cells_event").columns ==
-        std::vector<std::string>{"event", "tracker_row"});
+        std::vector<std::string>{"event", "tracker_test_stage_row"});
 }
 
-TEST_CASE("navigation: the per-creator index is still written", "[form]")
+TEST_CASE("navigation: each row space still has its index", "[form]")
 {
-  // Keep the existing index for the current read path.
+  // Keep the existing index for the current read path; it lives in the (creator, stage) row space.
   auto spy = std::make_unique<spy_storage_writer>();
   auto* store = spy.get();
   form::detail::experimental::persistence_writer writer{std::move(spy)};
@@ -1264,6 +1308,334 @@ TEST_CASE("navigation: the per-creator index is still written", "[form]")
   write_record(writer, "tracker", {"hits"}, event_cell(1));
   writer.finalize();
 
-  CHECK(std::ranges::find(store->filled_containers, "tracker/index") !=
+  CHECK(std::ranges::find(store->filled_containers, "tracker_test_stage/index") !=
         store->filled_containers.end());
+}
+
+// -------------------------------------------------------------------------------------------------
+// Stages: the same creator may write at more than one stage. Each (creator, stage) is its own
+// stream, with its own physical row space ("creator_stage"), index, and navigation column.
+// -------------------------------------------------------------------------------------------------
+
+namespace {
+  struct staged_writer {
+    spy_storage_writer* store;
+    std::unique_ptr<form::experimental::form_writer_interface> form;
+  };
+
+  staged_writer make_staged_writer(std::vector<std::string> const& labels)
+  {
+    using namespace form::experimental::config;
+    item_config cfg;
+    for (auto const& label : labels) {
+      cfg.add_item(label, "stage_test.root", form::technology::id{});
+    }
+    auto spy = std::make_unique<spy_storage_writer>();
+    auto* store = spy.get();
+    return staged_writer{
+      .store = store,
+      .form = std::make_unique<form::experimental::form_writer_interface>(
+        cfg,
+        tech_setting_config{},
+        std::make_unique<form::detail::experimental::persistence_writer>(std::move(spy)))};
+  }
+
+  std::vector<form::experimental::product_with_name> products_of(
+    std::vector<std::string> const& labels, int const& payload)
+  {
+    std::vector<form::experimental::product_with_name> products;
+    products.reserve(labels.size());
+    for (auto const& label : labels) {
+      products.push_back({.label = label, .data = &payload, .type = &typeid(int)});
+    }
+    return products;
+  }
+
+  bool was_filled(spy_storage_writer const& store, std::string const& container)
+  {
+    return std::ranges::find(store.filled_containers, container) != store.filled_containers.end();
+  }
+
+  spy_storage_writer const& write_two_stages(staged_writer& writer)
+  {
+    int const payload = 0;
+    auto& form = *writer.form;
+    form.write("tracker", "stage1", event_cell(1), products_of({"hits", "tracks"}, payload));
+    form.write("tracker", "stage2", event_cell(1), products_of({"hits", "vertices"}, payload));
+    form.write("tracker", "stage1", event_cell(2), products_of({"hits", "tracks"}, payload));
+    form.write("tracker", "stage2", event_cell(3), products_of({"hits", "vertices"}, payload));
+    form.finalize();
+    return *writer.store;
+  }
+}
+
+TEST_CASE("stage: (creator, stage) maps to row space creator_stage and its column", "[form]")
+{
+  // Logical creator and stage -> physical row space -> navigation column.
+  CHECK(build_row_space_name("tracker", "stage1") == "tracker_stage1");
+  CHECK(navigation_row_column("tracker", "stage1") == "tracker_stage1_row");
+  CHECK(build_row_space_name("tracker", "stage1") != build_row_space_name("tracker", "stage2"));
+
+  // The row space keeps the creator as written; only the column name is sanitized.
+  CHECK(build_row_space_name("plugin:algorithm", "stage1") == "plugin:algorithm_stage1");
+  CHECK(navigation_row_column("plugin:algorithm", "stage1") == "plugin_algorithm_stage1_row");
+
+  // An empty stage is an ordinary value: no special case and no pre-stage "creator" layout.
+  CHECK(build_row_space_name("tracker", "") == "tracker_");
+  CHECK(navigation_row_column("tracker", "") == "tracker__row");
+
+  // Storage splits a container name at its first '/'.
+  CHECK_THROWS_AS(build_row_space_name("tracker", "stage/1"), std::runtime_error);
+  CHECK_THROWS_AS(build_row_space_name("plugin/tracker", "stage1"), std::runtime_error);
+}
+
+TEST_CASE("stage: FORM passes the product's creator and stage to persistence explicitly", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("hits", "stage_identity.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name hits{
+    .label = "hits", .data = &payload, .type = &typeid(int)};
+  writer.write("tracker", "stage1", event_cell(1), hits);
+  writer.write("tracker", "stage2", event_cell(1), hits);
+
+  CHECK(spy_raw->written_products == std::vector{product_of("tracker", "hits", "stage1"),
+                                                 product_of("tracker", "hits", "stage2")});
+  CHECK(spy_raw->written_containers ==
+        std::vector<std::string>{"tracker_stage1/hits", "tracker_stage2/hits"});
+  // Each (creator, stage) gets its own containers.
+  CHECK(spy_raw->created_containers ==
+        std::vector<std::string>{"tracker_stage1/hits", "tracker_stage2/hits"});
+}
+
+TEST_CASE("stage: FORM rejects a stage that cannot name a row space", "[form]")
+{
+  auto writer = make_staged_writer({"hits"});
+  int const payload = 0;
+  CHECK_THROWS_AS(
+    writer.form->write("tracker", "stage/1", event_cell(1), products_of({"hits"}, payload)),
+    std::runtime_error);
+  CHECK(writer.store->filled_containers.empty());
+}
+
+TEST_CASE("stage: one creator at two stages writes two independent row spaces", "[form]")
+{
+  auto writer = make_staged_writer({"hits", "tracks", "vertices"});
+  auto const& store = write_two_stages(writer);
+
+  // Stage stage1 products, and that row space's own index.
+  CHECK(was_filled(store, "tracker_stage1/hits"));
+  CHECK(was_filled(store, "tracker_stage1/tracks"));
+  CHECK(was_filled(store, "tracker_stage1/index"));
+  // Stage stage2 products, with a different product set, and its own index.
+  CHECK(was_filled(store, "tracker_stage2/hits"));
+  CHECK(was_filled(store, "tracker_stage2/vertices"));
+  CHECK(was_filled(store, "tracker_stage2/index"));
+
+  // Nothing is written to a creator-only row space, and neither stage writes the other's products.
+  CHECK_FALSE(was_filled(store, "tracker/hits"));
+  CHECK_FALSE(was_filled(store, "tracker/index"));
+  CHECK_FALSE(was_filled(store, "tracker_stage2/tracks"));
+  CHECK_FALSE(was_filled(store, "tracker_stage1/vertices"));
+
+  // Each row space counts its own rows: two records each, so rows 0 and 1 in both.
+  auto const fills = [&store](std::string const& container) {
+    return std::ranges::count(store.filled_containers, container);
+  };
+  CHECK(fills("tracker_stage1/hits") == 2);
+  CHECK(fills("tracker_stage1/index") == 2);
+  CHECK(fills("tracker_stage2/hits") == 2);
+  CHECK(fills("tracker_stage2/index") == 2);
+}
+
+TEST_CASE("stage: one creator at two stages has two navigation columns", "[form]")
+{
+  auto writer = make_staged_writer({"hits", "tracks", "vertices"});
+  auto const& store = write_two_stages(writer);
+
+  // One table for the hierarchy -- not one per stage -- with one column per (creator, stage).
+  REQUIRE(store.tables.contains("nav_generic_cells_event"));
+  CHECK(std::ranges::count_if(store.tables, [](auto const& table) {
+          return table.first.starts_with("nav_generic_cells_");
+        }) == 1);
+  auto const& table = store.tables.at("nav_generic_cells_event");
+  CHECK(table.columns ==
+        std::vector<std::string>{"event", "tracker_stage1_row", "tracker_stage2_row"});
+
+  // One row per data cell; event 1 holds the creator at both stages, each in its own row space.
+  REQUIRE(table.rows.size() == 3);
+  CHECK(table.rows[0] == std::vector<std::string>{num(1), num(0), num(0)});
+  CHECK(table.rows[1] == std::vector<std::string>{num(2), num(1), num(invalid_row_id)});
+  CHECK(table.rows[2] == std::vector<std::string>{num(3), num(invalid_row_id), num(1)});
+}
+
+TEST_CASE("stage: the product dictionary records each product's stage", "[form]")
+{
+  auto writer = make_staged_writer({"hits", "tracks", "vertices"});
+  auto const& store = write_two_stages(writer);
+
+  auto const& dictionary = store.tables.at("nav_generic_products");
+  REQUIRE(dictionary.columns == std::vector<std::string>{"product_name",
+                                                         "creator",
+                                                         "stage",
+                                                         "container_name",
+                                                         "hierarchy_key",
+                                                         "navigation_container",
+                                                         "navigation_column"});
+
+  // (product, creator, stage, hierarchy) is the logical identity: "hits" appears once per stage,
+  // and each product appears once however many cells it was written for.
+  using row = std::vector<std::string>;
+  CHECK(dictionary.rows == std::vector<row>{
+                             row{"hits",
+                                 "tracker",
+                                 "stage1",
+                                 "tracker_stage1/hits",
+                                 "event",
+                                 "nav_generic_cells_event",
+                                 "tracker_stage1_row"},
+                             row{"tracks",
+                                 "tracker",
+                                 "stage1",
+                                 "tracker_stage1/tracks",
+                                 "event",
+                                 "nav_generic_cells_event",
+                                 "tracker_stage1_row"},
+                             row{"hits",
+                                 "tracker",
+                                 "stage2",
+                                 "tracker_stage2/hits",
+                                 "event",
+                                 "nav_generic_cells_event",
+                                 "tracker_stage2_row"},
+                             row{"vertices",
+                                 "tracker",
+                                 "stage2",
+                                 "tracker_stage2/vertices",
+                                 "event",
+                                 "nav_generic_cells_event",
+                                 "tracker_stage2_row"},
+                           });
+}
+
+TEST_CASE("stage: two (creator, stage) pairs naming one row space are rejected", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  auto* store = spy.get();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  // "a_b" at "c" and "a" at "b_c" both join to the row space "a_b_c".
+  write_stage_record(writer, "a_b", "c", {"hits"}, event_cell(1));
+  CHECK_THROWS_AS(write_stage_record(writer, "a", "b_c", {"hits"}, event_cell(2)),
+                  std::runtime_error);
+
+  // The clash is caught before the second stream fills a row of the first stream's row space.
+  CHECK(std::ranges::count(store->filled_containers, "a_b_c/hits") == 1);
+
+  // An empty stage takes part like any other: "t_" at "" and "t" at "_" both join to "t__".
+  write_stage_record(writer, "t_", "", {"hits"}, event_cell(1));
+  CHECK_THROWS_AS(write_stage_record(writer, "t", "_", {"hits"}, event_cell(2)),
+                  std::runtime_error);
+  CHECK(std::ranges::count(store->filled_containers, "t__/hits") == 1);
+}
+
+TEST_CASE("stage: two streams naming one navigation column are rejected", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  // Different row spaces ("a:b_c" and "a_b_c"), but both sanitize to the column "a_b_c_row".
+  write_stage_record(writer, "a:b", "c", {"hits"}, event_cell(1));
+  CHECK_THROWS_AS(write_stage_record(writer, "a_b", "c", {"hits"}, event_cell(2)),
+                  std::runtime_error);
+}
+
+TEST_CASE("stage: a product written twice for one data cell is rejected", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  CHECK_THROWS_AS(write_stage_record(writer, "tracker", "stage1", {"hits", "hits"}, event_cell(1)),
+                  std::runtime_error);
+
+  write_stage_record(writer, "tracker", "stage1", {"hits"}, event_cell(2));
+  CHECK_THROWS_AS(write_stage_record(writer, "tracker", "stage1", {"hits"}, event_cell(2)),
+                  std::runtime_error);
+
+  CHECK_NOTHROW(write_stage_record(writer, "tracker", "stage2", {"hits"}, event_cell(2)));
+}
+
+TEST_CASE("stage: FORM rejects a record carrying one product twice before writing it", "[form]")
+{
+  auto writer = make_staged_writer({"hits"});
+  int const payload = 0;
+  CHECK_THROWS_AS(
+    writer.form->write("tracker", "stage1", event_cell(1), products_of({"hits", "hits"}, payload)),
+    std::runtime_error);
+  CHECK(writer.store->filled_containers.empty());
+}
+
+TEST_CASE("stage: an empty stage is written like any other stage", "[form]")
+{
+  auto writer = make_staged_writer({"hits"});
+  int const payload = 0;
+  writer.form->write("tracker", "", event_cell(1), products_of({"hits"}, payload));
+  writer.form->write("tracker", test_stage, event_cell(1), products_of({"hits"}, payload));
+  writer.form->finalize();
+  auto const& store = *writer.store;
+
+  CHECK(was_filled(store, "tracker_/hits"));
+  CHECK(was_filled(store, "tracker_/index"));
+  CHECK_FALSE(was_filled(store, "tracker/hits"));
+  CHECK_FALSE(was_filled(store, "tracker/index"));
+
+  CHECK(store.tables.at("nav_generic_cells_event").columns ==
+        std::vector<std::string>{"event", "tracker__row", "tracker_test_stage_row"});
+
+  auto const& dictionary = store.tables.at("nav_generic_products");
+  REQUIRE(dictionary.rows.size() == 2);
+  CHECK(
+    dictionary.rows[0] ==
+    std::vector<std::string>{
+      "hits", "tracker", "", "tracker_/hits", "event", "nav_generic_cells_event", "tracker__row"});
+}
+
+TEST_CASE("stage: different creators at different stages each get their own stream", "[form]")
+{
+  auto writer = make_staged_writer({"hits", "showers"});
+  int const payload = 0;
+  auto& form = *writer.form;
+  form.write("tracker", "stage1", event_cell(1), products_of({"hits"}, payload));
+  form.write("shower", "stage1", event_cell(1), products_of({"showers"}, payload));
+  form.write("tracker", "stage2", event_cell(1), products_of({"hits"}, payload));
+  form.write("shower", "stage2", event_cell(2), products_of({"showers"}, payload));
+  form.finalize();
+  auto const& store = *writer.store;
+
+  for (auto const* container : {"tracker_stage1/index",
+                                "shower_stage1/index",
+                                "tracker_stage2/index",
+                                "shower_stage2/index"}) {
+    CHECK(was_filled(store, container));
+  }
+
+  auto const& table = store.tables.at("nav_generic_cells_event");
+  CHECK(table.columns == std::vector<std::string>{"event",
+                                                  "shower_stage1_row",
+                                                  "shower_stage2_row",
+                                                  "tracker_stage1_row",
+                                                  "tracker_stage2_row"});
+  REQUIRE(table.rows.size() == 2);
+  CHECK(table.rows[0] ==
+        std::vector<std::string>{num(1), num(0), num(invalid_row_id), num(0), num(0)});
+  CHECK(table.rows[1] ==
+        std::vector<std::string>{
+          num(2), num(invalid_row_id), num(0), num(invalid_row_id), num(invalid_row_id)});
 }

@@ -3,7 +3,9 @@
 #ifndef TEST_FORM_NAVIGATION_CHECK_HPP
 #define TEST_FORM_NAVIGATION_CHECK_HPP
 
+#include "core/container_naming.hpp"
 #include "core/technology.hpp"
+#include "persistence/navigation_naming.hpp"
 #include "storage/factories.hpp"
 #include "storage/istorage.hpp"
 
@@ -22,6 +24,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -35,11 +38,14 @@
 
 namespace form::test {
 
+  using form::detail::experimental::build_full_label;
+  using form::detail::experimental::build_row_space_name;
   using form::detail::experimental::create_file;
   using form::detail::experimental::create_read_container;
   using form::detail::experimental::i_storage_file;
   using form::detail::experimental::i_storage_read_container;
   using form::detail::experimental::invalid_row_id;
+  using form::detail::experimental::navigation_row_column;
 
   /// Counts failures instead of aborting, so one run reports everything that is wrong.
   class checker {
@@ -99,20 +105,9 @@ namespace form::test {
     return name;
   }
 
-  inline std::string sanitized(std::string_view name)
-  {
-    std::string result;
-    result.reserve(name.size());
-    for (char const c : name) {
-      auto const uc = static_cast<unsigned char>(c);
-      result.push_back(std::isalnum(uc) != 0 || c == '_' ? c : '_');
-    }
-    return result;
-  }
-
   inline std::string column_of(std::string const& table, std::string const& column)
   {
-    return table + "/" + column;
+    return build_full_label(table, column);
   }
 
   class column_reader {
@@ -169,10 +164,13 @@ namespace form::test {
     std::map<std::string, std::shared_ptr<i_storage_read_container>> containers_;
   };
 
-  struct creator_column {
+  struct stream_column {
     std::string creator;
+    std::string stage;
     std::string column;
     std::vector<std::uint64_t> rows;
+
+    std::string label() const { return "creator '" + creator + "' at stage '" + stage + "'"; }
   };
 
   struct navigation_table {
@@ -180,7 +178,7 @@ namespace form::test {
     std::string hierarchy_key;
     std::vector<std::string> layer_columns;
     std::vector<std::vector<std::uint64_t>> layers;
-    std::vector<creator_column> creators;
+    std::vector<stream_column> streams;
 
     /// The shortest column, so that printing a malformed table is still safe. A table whose
     /// columns disagree is a failure, reported by check_layout rather than by crashing here.
@@ -193,8 +191,8 @@ namespace form::test {
       for (auto const& layer : layers) {
         consider(layer.size());
       }
-      for (auto const& creator : creators) {
-        consider(creator.rows.size());
+      for (auto const& stream : streams) {
+        consider(stream.rows.size());
       }
       return shortest.value_or(0);
     }
@@ -209,16 +207,30 @@ namespace form::test {
       return key;
     }
 
-    creator_column const* creator(std::string_view name) const
+    /// The (creator, stage) of each stream column, in column order.
+    std::vector<std::pair<std::string, std::string>> stream_ids() const
     {
-      auto const found = std::ranges::find(creators, name, &creator_column::creator);
-      return found == creators.end() ? nullptr : &*found;
+      std::vector<std::pair<std::string, std::string>> ids;
+      ids.reserve(streams.size());
+      for (auto const& stream : streams) {
+        ids.emplace_back(stream.creator, stream.stage);
+      }
+      return ids;
+    }
+
+    stream_column const* stream(std::string_view creator, std::string_view stage) const
+    {
+      auto const found = std::ranges::find_if(streams, [&](stream_column const& candidate) {
+        return candidate.creator == creator && candidate.stage == stage;
+      });
+      return found == streams.end() ? nullptr : &*found;
     }
   };
 
   struct product_entry {
     std::string product_name;
     std::string creator;
+    std::string stage;
     std::string container_name;
     std::string hierarchy_key;
     std::string navigation_container;
@@ -241,6 +253,14 @@ namespace form::test {
     product_entry const* product(std::string_view label) const
     {
       auto const found = std::ranges::find(products, label, &product_entry::product_name);
+      return found == products.end() ? nullptr : &*found;
+    }
+
+    product_entry const* product(std::string_view label, std::string_view stage) const
+    {
+      auto const found = std::ranges::find_if(products, [&](product_entry const& candidate) {
+        return candidate.product_name == label && candidate.stage == stage;
+      });
       return found == products.end() ? nullptr : &*found;
     }
   };
@@ -287,10 +307,10 @@ namespace form::test {
     inline std::vector<std::string> table_headers(navigation_table const& table)
     {
       std::vector<std::string> headers;
-      headers.reserve(table.layer_columns.size() + table.creators.size());
+      headers.reserve(table.layer_columns.size() + table.streams.size());
       headers.insert(headers.end(), table.layer_columns.begin(), table.layer_columns.end());
-      for (auto const& creator : table.creators) {
-        headers.push_back(creator.column);
+      for (auto const& stream : table.streams) {
+        headers.push_back(stream.column);
       }
       return headers;
     }
@@ -298,12 +318,12 @@ namespace form::test {
     inline std::vector<std::string> table_row(navigation_table const& table, std::size_t const row)
     {
       std::vector<std::string> values;
-      values.reserve(table.layers.size() + table.creators.size());
+      values.reserve(table.layers.size() + table.streams.size());
       for (auto const& layer : table.layers) {
         values.push_back(std::to_string(layer[row]));
       }
-      for (auto const& creator : table.creators) {
-        auto const id = creator.rows[row];
+      for (auto const& stream : table.streams) {
+        auto const id = stream.rows[row];
         values.push_back(id == invalid_row_id ? "-" : std::to_string(id));
       }
       return values;
@@ -347,9 +367,14 @@ namespace form::test {
                      table.name + " column '" + table.layer_columns[col] +
                        "' has one value per row");
       }
-      for (auto const& creator : table.creators) {
-        checks.check(creator.rows.size() == entries,
-                     table.name + " column '" + creator.column + "' has one value per row");
+      for (auto const& stream : table.streams) {
+        checks.check(stream.rows.size() == entries,
+                     table.name + " column '" + stream.column + "' has one value per row");
+      }
+      std::set<std::string> columns;
+      for (auto const& stream : table.streams) {
+        checks.check(columns.insert(stream.column).second,
+                     table.name + " gives " + stream.label() + " a column of its own");
       }
 
       if (table.layers.empty()) {
@@ -362,26 +387,26 @@ namespace form::test {
       }
     }
 
-    inline void check_against_creator_index(checker& checks,
-                                            column_reader& reader,
-                                            navigation_table const& table)
+    /// Each stream uses its row space's index for data-cell navigation.
+    inline void check_against_row_space_index(checker& checks,
+                                              column_reader& reader,
+                                              navigation_table const& table)
     {
-      for (auto const& creator : table.creators) {
-        auto const recorded_ids = reader.column<std::string>(column_of(creator.creator, "index"));
-        checks.check(!recorded_ids.empty(),
-                     "per-creator index '" + creator.creator + "/index' is readable");
+      for (auto const& stream : table.streams) {
+        auto const index = column_of(build_row_space_name(stream.creator, stream.stage), "index");
+        auto const recorded_ids = reader.column<std::string>(index);
+        checks.check(!recorded_ids.empty(), "row-space index '" + index + "' is readable");
 
         bool wrote_something = false;
         for (std::size_t row = 0; row != table.entries(); ++row) {
-          auto const id = creator.rows[row];
+          auto const id = stream.rows[row];
           if (id == invalid_row_id) {
             continue;
           }
           wrote_something = true;
           if (id >= recorded_ids.size()) {
             checks.check(false,
-                         "navigation row for creator '" + creator.creator +
-                           "' is within its index container");
+                         "navigation row for " + stream.label() + " is within its index container");
             continue;
           }
           auto const recorded = layer_values_of(recorded_ids[id]);
@@ -391,12 +416,12 @@ namespace form::test {
           }
           if (!table.layers.empty()) {
             checks.check(*recorded == table.layer_key(row),
-                         "creator '" + creator.creator + "' row " + std::to_string(id) +
+                         stream.label() + " row " + std::to_string(id) +
                            " holds the data cell navigation says it does");
           }
         }
         checks.check(wrote_something,
-                     "creator '" + creator.creator + "' has a column in " + table.name +
+                     stream.label() + " has a column in " + table.name +
                        " only because it wrote there");
       }
     }
@@ -404,21 +429,37 @@ namespace form::test {
     inline void check_dictionary(checker& checks, layout const& found)
     {
       for (auto const& product : found.products) {
-        auto const what = "dictionary entry '" + product.product_name + "'";
-        checks.check(product.container_name == product.creator + "/" + product.product_name,
-                     what + " names its product container");
+        auto const what =
+          "dictionary entry '" + product.product_name + "' at stage '" + product.stage + "'";
+        checks.check(
+          product.container_name ==
+            column_of(build_row_space_name(product.creator, product.stage), product.product_name),
+          what + " uses its creator-stage row space");
         checks.check(product.navigation_container ==
                        "nav_" + found.technology_token + "_cells_" + product.hierarchy_key,
                      what + " names the navigation table of its hierarchy");
-        checks.check(product.navigation_column == sanitized(product.creator) + "_row",
-                     what + " names its creator's row column");
+        checks.check(product.navigation_column ==
+                       navigation_row_column(product.creator, product.stage),
+                     what + " names the column of its (creator, stage) stream");
 
         auto const* table = found.table(product.navigation_container);
         checks.check(table != nullptr, what + " points at a table that exists");
         if (table != nullptr) {
-          checks.check(table->creator(product.creator) != nullptr,
-                       what + " points at a table its creator has a column in");
+          auto const* stream = table->stream(product.creator, product.stage);
+          checks.check(stream != nullptr && stream->column == product.navigation_column,
+                       what + " points at a column its stream has in that table");
         }
+      }
+
+      // Each (product, creator, stage, hierarchy) identity appears once.
+      std::set<std::tuple<std::string, std::string, std::string, std::string>> identities;
+      for (auto const& product : found.products) {
+        checks.check(
+          identities
+            .emplace(product.product_name, product.creator, product.stage, product.hierarchy_key)
+            .second,
+          "dictionary entry '" + product.product_name + "' at stage '" + product.stage +
+            "' appears once");
       }
     }
 
@@ -439,6 +480,7 @@ namespace form::test {
     }
 
     auto const creators = reader.column<std::string>(column_of(found.dictionary, "creator"));
+    auto const stages = reader.column<std::string>(column_of(found.dictionary, "stage"));
     auto const containers =
       reader.column<std::string>(column_of(found.dictionary, "container_name"));
     auto const keys = reader.column<std::string>(column_of(found.dictionary, "hierarchy_key"));
@@ -447,25 +489,30 @@ namespace form::test {
     auto const nav_columns =
       reader.column<std::string>(column_of(found.dictionary, "navigation_column"));
 
-    auto const complete = creators.size() == names.size() && containers.size() == names.size() &&
-                          keys.size() == names.size() && nav_containers.size() == names.size() &&
+    auto const complete = creators.size() == names.size() && stages.size() == names.size() &&
+                          containers.size() == names.size() && keys.size() == names.size() &&
+                          nav_containers.size() == names.size() &&
                           nav_columns.size() == names.size();
     checks.check(complete, "every dictionary column has one entry per product");
     if (!complete) {
       return found;
     }
 
-    std::map<std::string, std::pair<std::string, std::map<std::string, std::string>>> by_table;
+    // Table -> (hierarchy key, (creator, stage) -> column).
+    std::map<std::string,
+             std::pair<std::string, std::map<std::pair<std::string, std::string>, std::string>>>
+      by_table;
     for (std::size_t i = 0; i != names.size(); ++i) {
       found.products.push_back(product_entry{.product_name = names[i],
                                              .creator = creators[i],
+                                             .stage = stages[i],
                                              .container_name = containers[i],
                                              .hierarchy_key = keys[i],
                                              .navigation_container = nav_containers[i],
                                              .navigation_column = nav_columns[i]});
       auto& [key, columns] = by_table[nav_containers[i]];
       key = keys[i];
-      columns[creators[i]] = nav_columns[i];
+      columns[std::make_pair(creators[i], stages[i])] = nav_columns[i];
     }
 
     for (auto const& [name, contents] : by_table) {
@@ -475,11 +522,12 @@ namespace form::test {
       for (auto const& layer : table.layer_columns) {
         table.layers.push_back(reader.column<std::uint64_t>(column_of(name, layer)));
       }
-      for (auto const& [creator, column] : columns) {
-        table.creators.push_back(
-          creator_column{.creator = creator,
-                         .column = column,
-                         .rows = reader.column<std::uint64_t>(column_of(name, column))});
+      for (auto const& [stream, column] : columns) {
+        table.streams.push_back(
+          stream_column{.creator = stream.first,
+                        .stage = stream.second,
+                        .column = column,
+                        .rows = reader.column<std::uint64_t>(column_of(name, column))});
       }
       found.tables.push_back(std::move(table));
     }
@@ -494,7 +542,7 @@ namespace form::test {
 
     std::cout << '\n'
               << table.name << "   hierarchy {" << table.hierarchy_key << "}, " << table.entries()
-              << " rows, " << table.creators.size() << " creator(s)\n";
+              << " rows, " << table.streams.size() << " stream(s)\n";
     detail::print_row(widths, headers);
 
     std::vector<std::string> rule;
@@ -520,6 +568,7 @@ namespace form::test {
       };
       field("product_name", product.product_name);
       field("creator", product.creator);
+      field("stage", product.stage);
       field("container_name", product.container_name);
       field("hierarchy_key", product.hierarchy_key);
       field("navigation_container", product.navigation_container);
@@ -530,10 +579,11 @@ namespace form::test {
   /// The whole layout: one table per hierarchy, then the dictionary.
   inline void print(layout const& found)
   {
-    std::cout << "\nFORM navigation layout: " << found.tables.size() << " hierarchy table(s)"
-              << " for technology '" << found.technology_token << "'.\n"
-              << "A table with more than one creator column is a wide table: those creators\n"
-              << "share a hierarchy, so they share its table.\n";
+    std::cout
+      << "\nFORM navigation layout: " << found.tables.size() << " hierarchy table(s)"
+      << " for technology '" << found.technology_token << "'.\n"
+      << "A table with more than one stream column is a wide table: those (creator, stage)\n"
+      << "streams share a hierarchy, so they share its table.\n";
     for (auto const& table : found.tables) {
       print_table(table);
     }
@@ -547,7 +597,7 @@ namespace form::test {
 
     for (auto const& table : found.tables) {
       detail::check_table_shape(checks, table);
-      detail::check_against_creator_index(checks, reader, table);
+      detail::check_against_row_space_index(checks, reader, table);
     }
 
     detail::check_dictionary(checks, found);

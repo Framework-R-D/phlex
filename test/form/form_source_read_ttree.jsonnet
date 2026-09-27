@@ -8,6 +8,7 @@
   sources: {
     sums_from_form: {
       cpp: 'form_source',
+      stage: 'test',
       input_file: 'form_source_coverage_input.root',
       plugin: 'add_cov',
       algorithm: 'add_wires',

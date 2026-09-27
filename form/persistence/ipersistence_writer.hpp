@@ -5,6 +5,7 @@
 
 #include "core/cell_index.hpp"
 #include "core/placement.hpp"
+#include "core/product_identity.hpp"
 #include "core/token.hpp"
 
 #include <memory>
@@ -30,15 +31,16 @@ namespace form::detail::experimental {
     virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    // Create the given product containers. FORM resolves each (creator, label) to a placement and
-    // calls this only with containers it has not created before. Persistence adds the matching
-    // navigation ("index") container for each place itself, so FORM stays opaque to it.
+    // Create the given product containers. FORM resolves each (creator, stage, label) to a placement
+    // and calls this only with containers it has not created before. Persistence adds the matching
+    // "index" container to each product's row space itself, so FORM stays opaque to it.
     virtual void create_containers(
       std::vector<std::pair<placement, std::type_info const*>> const& containers) = 0;
 
     // Write one product and return a token locating it: placement plus 0-based row (entry) number
-    // Throws if backend isn't row-addressed, causing token read lookup to fail
-    virtual token register_write(placement const& plcmnt,
+    // Throws if backend isn't row-addressed, causing token read lookup to fail.
+    virtual token register_write(product_identity const& product,
+                                 placement const& plcmnt,
                                  void const* data,
                                  std::type_info const& type) = 0;
 

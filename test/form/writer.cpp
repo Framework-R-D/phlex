@@ -129,7 +129,7 @@ int main(int argc, char** argv)
                                                          .type = &typeid(std::vector<track_start>)};
       products.push_back(pb_points);
 
-      form.write(creator, segment_id, products);
+      form.write(creator, form::test::test_stage, segment_id, products);
 
       // Save segment checksums
       checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " << check
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << '\n';
 
-    form.write(creator, event_id, pb);
+    form.write(creator, form::test::test_stage, event_id, pb);
 
     // Save event checksum
     checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";

@@ -5,6 +5,7 @@
 
 #include "core/container_naming.hpp"
 #include "core/placement.hpp"
+#include "core/product_identity.hpp"
 #include "form/config.hpp"
 #include "ipersistence_writer.hpp"
 #include "storage/istorage.hpp"
@@ -34,7 +35,8 @@ namespace form::detail::experimental {
 
     void create_containers(
       std::vector<std::pair<placement, std::type_info const*>> const& containers) override;
-    token register_write(placement const& plcmnt,
+    token register_write(product_identity const& product,
+                         placement const& plcmnt,
                          void const* data,
                          std::type_info const& type) override;
     void commit_place(placement const& plcmnt, cell_index const& cell) override;
@@ -44,12 +46,21 @@ namespace form::detail::experimental {
     /// Destination identified by file and technology; navigation is scoped to a place.
     using place_key = std::pair<std::string, technology::id>;
 
+    /// A navigation stream is identified by (creator, stage).
+    struct stream_key {
+      std::string creator;
+      std::string stage;
+
+      auto operator<=>(stream_key const&) const = default;
+    };
+
     /// A product write pending association with a data cell.
     struct pending_write {
-      std::string creator;
-      std::string label;
+      product_identity product;
       std::string container_name;
       std::uint64_t row{invalid_row_id};
+
+      stream_key stream() const { return {.creator = product.creator, .stage = product.stage}; }
     };
 
     /// A navigation table is identified by the hierarchy it indexes, within one place.
@@ -63,12 +74,12 @@ namespace form::detail::experimental {
 
     /// A "wide" navigation table for one hierarchy.
     struct navigation_table {
-      /// Creators contributing to this hierarchy, kept ordered for stable column order.
-      std::set<std::string> creators;
+      /// Streams contributing to this hierarchy, kept ordered for stable column order.
+      std::set<stream_key> streams;
 
-      /// Layer values -> creator -> physical row.
-      /// A missing creator entry means that creator did not write the cell.
-      std::map<std::vector<std::uint64_t>, std::map<std::string, std::uint64_t>> rows;
+      /// Layer values -> stream -> physical row.
+      /// A missing stream entry means that stream did not write the cell.
+      std::map<std::vector<std::uint64_t>, std::map<stream_key, std::uint64_t>> rows;
 
       /// Physical column name -> what claimed it, so a clash can name both sides.
       std::map<std::string, std::string> column_sources;
@@ -78,6 +89,7 @@ namespace form::detail::experimental {
     struct dictionary_entry {
       std::string product_name;
       std::string creator;
+      std::string stage;
       std::string container_name;
       std::string hierarchy_key;
       std::string navigation_container;
@@ -90,7 +102,7 @@ namespace form::detail::experimental {
       navigation_key key;
       std::string table_name;
       std::vector<pending_write> pending;
-      std::map<std::string, std::uint64_t> row_by_creator;
+      std::map<stream_key, std::uint64_t> row_by_stream;
       std::vector<std::uint64_t> layer_values;
       std::map<std::string, std::string> new_columns;
       bool claims_table_name{false};
@@ -102,15 +114,18 @@ namespace form::detail::experimental {
     /// Apply a validated navigation update, consuming it.
     void apply_navigation(staged_record staged);
 
-    /// Return one row per creator, throwing if a creator's products use different rows.
-    static std::map<std::string, std::uint64_t> rows_by_creator(
+    /// Return one row per stream; reject inconsistent or duplicate writes.
+    static std::map<stream_key, std::uint64_t> rows_by_stream(
       std::vector<pending_write> const& pending, cell_index const& cell);
 
-    /// Add one dictionary row per (creator, product, hierarchy) seen in this record.
+    /// Add one dictionary row per (product, creator, stage, hierarchy) seen in this record.
     void record_dictionary_entries(place_key const& place,
                                    std::vector<pending_write> const& pending,
                                    cell_hierarchy const& hierarchy,
                                    technology::id tech);
+
+    /// Throw if the row space is already owned by a different stream.
+    void check_row_space_owner(placement const& plcmnt, stream_key const& stream) const;
 
     /// Throw if another hierarchy already claims this container name.
     /// Returns true if this hierarchy would be the first to claim it.
@@ -119,7 +134,7 @@ namespace form::detail::experimental {
     /// Throw if this record would overwrite rows already recorded for the cell.
     static void check_rows_are_new(navigation_table const* table,
                                    cell_index const& cell,
-                                   std::map<std::string, std::uint64_t> const& row_by_creator);
+                                   std::map<stream_key, std::uint64_t> const& row_by_stream);
 
     /// Stage a column claim, throwing if it conflicts with an existing or staged claim.
     static void stage_column(std::map<std::string, std::string>& staged,
@@ -140,10 +155,12 @@ namespace form::detail::experimental {
 
     std::unique_ptr<i_storage_writer> store_writer_;
     form::experimental::config::tech_setting_config tech_settings_;
-    // Product container (file, name, technology) -> its per-creator "index" placement, resolved
-    // once when the product container is created and reused on every commit.
-    // Persistence owns the index.
+    // Product container (file, name, technology) -> the "index" placement. The placement is
+    // resolved when the product container is created and reused on each commit.
     std::map<std::tuple<std::string, std::string, technology::id>, placement> index_by_product_;
+
+    // (file, technology, row space) -> owning stream. Each row space may have only one owner.
+    std::map<std::tuple<std::string, technology::id, std::string>, stream_key> row_space_owners_;
 
     // Pending product writes grouped by destination place.
     std::map<place_key, std::vector<pending_write>> pending_by_place_;
@@ -155,10 +172,8 @@ namespace form::detail::experimental {
     std::map<std::tuple<std::string, technology::id, std::string>, cell_hierarchy>
       claimed_table_names_;
 
-    /// Dictionary entries grouped by place and (creator, product, hierarchy).
-    /// A product contributes one dictionary row per hierarchy.
-    std::map<place_key,
-             std::map<std::tuple<std::string, std::string, cell_hierarchy>, dictionary_entry>>
+    /// Dictionary entries grouped by place and (product identity, hierarchy).
+    std::map<place_key, std::map<std::pair<product_identity, cell_hierarchy>, dictionary_entry>>
       dictionaries_;
     bool finalized_{false};
   };

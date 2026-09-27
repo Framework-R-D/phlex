@@ -5,11 +5,13 @@
 
 #include "core/technology.hpp"
 #include "navigation_check.hpp"
+#include "test_helpers.hpp"
 
 #include <cstddef>
 #include <exception>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace form::test;
@@ -22,8 +24,9 @@ namespace {
                          std::string const& segment_table,
                          std::string const& event_table)
   {
-    checks.check(!reader.has(column_of(segment_table, "Toy_Tracker_Event_row")),
-                 "the {event, segment} table has no column for a creator that never wrote to it");
+    checks.check(
+      !reader.has(column_of(segment_table, navigation_row_column("Toy_Tracker_Event", test_stage))),
+      "the {event, segment} table has no column for a stream that never wrote to it");
     checks.check(!reader.has(column_of(event_table, "segment")),
                  "the {event} table has no column for a layer outside its hierarchy");
   }
@@ -38,19 +41,19 @@ namespace {
     struct expectation {
       std::string table;
       std::vector<std::string> layer_columns;
-      std::vector<std::string> creators;
+      std::vector<std::pair<std::string, std::string>> streams;
       std::size_t rows;
     };
 
-    // 4 events, 15 segments each, from one creator; then 4 events from the other.
-    for (auto const& [name, layer_columns, creators, rows] :
+    // 4 events, 15 segments each, from one (creator, stage); then 4 events from the other.
+    for (auto const& [name, layer_columns, streams, rows] :
          {expectation{.table = segment_table,
                       .layer_columns = {"event", "segment"},
-                      .creators = {"Toy_Tracker"},
+                      .streams = {{"Toy_Tracker", test_stage}},
                       .rows = 60},
           expectation{.table = event_table,
                       .layer_columns = {"event"},
-                      .creators = {"Toy_Tracker_Event"},
+                      .streams = {{"Toy_Tracker_Event", test_stage}},
                       .rows = 4}}) {
       auto const* table = found.table(name);
       checks.check(table != nullptr, "the file has a navigation table " + name);
@@ -60,12 +63,8 @@ namespace {
       checks.check(table->layer_columns == layer_columns, name + " carries its own layer columns");
       checks.check(table->entries() == rows, name + " has one row per data cell");
 
-      std::vector<std::string> names;
-      names.reserve(table->creators.size());
-      for (auto const& creator : table->creators) {
-        names.push_back(creator.creator);
-      }
-      checks.check(names == creators, name + " has a column for each of its creators");
+      checks.check(table->stream_ids() == streams,
+                   name + " has a column for each of its (creator, stage) streams");
     }
   }
 
@@ -78,14 +77,15 @@ namespace {
       return;
     }
     checks.check(track_start->creator == "Toy_Tracker", "trackStart names its creator");
-    checks.check(track_start->container_name == "Toy_Tracker/trackStart",
-                 "trackStart names its product container");
+    checks.check(track_start->stage == test_stage, "trackStart names its stage");
+    checks.check(track_start->container_name == "Toy_Tracker_test_stage/trackStart",
+                 "trackStart names its product container in its (creator, stage) row space");
     checks.check(track_start->hierarchy_key == "event_segment",
                  "trackStart belongs to the {event, segment} hierarchy");
     checks.check(track_start->navigation_container == segment_table,
                  "trackStart names its navigation table");
-    checks.check(track_start->navigation_column == "Toy_Tracker_row",
-                 "trackStart names its creator's row column");
+    checks.check(track_start->navigation_column == "Toy_Tracker_test_stage_row",
+                 "trackStart names its (creator, stage) stream column");
   }
 
 }

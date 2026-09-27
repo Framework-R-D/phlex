@@ -6,6 +6,7 @@
 #include "data_products/dune_example/hit_candidate.hpp"
 #include "dune_example_hit_maker.hpp"
 #include "form/form_writer.hpp"
+#include "test_helpers.hpp"
 #include "test_utils.hpp"
 
 #include <cstdint>
@@ -22,9 +23,6 @@
  * creators, so that the resulting file contains three navigation tables, one of them wide. The
  * companion dune_example_navigation_dump.cpp reopens the file, prints those tables, and checks
  * them.
- *
- * This is the write half of the worked example in the FORM navigation documentation. It is
- * deliberately small enough that the whole navigation layout prints on one page.
  */
 
 using namespace form::test;
@@ -97,7 +95,7 @@ namespace {
     auto const candidates = candidates_in_roi(spill, wire, roi);
     form::experimental::product_with_name const candidate_product{
       .label = hit_candidates_label, .data = &candidates, .type = &typeid(merged_hit_candidates)};
-    form.write(cand_hit_standard, cell, candidate_product);
+    form.write(cand_hit_standard, test_stage, cell, candidate_product);
 
     // Gaussian fit
     auto const hits = hits_in_roi(spill, wire, roi);
@@ -109,7 +107,7 @@ namespace {
     ++tally.fitted_rois;
     form::experimental::product_with_name const roi_product{
       .label = roi_hits_label, .data = &hits, .type = &typeid(std::vector<hit>)};
-    form.write(find_hits_with_gaussians, cell, roi_product);
+    form.write(find_hits_with_gaussians, test_stage, cell, roi_product);
   }
 
   counts write_everything(form::experimental::form_writer_interface& form)
@@ -124,13 +122,13 @@ namespace {
         auto const wire_hits = hits_on_wire(spill, wire);
         form::experimental::product_with_name const wire_product{
           .label = wire_hits_label, .data = &wire_hits, .type = &typeid(std::vector<hit>)};
-        form.write(fold_roi_hits, wire_cell(spill, wire), wire_product);
+        form.write(fold_roi_hits, test_stage, wire_cell(spill, wire), wire_product);
       }
 
       auto const spill_hits = hits_in_spill(spill);
       form::experimental::product_with_name const spill_product{
         .label = spill_hits_label, .data = &spill_hits, .type = &typeid(std::vector<hit>)};
-      form.write(fold_hits_into_vector, spill_cell(spill), spill_product);
+      form.write(fold_hits_into_vector, test_stage, spill_cell(spill), spill_product);
     }
     return tally;
   }

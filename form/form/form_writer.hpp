@@ -43,10 +43,12 @@ namespace form::experimental {
 
     /// Write a product using the already-structured cell information.
     void write(std::string const& creator,
+               std::string const& stage,
                form::detail::experimental::cell_index const& cell,
                product_with_name const& product);
 
     void write(std::string const& creator,
+               std::string const& stage,
                form::detail::experimental::cell_index const& cell,
                std::vector<product_with_name> const& products);
 
@@ -55,7 +57,7 @@ namespace form::experimental {
     void finalize();
 
   private:
-    // Placements for one creator, resolved from config on first write and reused thereafter.
+    // Write plan for one (creator, stage), resolved on first write.
     struct write_plan {
       // product label -> all of its configured destination placements (a product may fan out to
       // several files/backends)
@@ -75,8 +77,8 @@ namespace form::experimental {
     std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer_;
     // product label -> all of its configured destinations (parsed once, at construction)
     std::unordered_map<std::string, std::vector<config::persistence_item>> config_by_product_;
-    // creator -> its resolved write plan (built lazily on first write)
-    std::unordered_map<std::string, write_plan> plans_;
+    // (creator, stage) -> its resolved write plan (built lazily on first write)
+    std::map<std::pair<std::string, std::string>, write_plan> plans_;
     bool finalized_{false};
   };
 }

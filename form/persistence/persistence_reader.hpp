@@ -30,20 +30,24 @@ namespace form::detail::experimental {
     void configure(form::experimental::config::item_config const& config_items) override;
 
     void read(std::string const& creator,
+              std::string const& stage,
               std::string const& label,
               std::string const& id,
               void const** data,
               std::type_info const& type) override;
 
     void prime(std::string const& creator,
+               std::string const& stage,
                std::string const& label,
                std::type_info const& type) override;
 
     std::vector<std::string> list_indices(std::string const& creator,
+                                          std::string const& stage,
                                           std::string const& label) override;
 
   private:
     std::unique_ptr<token> get_token(std::string const& creator,
+                                     std::string const& stage,
                                      std::string const& label,
                                      std::string const& id);
 
