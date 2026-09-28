@@ -27,6 +27,7 @@ namespace phlex::detail {
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const& config;
     tbb::flow::graph& graph;
+    phlex::experimental::identifier const& stage;
     node_catalog& nodes;
     resource_catalog& resources;
     std::vector<std::string>& registration_errors;
