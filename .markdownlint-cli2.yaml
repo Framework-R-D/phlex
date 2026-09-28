@@ -1,12 +1,6 @@
 # Specify paths or glob patterns to exclude from linting
 ignores:
-  - .kilo/skill/**
-  - .kilo/command/**
   - .github/prompts/**
-  - .github/skills/**
-  - .amazonq/prompts/**
-  - .amazonq/skills/**
-  - .agents/skills/**
 
 config:
   # Optional: nest your standard rule configurations here
