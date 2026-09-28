@@ -79,6 +79,7 @@ namespace phlex::detail {
     {
       return {.config = config,
               .graph = graph_,
+              .stage = stage_,
               .nodes = nodes_,
               .resources = resources_,
               .registration_errors = registration_errors_};
