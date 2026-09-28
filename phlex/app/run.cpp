@@ -5,6 +5,8 @@
 #include "phlex/core/framework_graph.hpp"
 
 #include <fmt/format.h>
+#include <spdlog/cfg/env.h>
+#include <spdlog/spdlog.h>
 
 #include <stdexcept>
 #include <string>
@@ -36,6 +38,11 @@ namespace phlex::detail {
     if (stage == "CURRENT") {
       throw std::runtime_error("'CURRENT' is a reserved stage name.");
     }
+
+    // Capture the default logger so we can restore it after loading the plugins, which may
+    // change the default logger.
+    auto const default_logger = spdlog::default_logger();
+    spdlog::cfg::load_env_levels();
 
     auto g = framework_graph::without_driver(std::move(stage), overridables.max_parallelism);
 
@@ -70,6 +77,7 @@ namespace phlex::detail {
     auto const driver_config = object_decorate_exception(configurations, "driver");
     load_driver(g, driver_config);
 
+    spdlog::set_default_logger(default_logger);
     g.execute();
   }
 }

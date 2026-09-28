@@ -13,6 +13,9 @@ target_link_libraries(register_resources_for_testing PRIVATE phlex::resource)
 add_library(verify_resources MODULE verify_resources.cpp)
 target_link_libraries(verify_resources PRIVATE phlex::module)
 
+add_library(replace_default_logger MODULE replace_default_logger.cpp)
+target_link_libraries(replace_default_logger PRIVATE phlex::resource spdlog::spdlog)
+
 cet_test(
   job:add
   HANDBUILT
@@ -36,6 +39,20 @@ cet_test(
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/test_resources.jsonnet
   --stage test
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
+)
+
+cet_test(
+  default_logger
+  USE_CATCH2_MAIN
+  SOURCE
+  default_logger_test.cpp
+  LIBRARIES
+  run_phlex
+  Boost::json
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
