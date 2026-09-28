@@ -1,0 +1,18 @@
+# Specify paths or glob patterns to exclude from linting
+ignores:
+  - .github/prompts/**
+
+config:
+  # Optional: nest your standard rule configurations here
+  default: true
+  MD012: true
+  MD013: false
+  MD022: true
+  MD024:
+    siblings_only: true
+  MD031: true
+  MD032: true
+  MD034: true
+  MD036:
+    punctuation: .,;:!?
+  MD040: true
