@@ -72,9 +72,9 @@ namespace {
                       .layer_columns = {"spill"},
                       .streams = {{"fold_hits_into_vector", test_stage}},
                       .rows = shape.spill_cells}}) {
-      auto const* table = found.table(name);
-      checks.check(table != nullptr, "the file has a navigation table " + name);
-      if (table == nullptr) {
+      auto const table = found.table(name);
+      checks.check(table.has_value(), "the file has a navigation table " + name);
+      if (!table.has_value()) {
         continue;
       }
       checks.check(table->layer_columns == layer_columns,
@@ -108,16 +108,16 @@ namespace {
 
   void check_sparsity(checker& checks, layout const& found, std::string const& prefix)
   {
-    auto const* table = found.table(prefix + "_cells_spill_wire_roi");
-    if (table == nullptr) {
+    auto const table = found.table(prefix + "_cells_spill_wire_roi");
+    if (!table.has_value()) {
       return;
     }
 
-    auto const* candidates = table->stream("cand_hit_standard", test_stage);
-    auto const* fitted = table->stream("find_hits_with_gaussians", test_stage);
-    checks.check(candidates != nullptr && fitted != nullptr,
+    auto const candidates = table->stream("cand_hit_standard", test_stage);
+    auto const fitted = table->stream("find_hits_with_gaussians", test_stage);
+    checks.check(candidates.has_value() && fitted.has_value(),
                  "both streams of the {spill, wire, roi} hierarchy have a column");
-    if (candidates == nullptr || fitted == nullptr) {
+    if (!candidates.has_value() || !fitted.has_value()) {
       return;
     }
 
@@ -143,9 +143,9 @@ namespace {
 
     for (auto const& [label, expectation] : wanted) {
       auto const& [creator, table] = expectation;
-      auto const* product = found.product(label);
-      checks.check(product != nullptr, "the dictionary has an entry for " + label);
-      if (product == nullptr) {
+      auto const product = found.product(label);
+      checks.check(product.has_value(), "the dictionary has an entry for " + label);
+      if (!product.has_value()) {
         continue;
       }
       checks.check(product->creator == creator, label + " names its creator");

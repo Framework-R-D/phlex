@@ -218,12 +218,13 @@ namespace form::test {
       return ids;
     }
 
-    stream_column const* stream(std::string_view creator, std::string_view stage) const
+    std::optional<stream_column const> stream(std::string_view creator,
+                                              std::string_view stage) const
     {
       auto const found = std::ranges::find_if(streams, [&](stream_column const& candidate) {
         return candidate.creator == creator && candidate.stage == stage;
       });
-      return found == streams.end() ? nullptr : &*found;
+      return found == streams.end() ? std::nullopt : std::optional<stream_column const>{*found};
     }
   };
 
@@ -244,24 +245,24 @@ namespace form::test {
     /// Ordered by table name, so the printout is stable.
     std::vector<navigation_table> tables;
 
-    navigation_table const* table(std::string_view name) const
+    std::optional<navigation_table const> table(std::string_view name) const
     {
       auto const found = std::ranges::find(tables, name, &navigation_table::name);
-      return found == tables.end() ? nullptr : &*found;
+      return found == tables.end() ? std::nullopt : std::optional<navigation_table const>{*found};
     }
 
-    product_entry const* product(std::string_view label) const
+    std::optional<product_entry const> product(std::string_view label) const
     {
       auto const found = std::ranges::find(products, label, &product_entry::product_name);
-      return found == products.end() ? nullptr : &*found;
+      return found == products.end() ? std::nullopt : std::optional<product_entry const>{*found};
     }
 
-    product_entry const* product(std::string_view label, std::string_view stage) const
+    std::optional<product_entry const> product(std::string_view label, std::string_view stage) const
     {
       auto const found = std::ranges::find_if(products, [&](product_entry const& candidate) {
         return candidate.product_name == label && candidate.stage == stage;
       });
-      return found == products.end() ? nullptr : &*found;
+      return found == products.end() ? std::nullopt : std::optional<product_entry const>{*found};
     }
   };
 
@@ -442,11 +443,11 @@ namespace form::test {
                        navigation_row_column(product.creator, product.stage),
                      what + " names the column of its (creator, stage) stream");
 
-        auto const* table = found.table(product.navigation_container);
-        checks.check(table != nullptr, what + " points at a table that exists");
-        if (table != nullptr) {
-          auto const* stream = table->stream(product.creator, product.stage);
-          checks.check(stream != nullptr && stream->column == product.navigation_column,
+        auto const table = found.table(product.navigation_container);
+        checks.check(table.has_value(), what + " points at a table that exists");
+        if (table.has_value()) {
+          auto const stream = table->stream(product.creator, product.stage);
+          checks.check(stream.has_value() && stream->column == product.navigation_column,
                        what + " points at a column its stream has in that table");
         }
       }

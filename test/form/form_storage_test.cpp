@@ -46,7 +46,7 @@ namespace {
   }
 
   // FORM now resolves placements and hands them to the persistence executor; these tests do the
-  // same, building the (file, creator_stage/label, technology) placement each product writes to.
+  // same, building the (file, creator__stage/label, technology) placement each product writes to.
   placement make_placement(std::string const& file_name,
                            std::string const& creator,
                            std::string const& label,
@@ -917,16 +917,16 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
     }
   }
 
-  // Writer and reader agree on the physical names: creator_stage/product and creator_stage/index.
+  // Writer and reader agree on the physical names: creator__stage/product and creator__stage/index.
   storage_reader storage;
   tech_setting_config const settings{};
   auto const index_rows = [&](std::string const& container) {
     return storage.list_indices(token{file_name, container, technology}, settings).size();
   };
-  CHECK(index_rows("tracker_stage1/index") == 3);
-  CHECK(index_rows("tracker_stage2/index") == 2);
-  CHECK(index_rows("tracker_/index") == 1);
-  CHECK(index_rows("shower_stage1/index") == 1);
+  CHECK(index_rows("tracker__stage1/index") == 3);
+  CHECK(index_rows("tracker__stage2/index") == 2);
+  CHECK(index_rows("tracker__/index") == 1);
+  CHECK(index_rows("shower__stage1/index") == 1);
   // An empty stage does not fall back to the pre-stage "creator/label" layout.
   CHECK_THROWS(index_rows("tracker/index"));
 
@@ -937,15 +937,15 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   form::test::check_layout(checks, columns, layout);
   CHECK(checks.failures() == 0);
 
-  auto const* table =
+  auto const table =
     layout.table("nav_" + form::test::technology_token(form::technology::to_string(technology)) +
                  "_cells_event_segment");
-  REQUIRE(table != nullptr);
-  CHECK(table->stream_ids() ==
+  CHECK(table.transform(&form::test::navigation_table::stream_ids) ==
         std::vector<std::pair<std::string, std::string>>{
           {"shower", "stage1"}, {"tracker", ""}, {"tracker", "stage1"}, {"tracker", "stage2"}});
-  auto const* unstaged = layout.product("hits", "");
-  REQUIRE(unstaged != nullptr);
-  CHECK(unstaged->container_name == "tracker_/hits");
-  CHECK(unstaged->navigation_column == "tracker__row");
+  auto const unstaged = layout.product("hits", "");
+  CHECK(unstaged.transform([](auto const& entry) { return entry.container_name; }) ==
+        "tracker__/hits");
+  CHECK(unstaged.transform([](auto const& entry) { return entry.navigation_column; }) ==
+        "tracker___row");
 }

@@ -55,9 +55,9 @@ namespace {
                       .layer_columns = {"event"},
                       .streams = {{"Toy_Tracker_Event", test_stage}},
                       .rows = 4}}) {
-      auto const* table = found.table(name);
-      checks.check(table != nullptr, "the file has a navigation table " + name);
-      if (table == nullptr) {
+      auto const table = found.table(name);
+      checks.check(table.has_value(), "the file has a navigation table " + name);
+      if (!table.has_value()) {
         continue;
       }
       checks.check(table->layer_columns == layer_columns, name + " carries its own layer columns");
@@ -71,20 +71,20 @@ namespace {
   /// The dictionary maps each product to the navigation column that locates its data.
   void check_toy_dictionary(checker& checks, layout const& found, std::string const& segment_table)
   {
-    auto const* track_start = found.product("trackStart");
-    checks.check(track_start != nullptr, "the dictionary has an entry for trackStart");
-    if (track_start == nullptr) {
+    auto const track_start = found.product("trackStart");
+    checks.check(track_start.has_value(), "the dictionary has an entry for trackStart");
+    if (!track_start.has_value()) {
       return;
     }
     checks.check(track_start->creator == "Toy_Tracker", "trackStart names its creator");
     checks.check(track_start->stage == test_stage, "trackStart names its stage");
-    checks.check(track_start->container_name == "Toy_Tracker_test_stage/trackStart",
+    checks.check(track_start->container_name == "Toy_Tracker__test_stage/trackStart",
                  "trackStart names its product container in its (creator, stage) row space");
     checks.check(track_start->hierarchy_key == "event_segment",
                  "trackStart belongs to the {event, segment} hierarchy");
     checks.check(track_start->navigation_container == segment_table,
                  "trackStart names its navigation table");
-    checks.check(track_start->navigation_column == "Toy_Tracker_test_stage_row",
+    checks.check(track_start->navigation_column == "Toy_Tracker__test_stage_row",
                  "trackStart names its (creator, stage) stream column");
   }
 

@@ -20,7 +20,7 @@ namespace form::detail::experimental {
     return result;
   }
 
-  /// Builds the physical row-space name as "creator_stage".
+  /// Builds the physical row-space name as "creator__stage".
   inline std::string build_row_space_name(std::string_view creator, std::string_view stage)
   {
     // '/' is reserved as the row-space/label separator.
@@ -28,10 +28,8 @@ namespace form::detail::experimental {
       throw std::runtime_error("FORM: creator '" + std::string{creator} + "' and stage '" +
                                std::string{stage} + "' cannot contain '/'");
     }
-    std::string result;
-    result.reserve(creator.size() + 1 + stage.size());
-    result += creator;
-    result += '_';
+    std::string result{creator};
+    result += "__";
     result += stage;
     return result;
   }
