@@ -74,6 +74,13 @@ namespace form::experimental {
 
     void parse_config(config::item_config const& config_item);
 
+    // Resolve products this (creator, stage) writes for the first time and create their containers.
+    void plan_new_products(write_plan& plan,
+                           std::string const& row_space,
+                           std::string const& creator,
+                           std::string const& stage,
+                           std::vector<product_with_name> const& products);
+
     std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer_;
     // product label -> all of its configured destinations (parsed once, at construction)
     std::unordered_map<std::string, std::vector<config::persistence_item>> config_by_product_;

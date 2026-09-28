@@ -24,7 +24,7 @@ namespace form::detail::experimental {
   inline std::string build_row_space_name(std::string_view creator, std::string_view stage)
   {
     // '/' is reserved as the row-space/label separator.
-    if (creator.find('/') != std::string_view::npos || stage.find('/') != std::string_view::npos) {
+    if (creator.contains('/') || stage.contains('/')) {
       throw std::runtime_error("FORM: creator '" + std::string{creator} + "' and stage '" +
                                std::string{stage} + "' cannot contain '/'");
     }

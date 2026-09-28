@@ -842,7 +842,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
 
   std::string const file_name =
     "stage_roundtrip_" + form::technology::to_string(technology) + ".root";
-  auto const type = &typeid(std::vector<int>);
+  auto const* const type = &typeid(std::vector<int>);
 
   struct stream {
     std::string creator;
@@ -850,10 +850,11 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
     std::vector<std::string> labels;
   };
 
-  std::vector<stream> const streams{{"tracker", "stage1", {"hits", "tracks"}},
-                                    {"tracker", "stage2", {"hits", "vertices"}},
-                                    {"tracker", "", {"hits"}},
-                                    {"shower", "stage1", {"showers"}}};
+  std::vector<stream> const streams{
+    {.creator = "tracker", .stage = "stage1", .labels = {"hits", "tracks"}},
+    {.creator = "tracker", .stage = "stage2", .labels = {"hits", "vertices"}},
+    {.creator = "tracker", .stage = "", .labels = {"hits"}},
+    {.creator = "shower", .stage = "stage1", .labels = {"showers"}}};
   // Events each stream writes.
   std::vector<std::vector<std::uint64_t>> const events{{1, 2, 3}, {2, 3}, {1}, {1}};
 
@@ -872,6 +873,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
     writer->configure_tech_settings(tech_setting_config{});
     for (auto const& [creator, stage, labels] : streams) {
       std::vector<std::pair<placement, std::type_info const*>> containers;
+      containers.reserve(labels.size());
       for (auto const& label : labels) {
         containers.emplace_back(make_placement(file_name, creator, label, technology, stage), type);
       }
