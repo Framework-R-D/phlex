@@ -39,10 +39,12 @@ namespace phlex::detail {
       throw std::runtime_error("'CURRENT' is a reserved stage name.");
     }
 
-    auto g = framework_graph::without_driver(std::move(stage), overridables.max_parallelism);
     // Capture the default logger so we can restore it after loading the plugins, which may
     // change the default logger.
     auto const default_logger = spdlog::default_logger();
+    spdlog::cfg::load_env_levels();
+
+    auto g = framework_graph::without_driver(std::move(stage), overridables.max_parallelism);
 
     boost::json::object resource_configs;
     if (configurations.contains("resources")) {
@@ -76,7 +78,6 @@ namespace phlex::detail {
     load_driver(g, driver_config);
 
     spdlog::set_default_logger(default_logger);
-    spdlog::cfg::load_env_levels();
     g.execute();
   }
 }
