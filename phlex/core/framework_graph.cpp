@@ -6,8 +6,7 @@
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <spdlog/cfg/env.h>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
@@ -125,7 +124,6 @@ namespace phlex::detail {
       driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
     }
 
-    spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
   }
 
