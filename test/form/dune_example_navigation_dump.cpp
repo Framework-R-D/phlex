@@ -6,6 +6,7 @@
 #include "core/technology.hpp"
 #include "dune_example_hit_maker.hpp"
 #include "navigation_check.hpp"
+#include "test_helpers.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -53,38 +54,35 @@ namespace {
     struct expectation {
       std::string table;
       std::vector<std::string> layer_columns;
-      std::vector<std::string> creators;
+      std::vector<std::pair<std::string, std::string>> streams;
       std::size_t rows;
     };
 
-    for (auto const& [name, layer_columns, creators, rows] :
+    for (auto const& [name, layer_columns, streams, rows] :
          {expectation{.table = prefix + "_cells_spill_wire_roi",
                       .layer_columns = {"spill", "wire", "roi"},
-                      .creators = {"cand_hit_standard", "find_hits_with_gaussians"},
+                      .streams = {{"cand_hit_standard", test_stage},
+                                  {"find_hits_with_gaussians", test_stage}},
                       .rows = shape.roi_cells},
           expectation{.table = prefix + "_cells_spill_wire",
                       .layer_columns = {"spill", "wire"},
-                      .creators = {"fold_roi_hits"},
+                      .streams = {{"fold_roi_hits", test_stage}},
                       .rows = shape.wire_cells},
           expectation{.table = prefix + "_cells_spill",
                       .layer_columns = {"spill"},
-                      .creators = {"fold_hits_into_vector"},
+                      .streams = {{"fold_hits_into_vector", test_stage}},
                       .rows = shape.spill_cells}}) {
-      auto const* table = found.table(name);
-      checks.check(table != nullptr, "the file has a navigation table " + name);
-      if (table == nullptr) {
+      auto const table = found.table(name);
+      checks.check(table.has_value(), "the file has a navigation table " + name);
+      if (!table.has_value()) {
         continue;
       }
       checks.check(table->layer_columns == layer_columns,
                    name + " carries the layers of its own hierarchy");
       checks.check(table->entries() == rows, name + " has one row per data cell");
 
-      std::vector<std::string> names;
-      names.reserve(table->creators.size());
-      for (auto const& creator : table->creators) {
-        names.push_back(creator.creator);
-      }
-      checks.check(names == creators, name + " has a column for each of its creators");
+      checks.check(table->stream_ids() == streams,
+                   name + " has a column for each of its (creator, stage) streams");
     }
 
     checks.check(found.tables.size() == 3, "three hierarchies give three navigation tables");
@@ -100,24 +98,26 @@ namespace {
                  "the {spill, wire} table has no column for a layer outside its hierarchy");
     checks.check(!reader.has(column_of(spill_table, "wire")),
                  "the {spill} table has no column for a layer outside its hierarchy");
-    checks.check(!reader.has(column_of(roi_table, "fold_roi_hits_row")),
-                 "the wide table has no column for a creator that never wrote to it");
-    checks.check(!reader.has(column_of(wire_table, "cand_hit_standard_row")),
-                 "the {spill, wire} table has no column for a creator that never wrote to it");
+    checks.check(
+      !reader.has(column_of(roi_table, navigation_row_column("fold_roi_hits", test_stage))),
+      "the wide table has no column for a stream that never wrote to it");
+    checks.check(
+      !reader.has(column_of(wire_table, navigation_row_column("cand_hit_standard", test_stage))),
+      "the {spill, wire} table has no column for a stream that never wrote to it");
   }
 
   void check_sparsity(checker& checks, layout const& found, std::string const& prefix)
   {
-    auto const* table = found.table(prefix + "_cells_spill_wire_roi");
-    if (table == nullptr) {
+    auto const table = found.table(prefix + "_cells_spill_wire_roi");
+    if (!table.has_value()) {
       return;
     }
 
-    auto const* candidates = table->creator("cand_hit_standard");
-    auto const* fitted = table->creator("find_hits_with_gaussians");
-    checks.check(candidates != nullptr && fitted != nullptr,
-                 "both creators of the {spill, wire, roi} hierarchy have a row column");
-    if (candidates == nullptr || fitted == nullptr) {
+    auto const candidates = table->stream("cand_hit_standard", test_stage);
+    auto const fitted = table->stream("find_hits_with_gaussians", test_stage);
+    checks.check(candidates.has_value() && fitted.has_value(),
+                 "both streams of the {spill, wire, roi} hierarchy have a column");
+    if (!candidates.has_value() || !fitted.has_value()) {
       return;
     }
 
@@ -143,12 +143,13 @@ namespace {
 
     for (auto const& [label, expectation] : wanted) {
       auto const& [creator, table] = expectation;
-      auto const* product = found.product(label);
-      checks.check(product != nullptr, "the dictionary has an entry for " + label);
-      if (product == nullptr) {
+      auto const product = found.product(label);
+      checks.check(product.has_value(), "the dictionary has an entry for " + label);
+      if (!product.has_value()) {
         continue;
       }
       checks.check(product->creator == creator, label + " names its creator");
+      checks.check(product->stage == test_stage, label + " names its stage");
       checks.check(product->navigation_container == table, label + " names its navigation table");
     }
   }

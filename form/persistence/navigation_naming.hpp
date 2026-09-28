@@ -4,6 +4,7 @@
 #define FORM_PERSISTENCE_NAVIGATION_NAMING_HPP
 
 #include "core/cell_index.hpp"
+#include "core/container_naming.hpp"
 #include "core/technology.hpp"
 
 #include <cctype>
@@ -61,10 +62,10 @@ namespace form::detail::experimental {
     return key;
   }
 
-  /// Return the navigation-table column name for a creator.
-  inline std::string navigation_row_column(std::string_view creator)
+  /// Return the navigation-table column name for the (creator, stage) row space.
+  inline std::string navigation_row_column(std::string_view creator, std::string_view stage)
   {
-    return sanitize_name(creator) + "_row";
+    return sanitize_name(build_row_space_name(creator, stage)) + "_row";
   }
 
   /// Return the navigation-table name for a hierarchy and technology.

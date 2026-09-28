@@ -63,10 +63,12 @@ namespace {
                       form::experimental::config::tech_setting_config const& tech_cfg,
                       std::string actual_creator,
                       std::string advertised_creator,
+                      std::string stage,
                       std::vector<std::string> const& products) :
       reader_(std::make_shared<form::experimental::form_reader_interface>(input_cfg, tech_cfg)),
       actual_creator_(std::move(actual_creator)),
       advertised_creator_(std::move(advertised_creator)),
+      stage_(std::move(stage)),
       products_(products)
     {
       // Ensure all builtin types are registered for dynamic dispatch
@@ -93,15 +95,15 @@ namespace {
         product_specification spec{
           algorithm_name::create(advertised_creator_), identifier{name}, selector.type};
 
-        // Use selector's layer and stage; stage defaults to "event" if not specified
+        // Read and provide products at the configured stage.
         identifier const selector_layer = selector.layer;
-        identifier const selector_stage = selector.stage.value_or(identifier{"event"});
+        identifier const product_stage{stage_};
 
-        if (!selector.match(spec, selector_layer, selector_stage)) {
+        if (!selector.match(spec, selector_layer, product_stage)) {
           continue;
         }
 
-        reader_->prime(actual_creator_, name, *selected_entry->cpp_type);
+        reader_->prime(actual_creator_, stage_, name, *selected_entry->cpp_type);
 
         auto provider_func =
           [this, name, product_type = *product_type_name](
@@ -114,7 +116,7 @@ namespace {
                                  .max_concurrency = phlex::concurrency::serial,
                                  .spec = std::move(spec),
                                  .layer = std::string(selector_layer.trans_get_string()),
-                                 .stage = std::string(selector_stage.trans_get_string())});
+                                 .stage = stage_});
       }
 
       return bundles;
@@ -129,7 +131,8 @@ namespace {
         co_return;
       }
 
-      for (auto const& index_string : reader_->indices(actual_creator_, products_.front())) {
+      for (auto const& index_string :
+           reader_->indices(actual_creator_, stage_, products_.front())) {
         co_yield parse_index_string(index_string);
       }
     }
@@ -144,7 +147,7 @@ namespace {
       if (entry && entry->cpp_type && entry->product_from_data_fn) {
         form::experimental::product_with_name pb{
           .label = product_name, .data = nullptr, .type = entry->cpp_type};
-        reader_->read(creator, index_str, pb);
+        reader_->read(creator, stage_, index_str, pb);
         return entry->product_from_data_fn(pb.data, product_name, index_str);
       }
       throw std::runtime_error("Unsupported FORM product type: " + product_type);
@@ -154,6 +157,7 @@ namespace {
     std::shared_ptr<form::experimental::form_reader_interface> reader_;
     std::string actual_creator_;
     std::string advertised_creator_;
+    std::string stage_;
     std::vector<std::string> products_;
   };
 }
@@ -167,6 +171,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
   auto const module_label = config.get<std::string>("module_label", "form_source");
   auto const products = config.get<std::vector<std::string>>("products");
+  auto const stage = config.get<std::string>("stage");
 
   std::string actual_creator = advertised_creator;
   auto const algorithm = config.get_if_present<std::string>("algorithm");
@@ -185,7 +190,7 @@ PHLEX_REGISTER_SOURCE(s, config)
 
   // Register the source object with Phlex
   s.add_source<form_input_source>(
-    module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, products);
+    module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, stage, products);
 
   std::cout << "FORM input source registered successfully\n";
 }

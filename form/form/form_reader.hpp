@@ -22,14 +22,18 @@ namespace form::experimental {
     ~form_reader_interface() = default;
 
     void read(std::string const& creator,
+              std::string const& stage,
               std::string const& segment_id,
               product_with_name& product);
 
     void prime(std::string const& creator,
+               std::string const& stage,
                std::string const& product_name,
                std::type_info const& type);
 
-    std::vector<std::string> indices(std::string const& creator, std::string const& product_name);
+    std::vector<std::string> indices(std::string const& creator,
+                                     std::string const& stage,
+                                     std::string const& product_name);
 
   private:
     std::unique_ptr<form::detail::experimental::i_persistence_reader> pers_reader_;

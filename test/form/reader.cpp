@@ -99,7 +99,7 @@ int main(int argc, char** argv)
       form::experimental::product_with_name pb = {
         .label = "trackStart", .data = raw_ptr, .type = &typeid(std::vector<float>)};
 
-      form.read(creator, segment_id, pb);
+      form.read(creator, form::test::test_stage, segment_id, pb);
       std::unique_ptr<std::vector<float> const> track_start_x(
         static_cast<std::vector<float> const*>(pb.data));
 
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
       form::experimental::product_with_name pb_int = {
         .label = "trackNumberHits", .data = raw_ptr, .type = &typeid(std::vector<int>)};
 
-      form.read(creator, segment_id, pb_int);
+      form.read(creator, form::test::test_stage, segment_id, pb_int);
       std::unique_ptr<std::vector<int> const> track_n_hits(
         static_cast<std::vector<int> const*>(pb_int.data));
 
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
       form::experimental::product_with_name pb_points = {
         .label = "trackStartPoints", .data = raw_ptr, .type = &typeid(std::vector<track_start>)};
 
-      form.read(creator, segment_id, pb_points);
+      form.read(creator, form::test::test_stage, segment_id, pb_points);
       std::unique_ptr<std::vector<track_start> const> start_points(
         static_cast<std::vector<track_start> const*>(pb_points.data));
 
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
     form::experimental::product_with_name pb = {
       .label = "trackStartX", .data = raw_evt_ptr, .type = &typeid(std::vector<float>)};
 
-    form.read(creator, event_id, pb);
+    form.read(creator, form::test::test_stage, event_id, pb);
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));
 
     float check = 0.0;

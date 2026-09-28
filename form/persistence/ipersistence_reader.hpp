@@ -27,16 +27,19 @@ namespace form::detail::experimental {
     virtual void configure(form::experimental::config::item_config const& config_items) = 0;
 
     virtual void read(std::string const& creator,
+                      std::string const& stage,
                       std::string const& label,
                       std::string const& id,
                       void const** data,
                       std::type_info const& type) = 0;
 
     virtual void prime(std::string const& creator,
+                       std::string const& stage,
                        std::string const& label,
                        std::type_info const& type) = 0;
 
     virtual std::vector<std::string> list_indices(std::string const& creator,
+                                                  std::string const& stage,
                                                   std::string const& label) = 0;
   };
 

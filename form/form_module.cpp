@@ -95,13 +95,15 @@ namespace {
 
       // STEP 1: Extract metadata from Phlex's product_store
 
-      // Extract creator (algorithm name)
+      // Extract the creator (algorithm name) and stage.
       auto const& creator = store.source();
+      auto const& stage = store.stage().trans_get_string();
 
       auto const cell = to_cell_index(*store.index());
 
       std::cout << "\n=== form_output_module::save_data_products ===\n";
       std::cout << "Creator: " << creator.to_string() << "\n";
+      std::cout << "Stage: " << stage << "\n";
       std::cout << "Data cell: " << cell.id << "\n";
       std::cout << "Number of products: " << store.size() << "\n";
 
@@ -131,7 +133,7 @@ namespace {
       // STEP 3: Send everything to FORM for persistence
 
       // The cell is passed once for the entire product collection.
-      form_interface_->write(creator.to_string(), cell, products);
+      form_interface_->write(creator.to_string(), stage, cell, products);
       std::cout << "Wrote " << products.size() << " products to FORM\n";
     }
 

@@ -2,10 +2,33 @@
 
 #include "form_writer.hpp"
 
+#include <format>
 #include <iostream>
 #include <set>
 #include <stdexcept>
 #include <typeinfo>
+
+namespace {
+  // Reject duplicate product labels before writing.
+  void check_unique_labels(std::string const& creator,
+                           std::string const& stage,
+                           form::detail::experimental::cell_index const& cell,
+                           std::vector<form::experimental::product_with_name> const& products)
+  {
+    std::set<std::string> labels;
+    for (auto const& pb : products) {
+      if (!labels.insert(pb.label).second) {
+        throw std::runtime_error(std::format(
+          "form_writer_interface: creator '{}' at stage '{}' wrote product '{}' more than once "
+          "for data cell {}",
+          creator,
+          stage,
+          pb.label,
+          cell.id));
+      }
+    }
+  }
+}
 
 namespace form::experimental {
 
@@ -64,39 +87,24 @@ namespace form::experimental {
   }
 
   void form_writer_interface::write(std::string const& creator,
+                                    std::string const& stage,
                                     form::detail::experimental::cell_index const& cell,
                                     product_with_name const& product)
   {
-    write(creator, cell, std::vector<product_with_name>{product});
+    write(creator, stage, cell, std::vector<product_with_name>{product});
   }
 
-  void form_writer_interface::write(std::string const& creator,
-                                    form::detail::experimental::cell_index const& cell,
-                                    std::vector<product_with_name> const& products)
+  void form_writer_interface::plan_new_products(write_plan& plan,
+                                                std::string const& row_space,
+                                                std::string const& creator,
+                                                std::string const& stage,
+                                                std::vector<product_with_name> const& products)
   {
-    using form::detail::experimental::build_full_label;
-    using form::detail::experimental::placement;
+    using namespace form::detail::experimental;
 
-    // Writes are not allowed after finalize(): the navigation tables have already been written and
-    // cannot record products written afterwards.
-    if (finalized_) {
-      throw std::runtime_error("form_writer_interface: creator '" + creator + "' wrote data cell " +
-                               cell.id +
-                               " after the writer was finalized; the navigation tables are "
-                               "already written and cannot record it");
-    }
-
-    write_plan& plan = plans_[creator];
-
-    // ---- 1. PLAN ----
-    // Resolve each product to all of its placements the first time this creator writes it, and
-    // create those containers.
-    // Resolution is per product, not per creator: a product first seen on a later record is
-    // resolved then -- as long as its destination has not been written to yet.
-    // The storage backend seals a place's container structure on its first write, so a product
-    // that first appears at an already-written place cannot be added there; it is rejected below.
-    // FORM names only product containers; persistence adds the navigation ("index") container for
-    // each place itself, so FORM stays opaque to whether a place is indexed.
+    // Resolve product placements and create new containers.
+    // Container structure is sealed on first write.
+    // Persistence manages the row-space index container.
     std::vector<std::pair<placement, std::type_info const*>> new_containers;
     for (auto const& pb : products) {
       auto const [places_it, is_new_product] = plan.product_places.try_emplace(pb.label);
@@ -119,10 +127,13 @@ namespace form::experimental {
       for (auto const& item : cfg_it->second) {
         if (plan.sealed_places.contains(std::make_pair(item.file_name, item.technology))) {
           throw std::runtime_error(
-            "form_writer_interface: product '" + pb.label + "' from creator '" + creator +
-            "' first appeared after data was already written to '" + item.file_name +
-            "'; the storage backend seals a container's structure on first write, so products "
-            "cannot be added to it later");
+            std::format("form_writer_interface: product '{}' from creator '{}' at stage '{}' first "
+                        "appeared after data was written to '{}'; container structure is sealed "
+                        "on first write",
+                        pb.label,
+                        creator,
+                        stage,
+                        item.file_name));
         }
       }
 
@@ -130,7 +141,7 @@ namespace form::experimental {
       auto& places = places_it->second;
       for (auto const& item : cfg_it->second) {
         placement product_place{
-          item.file_name, build_full_label(creator, pb.label), item.technology};
+          item.file_name, build_full_label(row_space, pb.label), item.technology};
         new_containers.emplace_back(product_place, pb.type);
         plan.commit_places.try_emplace(std::make_pair(item.file_name, item.technology),
                                        product_place);
@@ -141,6 +152,31 @@ namespace form::experimental {
     if (!new_containers.empty()) {
       pers_writer_->create_containers(new_containers);
     }
+  }
+
+  void form_writer_interface::write(std::string const& creator,
+                                    std::string const& stage,
+                                    form::detail::experimental::cell_index const& cell,
+                                    std::vector<product_with_name> const& products)
+  {
+    using namespace form::detail::experimental;
+
+    // Writes are not allowed after finalize(): the navigation tables have already been written and
+    // cannot record products written afterwards.
+    if (finalized_) {
+      throw std::runtime_error("form_writer_interface: creator '" + creator + "' at stage '" +
+                               stage + "' wrote data cell " + cell.id +
+                               " after the writer was finalized; the navigation tables are "
+                               "already written and cannot record it");
+    }
+
+    check_unique_labels(creator, stage, cell, products);
+
+    auto const row_space = build_row_space_name(creator, stage);
+    write_plan& plan = plans_[std::make_pair(creator, stage)];
+
+    // ---- 1. PLAN ----
+    plan_new_products(plan, row_space, creator, stage, products);
 
     // ---- 2. WRITE ----
     // Fill each product into every one of its destinations, recording which places received data
@@ -154,8 +190,9 @@ namespace form::experimental {
       if (it == plan.product_places.end()) {
         continue;
       }
+      product_identity const product{.creator = creator, .stage = stage, .label = pb.label};
       for (auto const& place : it->second) {
-        pers_writer_->register_write(place, pb.data, *pb.type);
+        pers_writer_->register_write(product, place, pb.data, *pb.type);
         written_places.emplace(place.file_name(), place.technology());
       }
     }
