@@ -53,7 +53,8 @@ namespace {
     {
       auto it = messages_.find(idx->hash());
       assert(it != messages_.end());
-      return {it->second.store->get_product<int>(product_specification{}), it->second.id};
+      product_specification const spec{};
+      return {it->second.store->get_product<int>(gsl::make_not_null(&spec)), it->second.id};
     }
 
   private:

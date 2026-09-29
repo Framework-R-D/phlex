@@ -24,25 +24,29 @@ TEST_CASE("Product store insertion", "[data model]")
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   store->add_product("number", number);
   store->add_product("numbers", many_numbers);
+  product_specification const number_spec{"number"};
+  product_specification const numbers_spec{"numbers"};
+  product_specification const wrong_spec{"wrong_key"};
 
   // Check number of products
   CHECK(store->size() == 2ull);
 
   CHECK_THROWS_WITH(
-    store->get_product<double>("number"),
+    store->get_product<double>(gsl::make_not_null(&number_spec)),
     Catch::Matchers::ContainsSubstring(
       "Cannot get product 'number' with type 'double' -- must specify type 'int'."));
 
   auto const matcher =
     Catch::Matchers::ContainsSubstring("No product exists with the specification 'wrong_key'.");
-  CHECK_THROWS_WITH(store->get_handle<int>("wrong_key"), matcher);
+  CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&wrong_spec)), matcher);
 
-  CHECK(store->get_product<int>("number") == number);
+  CHECK(store->get_product<int>(gsl::make_not_null(&number_spec)) == number);
 
-  auto h = store->get_handle<std::vector<int>>("numbers");
+  auto h = store->get_handle<std::vector<int>>(gsl::make_not_null(&numbers_spec));
   REQUIRE(h);
   CHECK(*h == many_numbers);
-  CHECK(store->get_product<std::vector<int>>("numbers") == many_numbers);
+  CHECK(h.suffix() == "numbers");
+  CHECK(store->get_product<std::vector<int>>(gsl::make_not_null(&numbers_spec)) == many_numbers);
 }
 
 TEST_CASE("Product store derivation", "[data model]")
