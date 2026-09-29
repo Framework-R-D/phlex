@@ -1,4 +1,5 @@
-FROM ghcr.io/framework-r-d/phlex-dev:2026-07-23
+# FROM ghcr.io/framework-r-d/phlex-dev:2026-09-21-aarch64
+FROM phlex-dev:2026-09-21-aarch64
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
@@ -103,7 +104,7 @@ INSTALL_DEV_UTILS
 
 RUN bash <<'INSTALL_NPM_PACKAGES'
 set -euo pipefail
-npm update -g npm@^11.10.0
+npm install -g npm@^11.10.0
 npm config set allow-scripts=@kilocode/cli --location=user
 npm config set min-release-age=3 --location=user
 npm install -g @kilocode/cli
