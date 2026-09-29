@@ -8,7 +8,7 @@ dune {
       outputs: {
         roi: { output_file: 'dune_roi.root', products: ['hitCandidates', 'wireCandidates'] },
         summary: { output_file: 'dune_summary.root', products: ['wireCandidates', 'spillCandidates'] },
-        unused: { output_file: 'dune_unused.root', products: ['wireCandidates'] },
+        unused: { output_file: 'dune_unused.root', products: [] },
       },
     },
   },
