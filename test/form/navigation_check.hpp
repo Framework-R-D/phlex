@@ -239,6 +239,7 @@ namespace form::test {
   };
 
   struct layout {
+    form::technology::id technology{};
     std::string technology_token;
     std::string dictionary;
     std::vector<product_entry> products;
@@ -391,10 +392,12 @@ namespace form::test {
     /// Each stream uses its row space's index for data-cell navigation.
     inline void check_against_row_space_index(checker& checks,
                                               column_reader& reader,
+                                              form::technology::id technology,
                                               navigation_table const& table)
     {
       for (auto const& stream : table.streams) {
-        auto const index = column_of(build_row_space_name(stream.creator, stream.stage), "index");
+        auto const index =
+          column_of(build_row_space_name(technology, stream.creator, stream.stage), "index");
         auto const recorded_ids = reader.column<std::string>(index);
         checks.check(!recorded_ids.empty(), "row-space index '" + index + "' is readable");
 
@@ -434,7 +437,8 @@ namespace form::test {
           "dictionary entry '" + product.product_name + "' at stage '" + product.stage + "'";
         checks.check(
           product.container_name ==
-            column_of(build_row_space_name(product.creator, product.stage), product.product_name),
+            column_of(build_row_space_name(found.technology, product.creator, product.stage),
+                      product.product_name),
           what + " uses its creator-stage row space");
         checks.check(product.navigation_container ==
                        "nav_" + found.technology_token + "_cells_" + product.hierarchy_key,
@@ -470,6 +474,7 @@ namespace form::test {
   inline layout discover(checker& checks, column_reader& reader, std::string const& tech_string)
   {
     layout found;
+    found.technology = form::technology::from_string(tech_string);
     found.technology_token = technology_token(tech_string);
     found.dictionary = "nav_" + found.technology_token + "_products";
 
@@ -598,7 +603,7 @@ namespace form::test {
 
     for (auto const& table : found.tables) {
       detail::check_table_shape(checks, table);
-      detail::check_against_row_space_index(checks, reader, table);
+      detail::check_against_row_space_index(checks, reader, found.technology, table);
     }
 
     detail::check_dictionary(checks, found);

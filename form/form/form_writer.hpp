@@ -76,7 +76,6 @@ namespace form::experimental {
 
     // Resolve products this (creator, stage) writes for the first time and create their containers.
     void plan_new_products(write_plan& plan,
-                           std::string const& row_space,
                            std::string const& creator,
                            std::string const& stage,
                            std::vector<product_with_name> const& products);

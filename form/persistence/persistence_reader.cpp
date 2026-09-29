@@ -61,7 +61,8 @@ void persistence_reader::prime(std::string const& creator,
                              " from creator: " + creator);
   }
 
-  std::string const full_label = build_full_label(build_row_space_name(creator, stage), label);
+  std::string const full_label =
+    build_full_label(build_row_space_name(config_item->technology, creator, stage), label);
   store_reader_->prime(
     token{config_item->file_name, full_label, config_item->technology}, type, tech_settings_);
 }
@@ -77,7 +78,8 @@ std::vector<std::string> persistence_reader::list_indices(std::string const& cre
                              " from creator: " + creator);
   }
 
-  std::string const full_label = build_full_label(build_row_space_name(creator, stage), "index");
+  std::string const full_label =
+    build_full_label(build_row_space_name(config_item->technology, creator, stage), "index");
   return store_reader_->list_indices(
     token{config_item->file_name, full_label, config_item->technology}, tech_settings_);
 }
@@ -94,7 +96,7 @@ std::unique_ptr<token> persistence_reader::get_token(std::string const& creator,
                              " from creator: " + creator);
   }
 
-  std::string const row_space = build_row_space_name(creator, stage);
+  std::string const row_space = build_row_space_name(config_item->technology, creator, stage);
   std::string const full_label = build_full_label(row_space, label);
   std::string const index_label = build_full_label(row_space, "index");
 

@@ -84,6 +84,26 @@ namespace form::test {
     return merged;
   }
 
+  merged_hit_candidates candidates_on_wire(unsigned int const spill, unsigned int const wire)
+  {
+    merged_hit_candidates merged;
+    for (unsigned int roi = 0, rois = rois_in(spill, wire); roi != rois; ++roi) {
+      auto in_roi = candidates_in_roi(spill, wire, roi);
+      merged.insert(merged.end(), in_roi.begin(), in_roi.end());
+    }
+    return merged;
+  }
+
+  merged_hit_candidates candidates_in_spill(unsigned int const spill)
+  {
+    merged_hit_candidates merged;
+    for (unsigned int wire = 0; wire != number_of_wires; ++wire) {
+      auto on_wire = candidates_on_wire(spill, wire);
+      merged.insert(merged.end(), on_wire.begin(), on_wire.end());
+    }
+    return merged;
+  }
+
   std::vector<hit> hits_in_roi(unsigned int const spill,
                                unsigned int const wire,
                                unsigned int const roi)

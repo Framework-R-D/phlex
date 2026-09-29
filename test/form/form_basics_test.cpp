@@ -198,7 +198,7 @@ namespace {
                           std::string const& stage = test_stage)
   {
     return placement{
-      "nav_test.root", build_full_label(build_row_space_name(creator, stage), label), tech};
+      "nav_test.root", build_full_label(build_row_space_name(tech, creator, stage), label), tech};
   }
 
   product_identity product_of(std::string const& creator,
@@ -1069,6 +1069,11 @@ TEST_CASE("navigation: two technologies in one file each get their own container
 
   CHECK(store->tables.at("nav_root_ttree_cells_event").rows.size() == 1);
   CHECK(store->tables.at("nav_root_rntuple_cells_event").rows.size() == 1);
+
+  // The same (creator, stage) gets a separate row space per technology in the shared file.
+  CHECK(std::ranges::count(store->filled_containers, "root_ttree__tracker__test_stage/hits") == 1);
+  CHECK(std::ranges::count(store->filled_containers, "root_rntuple__tracker__test_stage/hits") ==
+        1);
 }
 
 TEST_CASE("navigation: a data cell appears once, with one column per stream", "[form]")
@@ -1120,7 +1125,7 @@ TEST_CASE("navigation: the product dictionary resolves a product to its stream's
   CHECK(hits[0] == "hits");
   CHECK(hits[1] == "tracker");
   CHECK(hits[2] == test_stage);
-  CHECK(hits[3] == "tracker__test_stage/hits");
+  CHECK(hits[3] == "generic__tracker__test_stage/hits");
   CHECK(hits[4] == "event");
   // The navigation container names the object that actually exists on disk.
   CHECK(hits[5] == "nav_generic_cells_event");
@@ -1140,7 +1145,7 @@ TEST_CASE("navigation: a creator whose products disagree on their row is rejecte
   writer.create_containers(containers);
 
   // Force the two product containers to have different rows.
-  store->set_next_row("tracker__test_stage/tracks", 7);
+  store->set_next_row("generic__tracker__test_stage/tracks", 7);
   writer.register_write(
     product_of("tracker", "hits"), product_place("tracker", "hits"), &payload, typeid(int));
   writer.register_write(
@@ -1149,7 +1154,7 @@ TEST_CASE("navigation: a creator whose products disagree on their row is rejecte
   CHECK_THROWS_AS(writer.commit_place(product_place("tracker", "hits"), event_cell(1)),
                   std::runtime_error);
 
-  CHECK(std::ranges::find(store->filled_containers, "tracker__test_stage/index") ==
+  CHECK(std::ranges::find(store->filled_containers, "generic__tracker__test_stage/index") ==
         store->filled_containers.end());
 }
 
@@ -1169,7 +1174,7 @@ TEST_CASE("navigation: a failed product write abandons the whole record", "[form
     product_of("tracker", "hits"), product_place("tracker", "hits"), &payload, typeid(int));
 
   // The backend fails on the record's second product.
-  store->throw_on_fill = "tracker__test_stage/tracks";
+  store->throw_on_fill = "generic__tracker__test_stage/tracks";
   CHECK_THROWS_AS(
     writer.register_write(
       product_of("tracker", "tracks"), product_place("tracker", "tracks"), &payload, typeid(int)),
@@ -1278,7 +1283,8 @@ TEST_CASE("navigation: the reserved container prefix is rejected", "[form]")
 
   // Reserve the "nav_" prefix for navigation containers.
   std::vector<std::pair<placement, std::type_info const*>> containers{
-    {product_place("nav_generic_cells_event", "hits"), &typeid(int)}};
+    {placement{"nav_test.root", "nav_generic_cells_event/hits", form::technology::id{}},
+     &typeid(int)}};
   CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
 }
 
@@ -1308,13 +1314,14 @@ TEST_CASE("navigation: each row space still has its index", "[form]")
   write_record(writer, "tracker", {"hits"}, event_cell(1));
   writer.finalize();
 
-  CHECK(std::ranges::find(store->filled_containers, "tracker__test_stage/index") !=
+  CHECK(std::ranges::find(store->filled_containers, "generic__tracker__test_stage/index") !=
         store->filled_containers.end());
 }
 
 // -------------------------------------------------------------------------------------------------
 // Stages: the same creator may write at more than one stage. Each (creator, stage) is its own
-// stream, with its own physical row space ("creator__stage"), index, and navigation column.
+// stream, with its own physical row space ("technology__creator__stage"), index, and navigation
+// column.
 // -------------------------------------------------------------------------------------------------
 
 namespace {
@@ -1369,24 +1376,38 @@ namespace {
   }
 }
 
-TEST_CASE("stage: (creator, stage) maps to row space creator__stage and its column", "[form]")
+TEST_CASE("stage: (technology, creator, stage) maps to row space and column", "[form]")
 {
-  // Logical creator and stage -> physical row space -> navigation column.
-  CHECK(build_row_space_name("tracker", "stage1") == "tracker__stage1");
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+
+  // Logical (technology, creator, stage) -> physical row space -> navigation column.
+  CHECK(build_row_space_name(root_ttree, "tracker", "stage1") == "root_ttree__tracker__stage1");
+  CHECK(build_stream_name("tracker", "stage1") == "tracker__stage1");
+  // The column name drops the technology, which the navigation table name already carries.
   CHECK(navigation_row_column("tracker", "stage1") == "tracker__stage1_row");
-  CHECK(build_row_space_name("tracker", "stage1") != build_row_space_name("tracker", "stage2"));
+  CHECK(build_row_space_name(form::technology::id{}, "tracker", "stage1") ==
+        "generic__tracker__stage1");
+  CHECK(build_row_space_name(root_ttree, "tracker", "stage1") !=
+        build_row_space_name(root_ttree, "tracker", "stage2"));
+
+  // The same (creator, stage) in two technologies gets two row spaces, so they can share a file.
+  CHECK(build_row_space_name(root_rntuple, "tracker", "stage1") == "root_rntuple__tracker__stage1");
+  CHECK(build_row_space_name(root_ttree, "tracker", "stage1") !=
+        build_row_space_name(root_rntuple, "tracker", "stage1"));
 
   // The row space keeps the creator as written; only the column name is sanitized.
-  CHECK(build_row_space_name("plugin:algorithm", "stage1") == "plugin:algorithm__stage1");
+  CHECK(build_row_space_name(root_ttree, "plugin:algorithm", "stage1") ==
+        "root_ttree__plugin:algorithm__stage1");
   CHECK(navigation_row_column("plugin:algorithm", "stage1") == "plugin_algorithm__stage1_row");
 
   // An empty stage is an ordinary value: no special case and no pre-stage "creator" layout.
-  CHECK(build_row_space_name("tracker", "") == "tracker__");
+  CHECK(build_row_space_name(root_ttree, "tracker", "") == "root_ttree__tracker__");
   CHECK(navigation_row_column("tracker", "") == "tracker___row");
 
   // Storage splits a container name at its first '/'.
-  CHECK_THROWS_AS(build_row_space_name("tracker", "stage/1"), std::runtime_error);
-  CHECK_THROWS_AS(build_row_space_name("plugin/tracker", "stage1"), std::runtime_error);
+  CHECK_THROWS_AS(build_row_space_name(root_ttree, "tracker", "stage/1"), std::runtime_error);
+  CHECK_THROWS_AS(build_row_space_name(root_ttree, "plugin/tracker", "stage1"), std::runtime_error);
 }
 
 TEST_CASE("stage: FORM passes the product's creator and stage to persistence explicitly", "[form]")
@@ -1409,10 +1430,12 @@ TEST_CASE("stage: FORM passes the product's creator and stage to persistence exp
   CHECK(spy_raw->written_products == std::vector{product_of("tracker", "hits", "stage1"),
                                                  product_of("tracker", "hits", "stage2")});
   CHECK(spy_raw->written_containers ==
-        std::vector<std::string>{"tracker__stage1/hits", "tracker__stage2/hits"});
+        std::vector<std::string>{"root_ttree__tracker__stage1/hits",
+                                 "root_ttree__tracker__stage2/hits"});
   // Each (creator, stage) gets its own containers.
   CHECK(spy_raw->created_containers ==
-        std::vector<std::string>{"tracker__stage1/hits", "tracker__stage2/hits"});
+        std::vector<std::string>{"root_ttree__tracker__stage1/hits",
+                                 "root_ttree__tracker__stage2/hits"});
 }
 
 TEST_CASE("stage: FORM rejects a stage that cannot name a row space", "[form]")
@@ -1431,28 +1454,28 @@ TEST_CASE("stage: one creator at two stages writes two independent row spaces", 
   auto const& store = write_two_stages(writer);
 
   // Stage stage1 products, and that row space's own index.
-  CHECK(was_filled(store, "tracker__stage1/hits"));
-  CHECK(was_filled(store, "tracker__stage1/tracks"));
-  CHECK(was_filled(store, "tracker__stage1/index"));
+  CHECK(was_filled(store, "generic__tracker__stage1/hits"));
+  CHECK(was_filled(store, "generic__tracker__stage1/tracks"));
+  CHECK(was_filled(store, "generic__tracker__stage1/index"));
   // Stage stage2 products, with a different product set, and its own index.
-  CHECK(was_filled(store, "tracker__stage2/hits"));
-  CHECK(was_filled(store, "tracker__stage2/vertices"));
-  CHECK(was_filled(store, "tracker__stage2/index"));
+  CHECK(was_filled(store, "generic__tracker__stage2/hits"));
+  CHECK(was_filled(store, "generic__tracker__stage2/vertices"));
+  CHECK(was_filled(store, "generic__tracker__stage2/index"));
 
   // Nothing is written to a creator-only row space, and neither stage writes the other's products.
   CHECK_FALSE(was_filled(store, "tracker/hits"));
   CHECK_FALSE(was_filled(store, "tracker/index"));
-  CHECK_FALSE(was_filled(store, "tracker__stage2/tracks"));
-  CHECK_FALSE(was_filled(store, "tracker__stage1/vertices"));
+  CHECK_FALSE(was_filled(store, "generic__tracker__stage2/tracks"));
+  CHECK_FALSE(was_filled(store, "generic__tracker__stage1/vertices"));
 
   // Each row space counts its own rows: two records each, so rows 0 and 1 in both.
   auto const fills = [&store](std::string const& container) {
     return std::ranges::count(store.filled_containers, container);
   };
-  CHECK(fills("tracker__stage1/hits") == 2);
-  CHECK(fills("tracker__stage1/index") == 2);
-  CHECK(fills("tracker__stage2/hits") == 2);
-  CHECK(fills("tracker__stage2/index") == 2);
+  CHECK(fills("generic__tracker__stage1/hits") == 2);
+  CHECK(fills("generic__tracker__stage1/index") == 2);
+  CHECK(fills("generic__tracker__stage2/hits") == 2);
+  CHECK(fills("generic__tracker__stage2/index") == 2);
 }
 
 TEST_CASE("stage: one creator at two stages has two navigation columns", "[form]")
@@ -1497,28 +1520,28 @@ TEST_CASE("stage: the product dictionary records each product's stage", "[form]"
                              row{"hits",
                                  "tracker",
                                  "stage1",
-                                 "tracker__stage1/hits",
+                                 "generic__tracker__stage1/hits",
                                  "event",
                                  "nav_generic_cells_event",
                                  "tracker__stage1_row"},
                              row{"tracks",
                                  "tracker",
                                  "stage1",
-                                 "tracker__stage1/tracks",
+                                 "generic__tracker__stage1/tracks",
                                  "event",
                                  "nav_generic_cells_event",
                                  "tracker__stage1_row"},
                              row{"hits",
                                  "tracker",
                                  "stage2",
-                                 "tracker__stage2/hits",
+                                 "generic__tracker__stage2/hits",
                                  "event",
                                  "nav_generic_cells_event",
                                  "tracker__stage2_row"},
                              row{"vertices",
                                  "tracker",
                                  "stage2",
-                                 "tracker__stage2/vertices",
+                                 "generic__tracker__stage2/vertices",
                                  "event",
                                  "nav_generic_cells_event",
                                  "tracker__stage2_row"},
@@ -1531,23 +1554,24 @@ TEST_CASE("stage: two (creator, stage) pairs naming one row space are rejected",
   auto* store = spy.get();
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
-  // Single underscores in names do not collide: "a_b__c" and "a__b_c".
+  // Single underscores in names do not collide: "generic__a_b__c" and "generic__a__b_c".
   write_stage_record(writer, "a_b", "c", {"hits"}, event_cell(1));
   CHECK_NOTHROW(write_stage_record(writer, "a", "b_c", {"hits"}, event_cell(1)));
 
-  // "x_" at "y" and "x" at "_y" both join to the row space "x___y".
+  // "x_" at "y" and "x" at "_y" both join to the row space "generic__x___y".
   write_stage_record(writer, "x_", "y", {"hits"}, event_cell(1));
   CHECK_THROWS_AS(write_stage_record(writer, "x", "_y", {"hits"}, event_cell(2)),
                   std::runtime_error);
 
   // The clash is caught before the second stream fills a row of the first stream's row space.
-  CHECK(std::ranges::count(store->filled_containers, "x___y/hits") == 1);
+  CHECK(std::ranges::count(store->filled_containers, "generic__x___y/hits") == 1);
 
-  // An empty stage takes part like any other: "t_" at "" and "t" at "_" both join to "t___".
+  // An empty stage takes part like any other: "t_" at "" and "t" at "_" both join to
+  // "generic__t___".
   write_stage_record(writer, "t_", "", {"hits"}, event_cell(1));
   CHECK_THROWS_AS(write_stage_record(writer, "t", "_", {"hits"}, event_cell(2)),
                   std::runtime_error);
-  CHECK(std::ranges::count(store->filled_containers, "t___/hits") == 1);
+  CHECK(std::ranges::count(store->filled_containers, "generic__t___/hits") == 1);
 }
 
 TEST_CASE("stage: two streams naming one navigation column are rejected", "[form]")
@@ -1555,7 +1579,8 @@ TEST_CASE("stage: two streams naming one navigation column are rejected", "[form
   auto spy = std::make_unique<spy_storage_writer>();
   form::detail::experimental::persistence_writer writer{std::move(spy)};
 
-  // Different row spaces ("a:b__c" and "a_b__c"), but both sanitize to the column "a_b__c_row".
+  // Different row spaces ("generic__a:b__c" and "generic__a_b__c"), but both sanitize to the
+  // column "a_b__c_row".
   write_stage_record(writer, "a:b", "c", {"hits"}, event_cell(1));
   CHECK_THROWS_AS(write_stage_record(writer, "a_b", "c", {"hits"}, event_cell(2)),
                   std::runtime_error);
@@ -1595,8 +1620,8 @@ TEST_CASE("stage: an empty stage is written like any other stage", "[form]")
   writer.form->finalize();
   auto const& store = *writer.store;
 
-  CHECK(was_filled(store, "tracker__/hits"));
-  CHECK(was_filled(store, "tracker__/index"));
+  CHECK(was_filled(store, "generic__tracker__/hits"));
+  CHECK(was_filled(store, "generic__tracker__/index"));
   CHECK_FALSE(was_filled(store, "tracker/hits"));
   CHECK_FALSE(was_filled(store, "tracker/index"));
 
@@ -1608,7 +1633,7 @@ TEST_CASE("stage: an empty stage is written like any other stage", "[form]")
   CHECK(dictionary.rows[0] == std::vector<std::string>{"hits",
                                                        "tracker",
                                                        "",
-                                                       "tracker__/hits",
+                                                       "generic__tracker__/hits",
                                                        "event",
                                                        "nav_generic_cells_event",
                                                        "tracker___row"});
@@ -1626,10 +1651,10 @@ TEST_CASE("stage: different creators at different stages each get their own stre
   form.finalize();
   auto const& store = *writer.store;
 
-  for (auto const* container : {"tracker__stage1/index",
-                                "shower__stage1/index",
-                                "tracker__stage2/index",
-                                "shower__stage2/index"}) {
+  for (auto const* container : {"generic__tracker__stage1/index",
+                                "generic__shower__stage1/index",
+                                "generic__tracker__stage2/index",
+                                "generic__shower__stage2/index"}) {
     CHECK(was_filled(store, container));
   }
 

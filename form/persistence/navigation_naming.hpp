@@ -7,7 +7,6 @@
 #include "core/container_naming.hpp"
 #include "core/technology.hpp"
 
-#include <cctype>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -19,19 +18,6 @@ namespace form::detail::experimental {
 
   /// Prefix for FORM navigation container names.
   inline constexpr std::string_view navigation_prefix = "nav_";
-
-  /// Return the lowercase technology token for container names.
-  inline std::string technology_name(form::technology::id tech)
-  {
-    if (tech.major == form::technology::major::generic) {
-      return "generic";
-    }
-    auto name = form::technology::to_string(tech);
-    for (char& c : name) {
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return sanitize_name(name);
-  }
 
   /// Return a physical name for the layer at `position` when the framework left it unnamed.
   inline std::string unnamed_layer_name(std::size_t position)
@@ -62,10 +48,10 @@ namespace form::detail::experimental {
     return key;
   }
 
-  /// Return the navigation-table column name for the (creator, stage) row space.
+  /// Return the navigation-table column name for the (creator, stage) stream.
   inline std::string navigation_row_column(std::string_view creator, std::string_view stage)
   {
-    return sanitize_name(build_row_space_name(creator, stage)) + "_row";
+    return sanitize_name(build_stream_name(creator, stage)) + "_row";
   }
 
   /// Return the navigation-table name for a hierarchy and technology.
