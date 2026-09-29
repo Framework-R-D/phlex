@@ -31,6 +31,7 @@ namespace phlex::detail {
                       views::filter([this](phlex::experimental::product_specification const& spec) {
                         return query.match(spec);
                       }) |
+                      views::transform([](auto const& spec) { return gsl::make_not_null(&spec); }) |
                       std::ranges::to<std::vector>();
       if (products.empty()) {
         throw std::runtime_error(fmt::format(
@@ -41,9 +42,11 @@ namespace phlex::detail {
           bulleted_list(all_products, /*indent=*/4)));
       }
       if (products.size() > 1) {
-        throw std::runtime_error(fmt::format("Multiple products found matching the query {}:\n{}",
-                                             query,
-                                             bulleted_list(products, /*indent=*/4)));
+        throw std::runtime_error(fmt::format(
+          "Multiple products found matching the query {}:\n{}",
+          query,
+          bulleted_list(products | views::transform([](auto spec) -> auto const& { return *spec; }),
+                        /*indent=*/4)));
       }
       return store->get_handle<handle_arg_t>(products[0]);
     }

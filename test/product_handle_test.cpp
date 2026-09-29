@@ -11,12 +11,21 @@
 using namespace phlex;
 using namespace phlex::experimental::literals;
 using spec_t = experimental::product_specification;
-using experimental::identifier;
 
 namespace {
   struct composer {
     std::string name;
   };
+
+  template <typename T>
+  auto make_handle(T const& product, data_cell_index const& index, spec_t const& spec)
+  {
+    static auto stage = "test_stage"_id;
+    return handle{gsl::make_not_null(&product),
+                  gsl::make_not_null(&index),
+                  gsl::make_not_null(&spec),
+                  gsl::not_null<experimental::identifier const*>{&stage}};
+  }
 }
 
 TEST_CASE("Handle type conversions (compile-time checks)", "[data model]")
@@ -34,14 +43,6 @@ TEST_CASE("Can only construct handles with compatible types (compile-time checks
   static_assert(std::constructible_from<handle<int>, handle<int> const&>); // Copies
   static_assert(std::constructible_from<handle<int>, handle<int>&&>);      // Moves
   static_assert(not std::constructible_from<handle<int>, handle<double>>);
-
-  static_assert(std::constructible_from<handle<int>, int, data_cell_index, spec_t, identifier>);
-  static_assert(
-    std::constructible_from<handle<int>, int const, data_cell_index, spec_t, identifier>);
-  static_assert(
-    std::constructible_from<handle<int>, int const&, data_cell_index, spec_t, identifier>);
-  static_assert(
-    not std::constructible_from<handle<int>, double, data_cell_index, spec_t, identifier>);
 }
 
 TEST_CASE("Can only assign handles with compatible types (compile-time checks)", "[data model]")
@@ -55,14 +56,14 @@ TEST_CASE("Handle copies and moves", "[data model]")
 {
   int const two{2};
   int const four{4};
-  spec_t two_spec{"two"};
-  spec_t four_spec{"four"};
+  spec_t const two_spec{"two"};
+  spec_t const four_spec{"four"};
 
   auto job_data_cell = data_cell_index::job();
   auto subrun_6_data_cell = job_data_cell->make_child("subrun", 6);
 
-  handle h2{two, *job_data_cell, two_spec, "test_stage"_id};
-  handle h4{four, *subrun_6_data_cell, four_spec, "test_stage"_id};
+  auto h2 = make_handle(two, *job_data_cell, two_spec);
+  auto h4 = make_handle(four, *subrun_6_data_cell, four_spec);
   CHECK(h2 != h4);
 
   CHECK(handle{h2} == h2);
@@ -85,17 +86,15 @@ TEST_CASE("Handle comparisons", "[data model]")
 {
   int const seventeen{17};
   int const eighteen{18};
-  spec_t seventeen_spec{"seventeen"};
-  spec_t eighteen_spec{"eighteen"};
-  handle const h17{seventeen, *data_cell_index::job(), seventeen_spec, "test_stage"_id};
-  handle const h18{eighteen, *data_cell_index::job(), eighteen_spec, "test_stage"_id};
+  spec_t const seventeen_spec{"seventeen"};
+  spec_t const eighteen_spec{"eighteen"};
+  auto const h17 = make_handle(seventeen, *data_cell_index::job(), seventeen_spec);
+  auto const h18 = make_handle(eighteen, *data_cell_index::job(), eighteen_spec);
   CHECK(h17 == h17);
   CHECK(h17 != h18);
 
-  handle const h18sr{eighteen, *data_cell_index::job(), eighteen_spec, "test_stage"_id};
-
   auto subrun_6_data_cell = data_cell_index::job()->make_child("subrun", 6);
-  handle const h17sr{seventeen, *subrun_6_data_cell, seventeen_spec, "test_stage"_id};
+  auto const h17sr = make_handle(seventeen, *subrun_6_data_cell, seventeen_spec);
   CHECK(*h17 == *h17sr);                                   // Products are the same
   CHECK(h17.data_cell_index() != h17sr.data_cell_index()); // Data cells are not the same
   CHECK(h17 != h17sr);                                     // Therefore handles are not the same
@@ -104,8 +103,8 @@ TEST_CASE("Handle comparisons", "[data model]")
 TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 {
   int const number{3};
-  spec_t spec{"number"};
-  handle const h{number, *data_cell_index::job(), spec, "test_stage"_id};
+  spec_t const spec{"number"};
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
   CHECK(h.data_cell_index() == *data_cell_index::job());
 
   int const& num_ref = h;
@@ -115,16 +114,17 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   CHECK(*num_ptr == number);
 
   composer const elgar{"Elgar"};
-  spec_t composer_spec{"composer"};
-  CHECK(handle{elgar, *data_cell_index::job(), composer_spec, "test_stage"_id}->name == "Elgar");
+  spec_t const composer_spec{"composer"};
+  auto const h2 = make_handle(elgar, *data_cell_index::job(), composer_spec);
+  CHECK(h2->name == "Elgar");
 }
 
 TEST_CASE("Retrieve product specification from handle", "[data model]")
 {
   int const number{3};
-  spec_t spec{"creator/three"};
+  spec_t const spec{"creator/three"};
 
-  handle const h{number, *data_cell_index::job(), spec, "test_stage"_id};
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
   CHECK(h.creator().algorithm == "creator");
   CHECK(h.suffix() == "three");
   CHECK(h.layer() == "job");
@@ -134,8 +134,8 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
 TEST_CASE("Retrieve stage from handle", "[data model]")
 {
   int const number{3};
-  spec_t spec("creator/three");
+  spec_t const spec("creator/three");
 
-  handle const h{number, *data_cell_index::job(), spec, "last"};
-  CHECK(h.stage() == "last");
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
+  CHECK(h.stage() == "test_stage");
 }

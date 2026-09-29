@@ -134,7 +134,8 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   REQUIRE(output.store);
   CHECK(output.store->index() == input_store->index());
   CHECK(output.store->source() == algorithm_name{"double_value"});
-  CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{42});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{42});
 
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
@@ -182,8 +183,10 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   CHECK(output_specs[1].type() == make_type_id<output_type_2>());
 
   REQUIRE(output.store);
-  CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{7});
-  CHECK(output.store->get_product<output_type_2>(output_specs[1]) == output_type_2{"7"});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{7});
+  CHECK(output.store->get_product<output_type_2>(
+          gsl::make_not_null(std::addressof(output_specs[1]))) == output_type_2{"7"});
 
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
@@ -219,7 +222,8 @@ TEST_CASE("transform_node receives a resource token", "[transform_node][resource
 
   message output;
   REQUIRE(sink.try_get(output));
-  CHECK(output.store->get_product<output_type_1>(transform.output()[0]) == output_type_1{22});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
 }
@@ -257,7 +261,8 @@ TEST_CASE("transform_node receives an unlimited resource", "[transform_node][res
   message output;
   REQUIRE(sink.try_get(output));
   REQUIRE(output.store);
-  CHECK(output.store->get_product<output_type_1>(transform.output()[0]) == output_type_1{22});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
 }
