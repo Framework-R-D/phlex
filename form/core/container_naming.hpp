@@ -12,13 +12,19 @@
 
 namespace form::detail::experimental {
 
+  /// Separates a row space from a product label in a container name: "row_space/label".
+  inline constexpr char row_space_label_separator = '/';
+
+  /// Separates fields in a row-space name, e.g. "technology__creator__stage".
+  inline constexpr std::string_view row_space_field_separator = "__";
+
   /// Builds a container name as "row_space/label".
   inline std::string build_full_label(std::string_view row_space, std::string_view label)
   {
     std::string result;
     result.reserve(row_space.size() + 1 + label.size());
     result += row_space;
-    result += '/';
+    result += row_space_label_separator;
     result += label;
     return result;
   }
@@ -51,10 +57,10 @@ namespace form::detail::experimental {
   /// Throws if a creator or stage cannot be part of a physical row-space name.
   inline void check_row_space_parts(std::string_view creator, std::string_view stage)
   {
-    // '/' is reserved as the row-space/label separator.
-    if (creator.contains('/') || stage.contains('/')) {
+    if (creator.contains(row_space_label_separator) || stage.contains(row_space_label_separator)) {
       throw std::runtime_error("FORM: creator '" + std::string{creator} + "' and stage '" +
-                               std::string{stage} + "' cannot contain '/'");
+                               std::string{stage} + "' cannot contain '" +
+                               row_space_label_separator + "'");
     }
   }
 
@@ -63,7 +69,7 @@ namespace form::detail::experimental {
   {
     check_row_space_parts(creator, stage);
     std::string result{creator};
-    result += "__";
+    result += row_space_field_separator;
     result += stage;
     return result;
   }
@@ -74,7 +80,7 @@ namespace form::detail::experimental {
                                           std::string_view stage)
   {
     std::string result = technology_name(tech);
-    result += "__";
+    result += row_space_field_separator;
     result += build_stream_name(creator, stage);
     return result;
   }
