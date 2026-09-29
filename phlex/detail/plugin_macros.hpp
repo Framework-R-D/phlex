@@ -30,16 +30,31 @@
 #define PHLEX_DETAIL_REGISTER_PLUGIN(token_type, func_name, dll_alias, ...)                        \
   extern "C" PHLEX_DETAIL_SELECT_SIGNATURE(token_type, dll_alias, __VA_ARGS__)
 
+#define PHLEX_DETAIL_CREATE_NONTEMPLATE_1ARG(token_type, func_name, m)                             \
+  void func_name(token_type const& m, phlex::configuration const&)
+
+#define PHLEX_DETAIL_CREATE_NONTEMPLATE_2ARGS(token_type, func_name, m, cfg)                       \
+  void func_name(token_type const& m, phlex::configuration const& cfg)
+
+#define PHLEX_DETAIL_SELECT_NONTEMPLATE_SIGNATURE(token_type, func_name, ...)                      \
+  BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
+              PHLEX_DETAIL_CREATE_NONTEMPLATE_1ARG,                                                \
+              PHLEX_DETAIL_CREATE_NONTEMPLATE_2ARGS)                                               \
+  (token_type, func_name, __VA_ARGS__)
+
+#define PHLEX_DETAIL_REGISTER_NONTEMPLATE_PLUGIN(token_type, func_name, dll_alias, ...)            \
+  extern "C" PHLEX_DETAIL_SELECT_NONTEMPLATE_SIGNATURE(token_type, dll_alias, __VA_ARGS__)
+
 // ================================================================================================
 // Registration macros for source plugins and explicit-provider plugins
 //
-// Source plugin entry-points cannot use extern "C" directly because the user-facing proxy types
-// (providers_graph_proxy, source_graph_proxy) are C++ templates.  Instead we:
+// Source plugin entry-points use a common opaque carrier so providers and sources retain the same
+// loader and exported-symbol shape. We:
 //   1. Forward-declare the user's C++ implementation in an internal namespace (takes the proxy
 //      by reference). The nested named namespace permits a qualified definition outside it,
 //      so the macro need not close a namespace after the user-provided body.
-//   2. Define a thin extern "C" shim that accepts graph_registration_bundle by value (matching
-//      source_creator_t exactly), constructs the appropriate proxy from the bundle,
+//   2. Define a thin extern "C" shim that accepts registration_carrier by value (matching
+//      source_creator_t exactly), constructs the appropriate proxy through the internal factory,
 //      and calls the user's implementation.
 //   3. Open the user's implementation definition for the body that follows the macro.
 #define PHLEX_DETAIL_CREATE_SOURCE_1ARG(token_type, func_name, m)                                  \
@@ -60,13 +75,40 @@
       PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, __VA_ARGS__);                    \
     }                                                                                              \
   }                                                                                                \
-  extern "C" void dll_alias(phlex::detail::graph_registration_bundle __phlex_bundle,               \
+  extern "C" void dll_alias(phlex::detail::internal::registration_carrier __phlex_carrier,         \
                             phlex::configuration const& __phlex_config)                            \
   {                                                                                                \
     BOOST_PP_CAT(dll_alias, _detail)::func_name(                                                   \
-      token_type<phlex::detail::void_tag>{__phlex_bundle}, __phlex_config);                        \
+      phlex::detail::internal::proxy_factory::providers_proxy(__phlex_carrier), __phlex_config);   \
   }                                                                                                \
   PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(                                                            \
+    token_type, BOOST_PP_CAT(dll_alias, _detail)::func_name, __VA_ARGS__)
+
+#define PHLEX_DETAIL_CREATE_NONTEMPLATE_SOURCE_1ARG(token_type, func_name, m)                      \
+  void func_name(token_type const& m, phlex::configuration const&)
+
+#define PHLEX_DETAIL_CREATE_NONTEMPLATE_SOURCE_2ARGS(token_type, func_name, m, cfg)                \
+  void func_name(token_type const& m, phlex::configuration const& cfg)
+
+#define PHLEX_DETAIL_SELECT_NONTEMPLATE_SOURCE_SIGNATURE(token_type, func_name, ...)               \
+  BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
+              PHLEX_DETAIL_CREATE_NONTEMPLATE_SOURCE_1ARG,                                         \
+              PHLEX_DETAIL_CREATE_NONTEMPLATE_SOURCE_2ARGS)                                        \
+  (token_type, func_name, __VA_ARGS__)
+
+#define PHLEX_DETAIL_REGISTER_NONTEMPLATE_SOURCE_PLUGIN(token_type, func_name, dll_alias, ...)     \
+  namespace {                                                                                      \
+    namespace BOOST_PP_CAT(dll_alias, _detail) {                                                   \
+      PHLEX_DETAIL_SELECT_NONTEMPLATE_SOURCE_SIGNATURE(token_type, func_name, __VA_ARGS__);        \
+    }                                                                                              \
+  }                                                                                                \
+  extern "C" void dll_alias(phlex::detail::internal::registration_carrier __phlex_carrier,         \
+                            phlex::configuration const& __phlex_config)                            \
+  {                                                                                                \
+    BOOST_PP_CAT(dll_alias, _detail)::func_name(                                                   \
+      phlex::detail::internal::proxy_factory::source_proxy(__phlex_carrier), __phlex_config);      \
+  }                                                                                                \
+  PHLEX_DETAIL_SELECT_NONTEMPLATE_SOURCE_SIGNATURE(                                                \
     token_type, BOOST_PP_CAT(dll_alias, _detail)::func_name, __VA_ARGS__)
 
 // ================================================================================================
