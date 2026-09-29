@@ -28,15 +28,22 @@ namespace phlex::detail {
   void run(boost::json::object const& configurations, overridable_configuration const& overridables)
   {
     if (!overridables.stage) {
-      throw std::runtime_error("Must provide a 'stage' name.");
+      throw std::runtime_error(
+        "No stage name was specified. Provide one using the '--stage <name>' program option "
+        "or the top-level configuration parameter 'stage: \"<name>\"'.");
     }
     // FIXME: Eventually, make it impossible to create a stage name that is empty or "CURRENT".
     auto stage = overridables.stage.value();
     if (stage.empty()) {
-      throw std::runtime_error("Stage name cannot be empty.");
+      throw std::runtime_error(
+        "The stage name cannot be empty. Provide a non-empty name using the '--stage <name>' "
+        "program option or the top-level configuration parameter 'stage: \"<name>\"'.");
     }
     if (stage == "CURRENT") {
-      throw std::runtime_error("'CURRENT' is a reserved stage name.");
+      throw std::runtime_error(
+        "'CURRENT' is reserved and cannot be used as a stage name. Provide a different name "
+        "using the '--stage <name>' program option or the top-level configuration parameter "
+        "'stage: \"<name>\"'.");
     }
 
     // Capture the default logger so we can restore it after loading the plugins, which may

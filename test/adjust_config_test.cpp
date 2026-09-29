@@ -73,19 +73,27 @@ TEST_CASE("Loading resources requires a cpp parameter", "[config]")
 
 TEST_CASE("A stage is required to run phlex", "[config]")
 {
-  CHECK_THROWS_WITH(phlex::detail::run({}, {}), "Must provide a 'stage' name.");
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {}),
+    "No stage name was specified. Provide one using the '--stage <name>' program option or the "
+    "top-level configuration parameter 'stage: \"<name>\"'.");
 }
 
 TEST_CASE("An empty stage cannot be used to run phlex", "[config]")
 {
-  phlex::detail::overridable_configuration const overrides{.stage = ""};
-  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "Stage name cannot be empty.");
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {.stage = ""}),
+    "The stage name cannot be empty. Provide a non-empty name using the '--stage <name>' program "
+    "option or the top-level configuration parameter 'stage: \"<name>\"'.");
 }
 
 TEST_CASE("CURRENT is a reserved stage name for running phlex", "[config]")
 {
-  phlex::detail::overridable_configuration const overrides{.stage = "CURRENT"};
-  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "'CURRENT' is a reserved stage name.");
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {.stage = "CURRENT"}),
+    "'CURRENT' is reserved and cannot be used as a stage name. Provide a different name using the "
+    "'--stage <name>' program option or the top-level configuration parameter 'stage: "
+    "\"<name>\"'.");
 }
 
 TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
