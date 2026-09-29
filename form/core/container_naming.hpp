@@ -13,9 +13,11 @@
 namespace form::detail::experimental {
 
   /// Separates a row space from a product label in a container name: "row_space/label".
+  /// Persistent: stored in the product dictionary; changing it requires a layout version.
   inline constexpr char row_space_label_separator = '/';
 
   /// Separates fields in a row-space name, e.g. "technology__creator__stage".
+  /// Persistent: part of on-disk TTree/RNTuple names; changing it requires a layout version.
   inline constexpr std::string_view row_space_field_separator = "__";
 
   /// Builds a container name as "row_space/label".
