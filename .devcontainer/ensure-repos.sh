@@ -1309,6 +1309,9 @@ clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
 
 # --- Podman Socket Proxy for Nested Containers (act) ---
+# macOS sockets cannot cross the VM's shared filesystem. configure-host.py
+# selects the VM-side socket and pasta reaches host loopback services directly.
+if ! is_darwin; then
 AUX_RELAY_LOG_DIR="${HOME}/.phlex-devcontainer-tmp/relay-logs"
 USER_ID=$(id -u)
 PODMAN_REAL_SOCKET="${XDG_RUNTIME_DIR:-/run/user/${USER_ID}}/podman/podman.sock"
@@ -1366,6 +1369,7 @@ relay_headroom_port() {
 
 relay_headroom_port azure "${HEADROOM_AZURE_PORT}"
 relay_headroom_port ow "${HEADROOM_OW_PORT}"
+fi
 
 # Ensure remaining source bind mount points exist.
 ensure_bind_dir "$HOME/.config/"{gh,kilo}
@@ -1380,47 +1384,8 @@ if ! mode_default; then
   exit 1
 fi
 
-# Darwin-specific relay binding with --net=pasta guard
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  VM_SOCKET_PATH="${PODMAN_REAL_SOCKET:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
-
-  if command -v podman >/dev/null 2>&1; then
-    if podman machine list 2>/dev/null | grep -qE 'Running|Started'; then
-      if podman machine ssh test -S "$VM_SOCKET_PATH" 2>/dev/null; then
-        export PHLEX_PODMAN_SOCKET_SOURCE="podman-machine:ssh"
-        export PHLEX_DEV_NETWORK_MODE="pasta"
-        export PHLEX_HOST_GATEWAY="host.docker.internal"
-      else
-        echo "WARNING: Darwin podman machine socket not accessible via 'podman machine ssh -S'" >&2
-        echo "  Tested path: $VM_SOCKET_PATH" >&2
-        echo "  Nested container support (act) may not work" >&2
-        export PHLEX_PODMAN_SOCKET_SOURCE="podman-machine:missing"
-        export PHLEX_DEV_NETWORK_MODE="pasta"
-        export PHLEX_HOST_GATEWAY="host.docker.internal"
-      fi
-    else
-      if [ -S "$VM_SOCKET_PATH" ]; then
-        export PHLEX_PODMAN_SOCKET_SOURCE="host:direct"
-        export PHLEX_DEV_NETWORK_MODE="pasta"
-        export PHLEX_HOST_GATEWAY="host.docker.internal"
-      else
-        echo "WARNING: Darwin socket not found at $VM_SOCKET_PATH" >&2
-        echo "  Nested container support (act) may not work" >&2
-        export PHLEX_PODMAN_SOCKET_SOURCE="host:missing"
-        export PHLEX_DEV_NETWORK_MODE="pasta"
-        export PHLEX_HOST_GATEWAY="host.docker.internal"
-      fi
-    fi
-  else
-    echo "WARNING: podman not found - assuming no Podman usage" >&2
-    export PHLEX_PODMAN_SOCKET_SOURCE="none"
-    export PHLEX_DEV_NETWORK_MODE="pasta"
-    export PHLEX_HOST_GATEWAY="host.docker.internal"
-  fi
-else
-  export PHLEX_PODMAN_SOCKET_SOURCE="host:direct"
-  export PHLEX_DEV_NETWORK_MODE="bridge"
-  export PHLEX_HOST_GATEWAY="host.containers.internal"
-fi
+# The initializer is a child process: exporting these settings here cannot
+# affect the later Compose process launched by VS Code.
+python3 "${SCRIPT_DIR}/configure-host.py" || exit 1
 
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"

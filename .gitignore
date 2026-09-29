@@ -31,6 +31,7 @@ _codeql_detected_source_root
 
 # IDE and editor files
 .vscode/
+/.devcontainer/docker-compose.host.yml
 .idea/
 *.swp
 *.swo

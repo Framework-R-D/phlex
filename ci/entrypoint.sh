@@ -1,3 +1,4 @@
+#!/bin/bash
 # vi: set ft=sh b:is_bash=1 fenc=utf-8 :
 # -*- Local Variables:
 # -*- mode: shell-script
@@ -17,7 +18,7 @@ fi
 # PHLEX_SPACK_TARGET must be normalized to x86_64_v3 or aarch64 (Dockerfile handles this)
 # Default is x86_64_v3 for backward compatibility
 : "${PHLEX_SPACK_TARGET:=x86_64_v3}"
-# CI images use GCC as default; developer images use Clang with GCC 15 toolchain for reproducible gcc@15 ABI
+# CI images default to GCC; developer images use Clang with the same GCC runtime.
 : "${PHLEX_DEFAULT_COMPILER:=gcc}"
 
 # Validate PHLEX_SPACK_TARGET is normalized (x86_64_v3 or aarch64)
@@ -59,22 +60,21 @@ esac
 . /spack/share/spack/setup-env.sh
 spack env activate -d "$PHLEX_SPACK_ENV"
 
-# GCC 15 is required for Phlex and its direct dependencies.
-# The Spack view's 'bin' directory contains symlinks to the active compiler.
-# When PHLEX_DEFAULT_COMPILER is "gcc", use GCC 15 directly via PATH.
-# When PHLEX_DEFAULT_COMPILER is "clang", use Clang with reproducible --gcc-toolchain binding.
+# Resolve the bootstrapped compiler outside the active environment, where it
+# may appear only as an external. Prefer the image's recorded versions; older
+# images without a carrier must have a unique matching installation.
+gcc_path=$(spack -E location -i \
+  "gcc${PHLEX_GCC_VERSION:+@${PHLEX_GCC_VERSION}}" \
+  "%c,cxx=gcc${PHLEX_NATIVE_GCC_VERSION:+@${PHLEX_NATIVE_GCC_VERSION}}") || return 1
+
 if [ "$PHLEX_DEFAULT_COMPILER" = "gcc" ]; then
-  # Developer can override CC/CXX via environment; CI uses explicit --target mapping
-  # GCC 15 must be used for phlex, root, and their dependencies to share ABI.
-  # The spack env activate makes gcc@15 available from the Spack view.
-  PATH=$(spack -E location -i gcc@15 %c,cxx=gcc@13)/bin:$PATH
+  PATH="$gcc_path/bin:$PATH"
   export CC=gcc CXX=g++
 else
-  # clang/clang++ with reproducible --gcc-toolchain binding to GCC 15
-  # This preserves the GCC 15 ABI while allowing compilation via Clang.
-  # The --gcc-toolchain option ensures Clang uses GCC 15's libstdc++ and headers.
-  gcc_path=$(spack location -i gcc@15 %c,cxx=gcc@13)
+  # Spack's Clang config sets --gcc-install-dir, which makes --gcc-toolchain
+  # unused (and fatal under -Werror). Bind the exact installation instead.
+  gcc_libgcc=$("$gcc_path/bin/gcc" -print-libgcc-file-name) || return 1
   export CC=clang CXX=clang++
-  export CFLAGS="--gcc-toolchain=$gcc_path"
-  export CXXFLAGS="--gcc-toolchain=$gcc_path"
+  export CFLAGS="--gcc-install-dir=${gcc_libgcc%/*}"
+  export CXXFLAGS="--gcc-install-dir=${gcc_libgcc%/*}"
 fi

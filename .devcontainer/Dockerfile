@@ -1,5 +1,5 @@
-# FROM ghcr.io/framework-r-d/phlex-dev:2026-09-21-aarch64
-FROM phlex-dev:2026-09-21-aarch64
+ARG PHLEX_DEV_IMAGE=ghcr.io/framework-r-d/phlex-dev:2026-07-23
+FROM ${PHLEX_DEV_IMAGE}
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
@@ -118,9 +118,11 @@ RUN printf '. /entrypoint.sh\n' >> /root/.bashrc
 # allow GPG agent to function correctly when running as root.
 RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0
 
-COPY gitignore-global /root/.gitignore-global
+COPY .devcontainer/gitignore-global /root/.gitignore-global
 RUN git config --global core.excludesfile '/root/.gitignore-global'
 
 # Install Kilo environment script that sets KILO_CONFIG_CONTENT globally
-COPY kilo-env.sh /etc/profile.d/kilo-env.sh
+# Keep runtime fixes current without rebuilding the expensive Spack base image.
+COPY ci/entrypoint.sh /entrypoint.sh
+COPY .devcontainer/kilo-env.sh /etc/profile.d/kilo-env.sh
 RUN chmod +x /etc/profile.d/kilo-env.sh
