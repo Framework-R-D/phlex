@@ -1,0 +1,7 @@
+**
+!.devcontainer/
+!.devcontainer/Dockerfile
+!.devcontainer/gitignore-global
+!.devcontainer/kilo-env.sh
+!ci/
+!ci/entrypoint.sh

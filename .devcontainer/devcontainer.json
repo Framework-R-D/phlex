@@ -1,6 +1,9 @@
 {
     "name": "Phlex CI Dev Container",
-    "dockerComposeFile": "docker-compose.yml",
+    "dockerComposeFile": [
+        "docker-compose.yml",
+        "docker-compose.host.yml"
+    ],
     "service": "phlex-dev",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "remoteUser": "root",
@@ -25,7 +28,6 @@
                 "C_Cpp.default.cStandard": "c17",
                 "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
                 "C_Cpp.default.cppStandard": "c++23",
-                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
                 "files.watcherExclude": {
                     "**/.venv/**": true,
                     "**/py_virtual_env/**": true

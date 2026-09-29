@@ -11,14 +11,18 @@ cat > ~/.actrc <<'EOF'
 --container-options --userns=keep-id
 EOF
 
+# Seed host auth into the container-private data volume without modifying the
+# read-only host file or replacing credentials already saved in this container.
+mkdir -p /root/.local/share/kilo
+if [ -f /run/phlex-host-auth.json ] && [ ! -e /root/.local/share/kilo/auth.json ]; then
+  install -m 0600 /run/phlex-host-auth.json /root/.local/share/kilo/auth.json
+fi
+
 # Seed the Kilo Code auth token into the container-private data volume.
 # The volume is not shared with the host to avoid SQLite conflicts between
 # the Remote-SSH and devcontainer Kilo Code instances.  The API key is
 # passed in via the KILO_API_KEY remoteEnv variable.
 if [ -n "${KILO_API_KEY:-}" ]; then
-  mkdir -p /root/.local/share/kilo
-  touch /root/.local/share/kilo/auth.json
-  chmod 0600 /root/.local/share/kilo/auth.json
   python3 - <<'PY'
 import json
 import os
@@ -29,15 +33,17 @@ from pathlib import Path
 # provider keys so Kilo resolves whichever provider a model is routed through.
 key = os.environ["KILO_API_KEY"]
 p = Path("/root/.local/share/kilo/auth.json")
+auth = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+auth.update(
+    {
+        "fnal-azure": {"type": "api", "key": key},
+        "fnal-ow": {"type": "api", "key": key},
+    }
+)
+p.touch(mode=0o600, exist_ok=True)
+p.chmod(0o600)
 p.write_text(
-    json.dumps(
-        {
-            "fnal-azure": {"type": "api", "key": key},
-            "fnal-ow": {"type": "api", "key": key},
-        },
-        indent=2,
-    )
-    + "\n",
+    json.dumps(auth, indent=2) + "\n",
     encoding="utf-8",
 )
 PY

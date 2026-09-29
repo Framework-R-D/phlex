@@ -54,6 +54,11 @@ kilo_env_find_config_path() {
 
   relay_root="$1"
 
+  # Fixture roots contain their own config; production uses the read-only host mount.
+  if [ "$relay_root" = "$KILO_ENV_FIXED_ROOT" ]; then
+    relay_root="/root/.config/kilo"
+  fi
+
   for candidate in "${relay_root}/kilo.json" "${relay_root}/kilo.jsonc"; do
     if [ -f "$candidate" ]; then
       printf '%s\n' "$candidate"
