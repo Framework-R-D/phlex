@@ -10,6 +10,7 @@
 
 #include <ROOT/RError.hxx>
 #include <ROOT/RNTupleWriter.hxx>
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
 #include <TFile.h> // IWYU pragma: keep
 
 #include <cstdint>

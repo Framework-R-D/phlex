@@ -6,6 +6,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 
 using namespace phlex::detail;

@@ -34,6 +34,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 #include <cstddef>
 #include <numeric>

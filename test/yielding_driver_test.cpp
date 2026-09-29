@@ -4,7 +4,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <oneapi/tbb/flow_graph.h>
-#include <tbb/flow_graph.h>
 
 #include <ranges>
 #include <vector>

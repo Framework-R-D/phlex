@@ -8,6 +8,7 @@
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 
+// Public provider of mp_list; include-cleaner sees only Boost's ignored detail declaration.
 #include <boost/mp11/list.hpp> // IWYU pragma: keep
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -17,6 +18,7 @@
 
 #include <array>
 #include <atomic>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 #include <concepts>
 #include <utility>

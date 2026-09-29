@@ -6,6 +6,7 @@
 #include "storage/istorage.hpp"
 #include "storage/storage_write_association.hpp"
 
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
 #include <TFile.h> // IWYU pragma: keep
 #include <TTree.h>
 #include <gsl/pointers>

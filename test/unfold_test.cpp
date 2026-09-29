@@ -28,6 +28,7 @@
 #include <spdlog/spdlog.h>
 
 #include <atomic>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 #include <string>
 #include <utility>

@@ -13,6 +13,7 @@
 #include <ROOT/RNTupleTypes.hxx>
 #include <ROOT/RNTupleView.hxx>
 #include <TDictionary.h>
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
 #include <TFile.h> // IWYU pragma: keep
 
 #include <cassert>

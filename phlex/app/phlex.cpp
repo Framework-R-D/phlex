@@ -2,6 +2,7 @@
 #include "phlex/app/version.hpp"
 
 #include <boost/json/parse.hpp>
+// Public umbrella whose implementation headers are ignored by include-cleaner.
 #include <boost/program_options.hpp> // IWYU pragma: keep
 #include <fmt/format.h>
 #include <libjsonnet++.h>

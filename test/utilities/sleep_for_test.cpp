@@ -2,7 +2,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <chrono> // IWYU pragma: keep
+#include <chrono>
 
 using namespace std::chrono;
 

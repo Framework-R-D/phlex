@@ -2,6 +2,7 @@
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/layer_path.hpp"
+// Completes framework_driver, which fwd.hpp aliases to a forward-declared template.
 #include "phlex/utilities/resumable_driver.hpp" // IWYU pragma: keep
 
 #include <catch2/catch_test_macros.hpp>

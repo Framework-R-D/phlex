@@ -4,7 +4,7 @@
 #include "wrap.hpp"
 
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
-#include <numpy/arrayobject.h> // IWYU pragma: keep
+#include <numpy/arrayobject.h>
 
 #include <atomic>
 #include <cstdlib>

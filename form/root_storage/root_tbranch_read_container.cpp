@@ -12,6 +12,7 @@
 #include <TClass.h>
 #include <TDataType.h>
 #include <TDictionary.h>
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
 #include <TFile.h> // IWYU pragma: keep
 #include <TTree.h>
 #include <gsl/pointers>

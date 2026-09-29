@@ -24,7 +24,7 @@
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
-#include <numpy/arrayobject.h> // IWYU pragma: keep
+#include <numpy/arrayobject.h>
 
 // Python algorithms are supported by inserting nodes from C++ -> Python,
 // followed by the intended call, and another from Python -> C++.
