@@ -59,7 +59,6 @@ namespace phlex {
       std::string_view algorithm;
     };
 
-    // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
     explicit handle(gsl::not_null<const_pointer> const product,
                     gsl::not_null<data_cell_index const*> const index,
                     gsl::not_null<experimental::product_specification const*> const spec,
