@@ -13,7 +13,8 @@ namespace phlex::detail {
   /// @brief Proxy for registering explicit provider nodes.
   ///
   /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
-  /// registration is accessible. Users never construct this type directly.
+  /// registration is accessible. Users never construct this type directly or retain it beyond the
+  /// synchronous callback.
   template <typename T>
   class providers_graph_proxy {
   public:
@@ -46,7 +47,8 @@ namespace phlex::detail {
   /// @brief Proxy for registering source nodes.
   ///
   /// Passed to @c PHLEX_REGISTER_SOURCE plugin entry points. Only source
-  /// registration is accessible. Users never construct this type directly.
+  /// registration is accessible. Users never construct this type directly or retain it beyond the
+  /// synchronous callback.
   class source_graph_proxy {
   public:
     template <std::derived_from<source> Source, typename... Args>

@@ -11,7 +11,8 @@ namespace phlex::detail {
   /// @brief Proxy for registering resources.
   ///
   /// Passed to @c PHLEX_REGISTER_RESOURCES plugin entry points. Only resource
-  /// registration is accessible. Users never construct this type directly.
+  /// registration is accessible. Users never construct this type directly or retain it beyond the
+  /// synchronous callback.
   class resources_graph_proxy {
   public:
     template <typename Resource, typename... Args>
