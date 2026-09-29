@@ -204,6 +204,175 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
   )
 endif()
 
+# form_module output configurations, exercised on the DUNE hit example. The jobs take their stage
+# from dune_example_hits.libsonnet, so each also runs as 'phlex -c <jsonnet>'.
+if(FORM_USE_ROOT_STORAGE)
+  add_library(dune_example_hits MODULE dune_example_hits.cpp dune_example_hit_maker.cpp)
+  target_link_libraries(
+    dune_example_hits
+    PRIVATE phlex::module form_test_dune_example_data_products
+  )
+
+  # Checks each (file, technology) output of a job and reads its products back.
+  add_executable(
+    form_multiple_outputs_check
+    form_multiple_outputs_check.cpp
+    dune_example_hit_maker.cpp
+  )
+  target_link_libraries(
+    form_multiple_outputs_check
+    PRIVATE storage root_storage form_test_dune_example_data_products
+  )
+  target_include_directories(form_multiple_outputs_check PRIVATE ${PROJECT_SOURCE_DIR}/form)
+
+  # Single-output keys.
+  cet_test(
+    job:form_dune_outputs_legacy
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_dune_outputs_legacy.jsonnet
+    TEST_WORKDIR
+    form_dune_outputs_legacy
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+  cet_test(
+    form_dune_outputs_legacy_check
+    HANDBUILT
+    TEST_EXEC
+    form_multiple_outputs_check
+    TEST_ARGS
+    test
+    dune_legacy.root
+    ROOT_TTREE
+    hitCandidates,wireCandidates,spillCandidates
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_dune_outputs_legacy
+    REQUIRED_FIXTURES
+    job:form_dune_outputs_legacy
+  )
+
+  # Multiple TTree output files, including a product written to both files.
+  cet_test(
+    job:form_dune_outputs_multiple_files
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_dune_outputs_multiple_files.jsonnet
+    TEST_WORKDIR
+    form_dune_outputs_multiple_files
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+  cet_test(
+    form_dune_outputs_multiple_files_check
+    HANDBUILT
+    TEST_EXEC
+    form_multiple_outputs_check
+    TEST_ARGS
+    test
+    dune_roi.root
+    ROOT_TTREE
+    hitCandidates,wireCandidates
+    dune_summary.root
+    ROOT_TTREE
+    wireCandidates,spillCandidates
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_dune_outputs_multiple_files
+    REQUIRED_FIXTURES
+    job:form_dune_outputs_multiple_files
+  )
+
+  # Legacy 'products: []' writes nothing and is not an error.
+  cet_test(
+    job:form_dune_outputs_empty_products
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_dune_outputs_empty_products.jsonnet
+    TEST_WORKDIR
+    form_dune_outputs_empty_products
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+
+  # Invalid output configurations are rejected when form_module is registered.
+  foreach(case conflict duplicate empty no_file)
+    if(case STREQUAL "conflict")
+      set(expected_error "cannot be combined with 'outputs'")
+    elseif(case STREQUAL "duplicate")
+      set(expected_error "configured more than once for output file")
+    elseif(case STREQUAL "empty")
+      set(expected_error "'outputs' must contain at least one output")
+    else()
+      set(expected_error "must specify 'output_file'")
+    endif()
+    cet_test(
+      job:form_dune_outputs_${case}
+      HANDBUILT
+      TEST_EXEC
+      phlex::phlex
+      TEST_ARGS
+      -c
+      ${CMAKE_CURRENT_SOURCE_DIR}/form_dune_outputs_${case}.jsonnet
+      TEST_PROPERTIES
+      PASS_REGULAR_EXPRESSION
+      "${expected_error}"
+      ENVIRONMENT
+      "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+    )
+  endforeach()
+endif()
+
+if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
+  # One file holding TTree and RNTuple outputs of the same (creator, stage).
+  cet_test(
+    job:form_dune_outputs_mixed_technologies
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_dune_outputs_mixed_technologies.jsonnet
+    TEST_WORKDIR
+    form_dune_outputs_mixed_technologies
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+  cet_test(
+    form_dune_outputs_mixed_technologies_check
+    HANDBUILT
+    TEST_EXEC
+    form_multiple_outputs_check
+    TEST_ARGS
+    test
+    dune_mixed.root
+    ROOT_TTREE
+    hitCandidates,wireCandidates
+    dune_mixed.root
+    ROOT_RNTUPLE
+    wireCandidates,spillCandidates
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_dune_outputs_mixed_technologies
+    REQUIRED_FIXTURES
+    job:form_dune_outputs_mixed_technologies
+  )
+endif()
+
 set(form_basics_test_libraries form)
 if(FORM_USE_ROOT_STORAGE)
   list(APPEND form_basics_test_libraries root_storage)

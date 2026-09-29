@@ -42,6 +42,12 @@ namespace form::test {
   /// Candidate hits for a region.
   merged_hit_candidates candidates_in_roi(unsigned int spill, unsigned int wire, unsigned int roi);
 
+  /// Candidate hits of every region on a wire, in region order.
+  merged_hit_candidates candidates_on_wire(unsigned int spill, unsigned int wire);
+
+  /// Candidate hits of every wire in a spill, in wire order.
+  merged_hit_candidates candidates_in_spill(unsigned int spill);
+
   /// Fitted hits for a region; empty if the fit does not succeed.
   std::vector<hit> hits_in_roi(unsigned int spill, unsigned int wire, unsigned int roi);
 

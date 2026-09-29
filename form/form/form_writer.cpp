@@ -95,7 +95,6 @@ namespace form::experimental {
   }
 
   void form_writer_interface::plan_new_products(write_plan& plan,
-                                                std::string const& row_space,
                                                 std::string const& creator,
                                                 std::string const& stage,
                                                 std::vector<product_with_name> const& products)
@@ -141,7 +140,9 @@ namespace form::experimental {
       auto& places = places_it->second;
       for (auto const& item : cfg_it->second) {
         placement product_place{
-          item.file_name, build_full_label(row_space, pb.label), item.technology};
+          item.file_name,
+          build_full_label(build_row_space_name(item.technology, creator, stage), pb.label),
+          item.technology};
         new_containers.emplace_back(product_place, pb.type);
         plan.commit_places.try_emplace(std::make_pair(item.file_name, item.technology),
                                        product_place);
@@ -172,11 +173,11 @@ namespace form::experimental {
 
     check_unique_labels(creator, stage, cell, products);
 
-    auto const row_space = build_row_space_name(creator, stage);
+    check_row_space_parts(creator, stage);
     write_plan& plan = plans_[std::make_pair(creator, stage)];
 
     // ---- 1. PLAN ----
-    plan_new_products(plan, row_space, creator, stage, products);
+    plan_new_products(plan, creator, stage, products);
 
     // ---- 2. WRITE ----
     // Fill each product into every one of its destinations, recording which places received data

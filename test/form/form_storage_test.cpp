@@ -40,20 +40,22 @@ namespace {
 
   using form::test::test_stage;
 
-  std::string row_space(std::string const& creator, std::string const& stage = test_stage)
+  std::string row_space(std::string const& creator,
+                        std::string const& stage = test_stage,
+                        form::technology::id tech = technology)
   {
-    return build_row_space_name(creator, stage);
+    return build_row_space_name(tech, creator, stage);
   }
 
-  // FORM now resolves placements and hands them to the persistence executor; these tests do the
-  // same, building the (file, creator__stage/label, technology) placement each product writes to.
+  // FORM now resolves placements and hands them to the persistence executor; these tests build the
+  // same (file, row-space/label, technology) placements that FORM resolves.
   placement make_placement(std::string const& file_name,
                            std::string const& creator,
                            std::string const& label,
                            form::technology::id tech,
                            std::string const& stage = test_stage)
   {
-    return placement{file_name, build_full_label(row_space(creator, stage), label), tech};
+    return placement{file_name, build_full_label(row_space(creator, stage, tech), label), tech};
   }
 
   product_identity identity(std::string const& creator,
@@ -917,16 +919,17 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
     }
   }
 
-  // Writer and reader agree on the physical names: creator__stage/product and creator__stage/index.
+  // Writer and reader use technology__creator__stage for physical row-space names.
+  auto const tech = technology_name(technology);
   storage_reader storage;
   tech_setting_config const settings{};
   auto const index_rows = [&](std::string const& container) {
     return storage.list_indices(token{file_name, container, technology}, settings).size();
   };
-  CHECK(index_rows("tracker__stage1/index") == 3);
-  CHECK(index_rows("tracker__stage2/index") == 2);
-  CHECK(index_rows("tracker__/index") == 1);
-  CHECK(index_rows("shower__stage1/index") == 1);
+  CHECK(index_rows(tech + "__tracker__stage1/index") == 3);
+  CHECK(index_rows(tech + "__tracker__stage2/index") == 2);
+  CHECK(index_rows(tech + "__tracker__/index") == 1);
+  CHECK(index_rows(tech + "__shower__stage1/index") == 1);
   // An empty stage does not fall back to the pre-stage "creator/label" layout.
   CHECK_THROWS(index_rows("tracker/index"));
 
@@ -945,7 +948,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
           {"shower", "stage1"}, {"tracker", ""}, {"tracker", "stage1"}, {"tracker", "stage2"}});
   auto const unstaged = layout.product("hits", "");
   CHECK(unstaged.transform([](auto const& entry) { return entry.container_name; }) ==
-        "tracker__/hits");
+        tech + "__tracker__/hits");
   CHECK(unstaged.transform([](auto const& entry) { return entry.navigation_column; }) ==
         "tracker___row");
 }

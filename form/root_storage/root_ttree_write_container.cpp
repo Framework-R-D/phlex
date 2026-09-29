@@ -43,6 +43,9 @@ void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/
   if (tree_ == nullptr) {
     throw std::runtime_error("root_ttree_write_container_imp::setup_write no tree created");
   }
+  // Keep the tree's directory association for basket writing, but prevent automatic writes.
+  // FORM writes the tree explicitly when the container is destroyed.
+  tfile_->Remove(tree_.get());
 }
 
 std::uint64_t root_ttree_write_container_imp::fill(void const* /* data*/)

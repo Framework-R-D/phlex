@@ -78,7 +78,8 @@ namespace {
     }
     checks.check(track_start->creator == "Toy_Tracker", "trackStart names its creator");
     checks.check(track_start->stage == test_stage, "trackStart names its stage");
-    checks.check(track_start->container_name == "Toy_Tracker__test_stage/trackStart",
+    auto const tech = form::detail::experimental::technology_name(found.technology);
+    checks.check(track_start->container_name == tech + "__Toy_Tracker__test_stage/trackStart",
                  "trackStart names its product container in its (creator, stage) row space");
     checks.check(track_start->hierarchy_key == "event_segment",
                  "trackStart belongs to the {event, segment} hierarchy");

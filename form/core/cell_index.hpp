@@ -3,11 +3,9 @@
 #ifndef FORM_CORE_CELL_INDEX_HPP
 #define FORM_CORE_CELL_INDEX_HPP
 
-#include <cctype>
 #include <compare>
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <vector>
 
 /* @file cell_index.hpp
@@ -38,18 +36,6 @@ namespace form::detail::experimental {
     /// Whether layer names and values have matching sizes.
     bool consistent() const { return hierarchy.layer_names.size() == layer_values.size(); }
   };
-
-  /// Replace characters not allowed in names with '_'.
-  inline std::string sanitize_name(std::string_view name)
-  {
-    std::string result;
-    result.reserve(name.size());
-    for (char c : name) {
-      auto const uc = static_cast<unsigned char>(c);
-      result.push_back(std::isalnum(uc) != 0 || c == '_' ? c : '_');
-    }
-    return result;
-  }
 
 } // namespace form::detail::experimental
 
