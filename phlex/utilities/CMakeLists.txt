@@ -20,6 +20,7 @@ install(
     max_allowed_parallelism.hpp
     resource_usage.hpp
     simple_ptr_map.hpp
+    signed_size.hpp
     sized_tuple.hpp
     sleep_for.hpp
     thread_counter.hpp
