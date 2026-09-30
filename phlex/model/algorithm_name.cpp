@@ -1,9 +1,15 @@
 #include "phlex/model/algorithm_name.hpp"
 
+#include "phlex/model/identifier.hpp"
+
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace {
   // Check if a char is a word (\w) char

@@ -1,7 +1,8 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/identifier.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -9,6 +10,11 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <initializer_list>
+#include <iterator>
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;

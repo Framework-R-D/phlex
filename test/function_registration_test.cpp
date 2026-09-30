@@ -1,6 +1,7 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/handle.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 

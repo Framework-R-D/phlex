@@ -1,9 +1,14 @@
 #include "phlex/core/provider_node.hpp"
 
+#include "phlex/core/message.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/model/products.hpp"
 
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <utility>

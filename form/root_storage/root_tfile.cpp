@@ -2,7 +2,14 @@
 
 #include "root_tfile.hpp"
 
+#include "storage/storage_file.hpp"
+
+#include <Compression.h>
 #include <TFile.h>
+
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 using namespace form::detail::experimental;
 root_tfile_imp::root_tfile_imp(std::string const& name, char mode) :

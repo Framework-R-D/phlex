@@ -1,10 +1,18 @@
 #include "phlex/model/data_cell_tracker.hpp"
 
+#include "phlex/model/data_cell_counts.hpp"
+#include "phlex/model/flush_messages.hpp"
+#include "phlex/model/fwd.hpp"
+
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <memory>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace {
   auto make_data_cell_counts(phlex::data_cell_index_ptr const& index)

@@ -1,15 +1,25 @@
 #include "phlex/core/producer_catalog.hpp"
 
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/type_id.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 #include "phlex/utilities/hashing.hpp"
 
+#include <fmt/base.h>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include <concepts>
+#include <cstdint>
+#include <map>
 #include <ranges>
+#include <stdexcept>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace {
   // Auxiliary functions to reduce complexity of find_producers

@@ -2,6 +2,9 @@
 
 #include "placement.hpp"
 
+#include "core/technology.hpp"
+
+#include <string>
 #include <utility>
 
 using namespace form::detail::experimental;

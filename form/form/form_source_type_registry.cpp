@@ -2,11 +2,14 @@
 
 #include "form_source_type_registry.hpp"
 
+#include "phlex/model/type_id.hpp"
+
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <unordered_map>
+#include <utility>
 
 namespace {
   std::unordered_map<std::string, form::experimental::form_source_type_entry>&

@@ -1,14 +1,32 @@
 #include "phlex/core/make_computational_edges.hpp"
 
+#include "phlex/core/declared_output.hpp"
+#include "phlex/core/filter.hpp"
+#include "phlex/core/index_router.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/node_catalog.hpp"
+#include "phlex/core/producer_catalog.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
+
 #include <fmt/format.h>
 #include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cassert>
+#include <map>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 using namespace std::string_literals;
 

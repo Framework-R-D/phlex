@@ -1,7 +1,14 @@
 #include "phlex/core/node_catalog.hpp"
 
+#include "phlex/core/producer_catalog.hpp"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/source.hpp"
+
 #include <fmt/format.h>
 
+#include <cstddef>
+#include <ranges>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

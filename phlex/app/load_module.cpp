@@ -2,19 +2,28 @@
 
 #include "phlex/configuration.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/graph_proxy.hpp"
 #include "phlex/driver.hpp"
+#include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/module.hpp"
 #include "phlex/resource.hpp"
 #include "phlex/source.hpp"
 
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/dll/shared_library.hpp>
-#include <boost/json.hpp>
+#include <boost/dll/shared_library_load_mode.hpp>
+#include <boost/json/object.hpp>
+#include <boost/json/value_to.hpp>
+#include <fmt/format.h>
 
 #include <cstdlib>
+#include <filesystem>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 using namespace std::string_literals;
 

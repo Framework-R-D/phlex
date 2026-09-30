@@ -1,13 +1,17 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/core/node_builder.hpp"
+#include "phlex/core/resource/catalog.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/flow_graph.h>
 #include <oneapi/tbb/parallel_for.h>
 
 #include <atomic>
-#include <chrono>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
+#include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <tuple>
 

@@ -1,10 +1,22 @@
 #include "phlex/core/declared_unfold.hpp"
 
-#include "phlex/model/handle.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_store.hpp"
+#include "phlex/model/products.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include <fmt/std.h>
-#include <spdlog/spdlog.h>
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::detail {
 

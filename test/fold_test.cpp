@@ -24,6 +24,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/sleep_for.hpp"
@@ -33,6 +34,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
+#include <chrono> // IWYU pragma: keep
+#include <cstddef>
 #include <numeric>
 #include <string>
 #include <vector>

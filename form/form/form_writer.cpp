@@ -2,11 +2,24 @@
 
 #include "form_writer.hpp"
 
+#include "core/cell_index.hpp"
+#include "core/container_naming.hpp"
+#include "core/placement.hpp"
+#include "core/product_identity.hpp"
+#include "form/config.hpp"
+#include "form/product_with_name.hpp"
+#include "persistence/ipersistence_writer.hpp"
+
+#include <exception>
 #include <format>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <typeinfo>
+#include <utility>
+#include <vector>
 
 namespace {
   // Reject duplicate product labels before writing.

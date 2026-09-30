@@ -1,3 +1,4 @@
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/source.hpp"
 
 using namespace phlex;
