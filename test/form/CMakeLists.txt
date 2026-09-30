@@ -223,7 +223,10 @@ if(FORM_USE_ROOT_STORAGE)
     form_multiple_outputs_check
     PRIVATE storage root_storage form_test_dune_example_data_products
   )
-  target_include_directories(form_multiple_outputs_check PRIVATE ${PROJECT_SOURCE_DIR}/form)
+  target_include_directories(
+    form_multiple_outputs_check
+    PRIVATE ${PROJECT_SOURCE_DIR}/form ${PROJECT_SOURCE_DIR}
+  )
 
   # Single-output keys.
   cet_test(
