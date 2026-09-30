@@ -50,6 +50,7 @@ install(
     declared_predicate.hpp
     declared_transform.hpp
     declared_unfold.hpp
+    fold_join_node.hpp
     producer_catalog.hpp
     make_computational_edges.hpp
     filter.hpp
@@ -85,6 +86,7 @@ install(
 )
 install(
   FILES
+    detail/accumulator_node.hpp
     detail/filter_impl.hpp
     detail/make_algorithm_name.hpp
     detail/maybe_predicates.hpp
