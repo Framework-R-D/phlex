@@ -3,6 +3,7 @@
 //
 // Generic navigation checks are in navigation_check.hpp; this file checks the toy fixture.
 
+#include "core/container_naming.hpp"
 #include "core/technology.hpp"
 #include "navigation_check.hpp"
 #include "test_helpers.hpp"
