@@ -12,7 +12,7 @@
 
 using namespace phlex;
 
-namespace types {
+namespace {
   struct abstract {
     virtual int value() const = 0;
     virtual ~abstract() = default;
@@ -23,19 +23,17 @@ namespace types {
   struct derived_b : abstract {
     int value() const override { return 2; }
   };
-}
 
-namespace {
   auto make_derived_as_abstract()
   {
-    std::vector<std::unique_ptr<types::abstract>> vec;
+    std::vector<std::unique_ptr<abstract>> vec;
     vec.reserve(2);
-    vec.push_back(std::make_unique<types::derived_a>());
-    vec.push_back(std::make_unique<types::derived_b>());
+    vec.push_back(std::make_unique<derived_a>());
+    vec.push_back(std::make_unique<derived_b>());
     return vec;
   }
 
-  int read_abstract(std::vector<std::unique_ptr<types::abstract>> const& vec)
+  int read_abstract(std::vector<std::unique_ptr<abstract>> const& vec)
   {
     return std::transform_reduce(
       vec.begin(), vec.end(), 0, std::plus{}, [](auto const& ptr) -> int { return ptr->value(); });
