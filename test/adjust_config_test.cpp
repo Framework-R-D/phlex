@@ -1,9 +1,13 @@
 #include "phlex/app/load_module.hpp"
+#include "phlex/app/run.hpp"
+#include "phlex/core/framework_graph.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
+#include <boost/json/object.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "boost/json.hpp"
+#include <utility>
 
 using namespace phlex::detail::internal;
 
@@ -58,4 +62,50 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
   - cpp: my_other_python_phlex_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed3", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
+}
+
+TEST_CASE("Loading resources requires a cpp parameter", "[config]")
+{
+  auto graph = phlex::detail::framework_graph::without_driver("test");
+
+  CHECK_THROWS_WITH(
+    phlex::detail::load_resource(graph, "my_resource", {}),
+    Catch::Matchers::ContainsSubstring(
+      "Missing 'cpp' parameter for my_resource -- only C++ resources are supported."));
+}
+
+TEST_CASE("A stage is required to run phlex", "[config]")
+{
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {}),
+    "No stage name was specified. Provide one using the '--stage <name>' program option or the "
+    "top-level configuration parameter 'stage: \"<name>\"'.");
+}
+
+TEST_CASE("An empty stage cannot be used to run phlex", "[config]")
+{
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {.stage = ""}),
+    "The stage name cannot be empty. Provide a non-empty name using the '--stage <name>' program "
+    "option or the top-level configuration parameter 'stage: \"<name>\"'.");
+}
+
+TEST_CASE("CURRENT is a reserved stage name for running phlex", "[config]")
+{
+  CHECK_THROWS_WITH(
+    phlex::detail::run({}, {.stage = "CURRENT"}),
+    "'CURRENT' is reserved and cannot be used as a stage name. Provide a different name using the "
+    "'--stage <name>' program option or the top-level configuration parameter 'stage: "
+    "\"<name>\"'.");
+}
+
+TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
+{
+  boost::json::object configurations;
+  configurations["driver"] = "not an object";
+
+  phlex::detail::overridable_configuration const overrides{.stage = "test"};
+
+  CHECK_THROWS_WITH(phlex::detail::run(configurations, overrides),
+                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'driver' :"));
 }

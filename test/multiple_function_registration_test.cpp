@@ -1,10 +1,12 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/data_layer_hierarchy.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <numeric>
 #include <vector>
 
@@ -43,7 +45,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })

@@ -16,7 +16,7 @@
 //
 // =======================================================================================
 
-#include "Python.h" // for PyObject* get<> specialization only
+#include <Python.h> // for PyObject* get<> specialization only
 
 #include <cstdint>
 #include <memory>

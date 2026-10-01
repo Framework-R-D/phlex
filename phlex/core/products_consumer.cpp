@@ -1,6 +1,21 @@
 #include "phlex/core/products_consumer.hpp"
 
-#include "fmt/format.h"
+#include "phlex/core/consumer.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
+
+#include <fmt/format.h>
+#include <oneapi/tbb/flow_graph.h>
+
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
@@ -36,10 +51,11 @@ namespace {
       }
     }
     if (!err_selectors.empty()) {
-      std::string error = fmt::format("Must specify layers in the product selectors for node {}:\n"
-                                      "  (Only invalid selectors are listed)\n{}",
-                                      algo.to_string(),
-                                      bulleted_list(err_selectors));
+      std::string const error =
+        fmt::format("Must specify layers in the product selectors for node {}:\n"
+                    "  (Only invalid selectors are listed)\n{}",
+                    algo.to_string(),
+                    bulleted_list(err_selectors));
       throw std::runtime_error(error);
     }
   }
@@ -50,8 +66,10 @@ namespace phlex::detail {
   products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
                                        product_selectors input_products,
+                                       tbb::flow::graph& graph,
                                        require_layers layers_required) :
     consumer{std::move(name), std::move(predicates)},
+    graph_{graph},
     input_products_{std::move(input_products)},
     layers_{layers_from(input_products_)}
   {
@@ -64,7 +82,24 @@ namespace phlex::detail {
 
   tbb::flow::receiver<message>& products_consumer::port(product_selector const& input_product)
   {
-    return port_for(input_product);
+    auto& next = port_for(input_product);
+
+    // If input_product doesn't have a layer, it must be for a node that allows layer omission
+    if (input_product.layer) {
+      auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
+        graph_,
+        tbb::flow::unlimited,
+        [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
+          message const& msg, auto& output) {
+          if (msg.store->layer_name() == layer) {
+            std::get<0>(output).try_put(msg);
+          }
+        }));
+      make_edge(tbb::flow::output_port<0>(*layer_check), next);
+      return *layer_check;
+    }
+    // else
+    return next;
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }

@@ -103,12 +103,13 @@ To guide the creation of the environment, download the environment configuration
 ```bash
 spack env create my-phlex-environment
 spack env activate my-phlex-environment
-spack add phlex@0.3.2 %%gcc@15
+spack add phlex@0.4 %%gcc@15
 spack concretize
 ```
 
 The concretization can take up to a few minutes.
 If it is successful you will see the concretization results listed followed by a notice that spack is updating a view at some path.
+This resolves all Phlex v0.4 dependencies, including the required C++23-compatible TBB release.
 
 You are then ready to build the Phlex environment:
 

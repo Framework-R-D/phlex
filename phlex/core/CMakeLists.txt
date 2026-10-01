@@ -31,6 +31,7 @@ cet_make_library(
   LIBRARIES
   PUBLIC
   TBB::tbb
+  Microsoft.GSL::GSL
   phlex::metaprogramming
   phlex::model
   phlex::utilities
@@ -49,6 +50,7 @@ install(
     declared_predicate.hpp
     declared_transform.hpp
     declared_unfold.hpp
+    fold_join_node.hpp
     producer_catalog.hpp
     make_computational_edges.hpp
     filter.hpp
@@ -60,12 +62,14 @@ install(
     message.hpp
     multilayer_join_node.hpp
     index_router.hpp
+    node_builder.hpp
     node_catalog.hpp
     product_selector.hpp
     products_consumer.hpp
     provider_node.hpp
     registrar.hpp
     registration_api.hpp
+    resource_api.hpp
     source.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
@@ -73,6 +77,16 @@ install(
 install(FILES fold/send.hpp DESTINATION include/phlex/core/fold)
 install(
   FILES
+    resource/catalog.hpp
+    resource/concepts.hpp
+    resource/dependencies.hpp
+    resource/entries.hpp
+    resource/index_sequences.hpp
+  DESTINATION include/phlex/core/resource
+)
+install(
+  FILES
+    detail/accumulator_node.hpp
     detail/filter_impl.hpp
     detail/make_algorithm_name.hpp
     detail/maybe_predicates.hpp
@@ -80,6 +94,7 @@ install(
   DESTINATION include/phlex/core/detail
 )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
+target_compile_definitions(phlex_core PUBLIC TBB_PREVIEW_FLOW_GRAPH_RESOURCE_LIMITING=1)
 phlex_apply_symbol_visibility(phlex_core)
 phlex_apply_optimizations(phlex_core)
 
@@ -94,8 +109,17 @@ endif()
 phlex_make_internal_library(
   phlex_core
   LIBRARIES
-  PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
+  PUBLIC
+  TBB::tbb
+  Microsoft.GSL::GSL
+  phlex::metaprogramming
+  phlex_model_internal
+  phlex_utilities_internal
   PRIVATE Boost::json spdlog::spdlog
+)
+target_compile_definitions(
+  phlex_core_internal
+  INTERFACE TBB_PREVIEW_FLOW_GRAPH_RESOURCE_LIMITING=1
 )
 add_library(phlex::core_internal ALIAS phlex_core_internal)
 
@@ -113,5 +137,6 @@ cet_make_library(
   phlex::model
   phlex::utilities
   Boost::json
+  Microsoft.GSL::GSL
   TBB::tbb
 )

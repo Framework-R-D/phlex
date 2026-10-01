@@ -52,7 +52,6 @@
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <cassert>
-
 #include <functional>
 #include <optional>
 #include <string>

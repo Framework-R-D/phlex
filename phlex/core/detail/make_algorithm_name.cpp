@@ -1,7 +1,10 @@
 #include "phlex/core/detail/make_algorithm_name.hpp"
+
 #include "phlex/configuration.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
+
+#include <string_view>
 
 namespace phlex::experimental::internal {
   algorithm_name make_algorithm_name(configuration const* config, std::string_view name)

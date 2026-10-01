@@ -1,15 +1,22 @@
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/ostream_logger.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
-#include <atomic>
+#include <cstddef>
 #include <memory>
 #include <ranges>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -25,8 +32,12 @@ namespace {
 
   auto make_run_with_product(int run_number, int value)
   {
+    static auto const dummy_creator_name =
+      phlex::experimental::algorithm_name::create("test_algorithm");
+    static auto const dummy_stage_name = "test_stage"_id;
     auto index = make_run_index(run_number);
-    auto store = std::make_shared<product_store>(index);
+    auto store = std::make_shared<product_store>(
+      index, gsl::not_null{&dummy_creator_name}, gsl::not_null{&dummy_stage_name});
     store->add_product("value", value);
     return std::pair{index, store};
   }

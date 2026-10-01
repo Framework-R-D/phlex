@@ -1,13 +1,13 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/driver.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "spdlog/spdlog.h"
+#include <catch2/catch_test_macros.hpp>
+#include <spdlog/spdlog.h>
 
-#include "catch2/catch_test_macros.hpp"
-
+#include <algorithm>
+#include <cstddef>
 #include <ranges>
 #include <tuple>
 #include <vector>
@@ -46,7 +46,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   // Register providers

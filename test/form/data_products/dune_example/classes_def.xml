@@ -1,0 +1,9 @@
+<lcgdict>
+  <class name="form::test::plane_id"/>
+  <class name="form::test::wire_id"/>
+  <class name="form::test::hit"/>
+  <class name="std::vector<form::test::hit>"/>
+  <class name="form::test::hit_candidate"/>
+  <class name="std::vector<form::test::hit_candidate>"/>
+  <class name="std::vector<std::vector<form::test::hit_candidate> >"/>
+</lcgdict>

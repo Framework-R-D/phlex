@@ -1,17 +1,23 @@
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
-#include "phlex/source.hpp"
-
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
+#include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "fmt/format.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <fmt/format.h>
 
-#include <array>
+#include <atomic>
 #include <string>
-#include <tuple>
+#include <utility>
 
 using namespace phlex;
 using namespace std::string_literals;
@@ -29,18 +35,18 @@ namespace {
     return fmt::format("John the {}th", dci.number());
   }
 
-  detail::product_ptr provide_archived_count(data_cell_index const& dci)
+  experimental::product_ptr provide_archived_count(data_cell_index const& dci)
   {
-    return std::make_unique<detail::product<int>>(static_cast<int>(dci.number()));
+    return experimental::product_for(static_cast<int>(dci.number()));
   }
 
   class archived_count_source : public source {
   public:
-    detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental::literals;
-      phlex::detail::product_specification spec{
-        "archived_input", "archived_count", phlex::detail::make_type_id<int>()};
+      phlex::experimental::product_specification spec{
+        "archived_input", "archived_count", phlex::experimental::make_type_id<int>()};
       if (!selector.match(spec, "event"_id, "previous_process"_id)) {
         return {};
       }
@@ -50,15 +56,13 @@ namespace {
                .layer = "event",
                .stage = "previous_process"}};
     }
-
-    index_generator indices() override { co_return; }
   };
 
   class copy_temperature_once {
   public:
     explicit copy_temperature_once(double const temperature) : temperature_{temperature} {}
-    bool initial_value() const { return true; }
-    bool predicate(bool const emit) const { return emit; }
+    static bool initial_value() { return true; }
+    static bool predicate(bool const emit) { return emit; }
     auto unfold(bool const) const { return std::pair{false, temperature_}; }
 
   private:
@@ -71,7 +75,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   constexpr int num_events = 25;
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = num_events});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<archived_count_source>("archived_count_source");
 
@@ -100,6 +104,16 @@ TEST_CASE("Querying products in different ways", "[graph]")
       .output_product_suffixes("event_number");
     g.execute();
     CHECK(g.execution_count("all_fields") == num_events);
+  }
+
+  SECTION("Graph stage name selects current producers")
+  {
+    g.transform("named_stage", [](int const& i) { return i + 1; })
+      .input_family(product_selector{
+        .creator = "input", .layer = "event", .suffix = "evt_number", .stage = "test"_id})
+      .output_product_suffixes("event_number");
+    g.execute();
+    CHECK(g.execution_count("named_stage") == num_events);
   }
 
   SECTION("Creator and suffix without layer")
@@ -200,5 +214,22 @@ TEST_CASE("Querying products in different ways", "[graph]")
     CHECK(g.execution_count("archived_input") == num_events);
     CHECK(g.execution_count("copy_archived_count") == num_events);
     CHECK(g.execution_count("observe_archived_count") == num_events);
+  }
+
+  SECTION("Products from this job, using layer only")
+  {
+    g.fold(
+       "duplicate_temperature",
+       [](std::atomic<double>& summary, double temp) { summary += temp; },
+       concurrency::unlimited,
+       "job")
+      .input_family(product_selector{.creator = "input", .layer = "event"})
+      .output_product_suffixes("temperature");
+
+    g.transform("layer_only", [](double const& d) { return d; })
+      .input_family(product_selector{.layer = "job"})
+      .output_product_suffixes("job_temp");
+    g.execute();
+    CHECK(g.execution_count("layer_only") == 1);
   }
 }

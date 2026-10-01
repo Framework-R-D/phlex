@@ -17,14 +17,16 @@
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_vector.h"
-#include "oneapi/tbb/parallel_for.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/concurrent_hash_map.h>
+#include <oneapi/tbb/concurrent_vector.h>
+#include <oneapi/tbb/parallel_for.h>
 
+#include <cstddef>
 #include <limits>
 #include <memory>
 #include <ranges>

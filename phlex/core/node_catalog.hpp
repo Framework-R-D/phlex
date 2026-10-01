@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_NODE_CATALOG_HPP
 #define PHLEX_CORE_NODE_CATALOG_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_output.hpp"
@@ -14,6 +12,7 @@
 #include "phlex/core/provider_node.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/source.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <string>

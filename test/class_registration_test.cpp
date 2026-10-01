@@ -1,13 +1,17 @@
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <array>
 #include <cassert>
 #include <string>
 #include <tuple>
+#include <utility>
 
 using namespace std::string_literals;
 using namespace phlex;
@@ -101,7 +105,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 {
   auto const products = input_products();
 
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   register_input_providers(g);
 
   SECTION("No framework, static member function")
@@ -155,7 +159,7 @@ TEST_CASE("Reuse bound glue object for multiple transforms", "[programming model
 {
   auto const products = input_products();
 
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   register_input_providers(g);
 
   auto glueball = g.make<test_struct>();

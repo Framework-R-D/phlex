@@ -1,3 +1,11 @@
+#include "phlex/concurrency.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 
@@ -8,26 +16,25 @@
 namespace {
   class max_parallelism_source : public phlex::source {
   public:
-    phlex::detail::provider_bundles create_providers(
-      phlex::product_selector const& selector) override
+    phlex::provider_bundles create_providers(phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
-      using namespace phlex::detail;
-      phlex::detail::provider_bundles bundles;
+      phlex::provider_bundles bundles;
       std::string const layer = "job";
-      std::string const stage = "CURRENT";
+      std::string const stage = "stage0";
       product_specification spec{"input", "max_parallelism", make_type_id<std::size_t>()};
 
+      using phlex::detail::max_allowed_parallelism;
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(phlex::detail::provider_bundle{
-          .provider_function =
-            [](phlex::data_cell_index const&) {
-              return product_for(max_allowed_parallelism::active_value());
-            },
-          .max_concurrency = phlex::concurrency::unlimited,
-          .spec = std::move(spec),
-          .layer = layer,
-          .stage = stage});
+        bundles.push_back(phlex::provider_bundle{.provider_function =
+                                                   [](phlex::data_cell_index const&) {
+                                                     return product_for(
+                                                       max_allowed_parallelism::active_value());
+                                                   },
+                                                 .max_concurrency = phlex::concurrency::unlimited,
+                                                 .spec = std::move(spec),
+                                                 .layer = layer,
+                                                 .stage = stage});
       }
       return bundles;
     }

@@ -2,11 +2,14 @@
 
 #include "form_source_type_registry.hpp"
 
+#include "phlex/model/type_id.hpp"
+
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <unordered_map>
+#include <utility>
 
 namespace {
   std::unordered_map<std::string, form::experimental::form_source_type_entry>&
@@ -26,7 +29,7 @@ namespace {
 namespace form::experimental {
 
   void register_form_product_type(std::string product_type,
-                                  phlex::detail::type_id type,
+                                  phlex::experimental::type_id type,
                                   std::type_info const& cpp_type,
                                   form_source_product_from_data_fn product_from_data_fn)
   {
@@ -37,7 +40,7 @@ namespace form::experimental {
       throw std::runtime_error("Cannot register FORM product type with empty conversion function");
     }
 
-    std::scoped_lock lock(form_type_registry_mutex());
+    std::scoped_lock const lock(form_type_registry_mutex());
     mutable_form_type_registry()[std::move(product_type)] =
       form_source_type_entry{.type_id = std::move(type),
                              .cpp_type = &cpp_type,
@@ -50,7 +53,7 @@ namespace form::experimental {
   {
     ensure_builtin_form_product_types_registered();
 
-    std::scoped_lock lock(form_type_registry_mutex());
+    std::scoped_lock const lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
     auto const it = registry.find(product_type);
     if (it == registry.end()) {
@@ -59,11 +62,11 @@ namespace form::experimental {
     return &it->second;
   }
 
-  std::string const* find_form_product_type_name(phlex::detail::type_id const& type)
+  std::string const* find_form_product_type_name(phlex::experimental::type_id const& type)
   {
     ensure_builtin_form_product_types_registered();
 
-    std::scoped_lock lock(form_type_registry_mutex());
+    std::scoped_lock const lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
 
     // Prefer exact (type_info-based) identity to avoid collisions between

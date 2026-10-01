@@ -1,19 +1,33 @@
 #include "phlex/core/framework_graph.hpp"
 
-#include "phlex/concurrency.hpp"
+#include "phlex/core/declared_fold.hpp"
+#include "phlex/core/declared_predicate.hpp"
+#include "phlex/core/declared_unfold.hpp"
+#include "phlex/core/filter.hpp"
+#include "phlex/core/index_router.hpp"
 #include "phlex/core/make_computational_edges.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/driver.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/flush_messages.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include "fmt/format.h"
-#include "fmt/ranges.h"
-#include "spdlog/cfg/env.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <oneapi/tbb/flow_graph.h>
+#include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <cstddef>
+#include <exception>
 #include <format>
-#include <iostream>
+#include <map>
+#include <ranges>
 #include <set>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace phlex::detail {
   namespace {
@@ -80,18 +94,21 @@ namespace phlex::detail {
     }
   }
 
-  framework_graph framework_graph::with_default_driver(int const max_parallelism)
+  framework_graph framework_graph::with_default_driver(std::string stage, int const max_parallelism)
   {
-    return framework_graph{driver_mode::default_driver, max_parallelism};
+    return framework_graph{driver_mode::default_driver, std::move(stage), max_parallelism};
   }
 
-  framework_graph framework_graph::without_driver(int const max_parallelism)
+  framework_graph framework_graph::without_driver(std::string stage, int const max_parallelism)
   {
-    return framework_graph{driver_mode::deferred_driver, max_parallelism};
+    return framework_graph{driver_mode::deferred_driver, std::move(stage), max_parallelism};
   }
 
   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-  framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
+  framework_graph::framework_graph(driver_mode const mode,
+                                   std::string stage,
+                                   int const max_parallelism) :
+    stage_{std::move(stage)},
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
@@ -122,7 +139,6 @@ namespace phlex::detail {
       driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
     }
 
-    spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
   }
 
@@ -238,7 +254,7 @@ namespace phlex::detail {
     make_bookkeeping_edges();
 
     auto [provider_input_ports, multilayer_join_index_ports] =
-      make_computational_edges(nodes_, filters_, graph_);
+      make_computational_edges(nodes_, filters_, graph_, stage_);
 
     if (provider_input_ports.empty()) {
       assert(multilayer_join_index_ports.empty());

@@ -1,13 +1,12 @@
 #ifndef PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 #define PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
+#include <oneapi/tbb/concurrent_hash_map.h>
 
 #include <cassert>
 

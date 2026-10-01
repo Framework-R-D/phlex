@@ -1,7 +1,6 @@
-#include <memory>
-#include <string>
-
 #include "wrap.hpp"
+
+#include <memory>
 
 using namespace phlex::experimental;
 

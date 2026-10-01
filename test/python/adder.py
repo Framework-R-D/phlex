@@ -4,7 +4,7 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
-from typing import Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, cast
 
 from phlex import Variant
 
@@ -18,8 +18,9 @@ class AddableProtocol[T](Protocol):
 
 Addable = TypeVar("Addable", bound=AddableProtocol)
 
+_DEFAULT_ADDABLE = cast(Any, 42)
 
-def add(i: Addable, j: Addable) -> Addable:
+def add(i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
@@ -54,7 +55,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
+    int_adder = Variant(add, {"i": int, "j": int, "return": int}, config.get("name", "iadd"))
 
     try:
         # intentional failure to check error path of missing output suffix

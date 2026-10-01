@@ -16,19 +16,22 @@
 // higher than the data layer processed by square and add nodes.
 // =======================================================================================
 
+#include "phlex/core/fold/send.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/handle.hpp"
 #include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "fmt/chrono.h"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <catch2/catch_test_macros.hpp>
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <string>
 
 using namespace phlex;
@@ -82,7 +85,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   gen->add_layer("run", {.parent_layer = "job", .count = index_limit});
   gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("provide_time",

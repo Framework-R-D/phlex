@@ -1,18 +1,23 @@
 #include "dyncall.hpp"
+#include "phlex/concurrency.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "wrap.hpp"
 
-#include "phlex/model/data_cell_index.hpp"
-
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
-#include <algorithm>
 #include <array>
-#include <functional>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -120,19 +125,19 @@ namespace {
     py_callback_base(PyObject* callable_object, void* cb) : callable(callable_object), ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
-      py_gilraii gil;
+      py_gilraii const gil;
       Py_INCREF(callable);
     }
     py_callback_base(py_callback_base const& pc) : callable(pc.callable), ccallback(pc.ccallback)
     {
       // Must hold GIL when manipulating reference counts
-      py_gilraii gil;
+      py_gilraii const gil;
       Py_INCREF(callable);
     }
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
-        py_gilraii gil;
+        py_gilraii const gil;
         Py_INCREF(pc.callable);
         Py_DECREF(callable);
         callable = pc.callable;
@@ -171,7 +176,7 @@ namespace {
       (argsv.push_back(lifeline_transform(args)), ...);
       argsv.emplace_back(nullptr);
 
-      py_gilraii gil;
+      py_gilraii const gil;
 
       dcarg result{nullptr};
       dyncall(ccallback, result, argsv, 1);
@@ -242,41 +247,46 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  inline std::optional<product_selector> validate_selector(PyObject* pysel)
+  inline std::optional<identifier> try_item(PyObject* pysel,
+                                            std::string const& item,
+                                            bool allow_optionals)
+  {
+    PyObject* pyii = PyDict_GetItemString(pysel, item.c_str());
+    if ((!pyii && !allow_optionals) || (pyii && !PyUnicode_Check(pyii))) {
+      PyErr_Format(PyExc_TypeError, ("missing " + item + " or not a string").c_str());
+      return std::nullopt;
+    }
+    if (!pyii) {
+      PyErr_Clear();
+      return std::nullopt;
+    }
+    return std::optional<identifier>{PyUnicode_AsUTF8(pyii)};
+  }
+
+  inline std::optional<product_selector> validate_selector(PyObject* pysel,
+                                                           bool allow_optionals = true)
   {
     if (!PyDict_Check(pysel)) {
       PyErr_Format(PyExc_TypeError, "selector should be a product specification");
       return std::nullopt;
     }
 
-    PyObject* pyc = PyDict_GetItemString(pysel, "creator");
-    if (!pyc || !PyUnicode_Check(pyc)) {
-      PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
+    std::optional<identifier> c = try_item(pysel, "creator", allow_optionals);
+    std::optional<identifier> l = try_item(pysel, "layer", allow_optionals);
+    if (!allow_optionals && !(c.has_value() && l.has_value())) {
       return std::nullopt;
     }
-    char const* c = PyUnicode_AsUTF8(pyc);
-
-    PyObject* pyl = PyDict_GetItemString(pysel, "layer");
-    if (!pyl || !PyUnicode_Check(pyl)) {
-      PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
+    std::optional<identifier> const s = try_item(pysel, "suffix", true); // always optional
+    if (!s.has_value() && PyErr_Occurred()) {
       return std::nullopt;
     }
-    char const* l = PyUnicode_AsUTF8(pyl);
 
-    std::optional<identifier> s;
-    PyObject* pys = PyDict_GetItemString(pysel, "suffix");
-    if (pys) {
-      if (!PyUnicode_Check(pys)) {
-        PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
-        return std::nullopt;
-      }
-      s = identifier(PyUnicode_AsUTF8(pys));
-    } else {
-      PyErr_Clear();
-    }
-
+    // in the following, each of these parameters is passed differently b/c:
+    //   "c" and "layer" are internal types that only takes an optional through a
+    //     move for its contructor
+    //   "suffix" is an optional itself, so can pass directly
     return std::optional<product_selector>{
-      product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
+      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = s}};
   }
 
   std::vector<product_selector> validate_input(PyObject* input)
@@ -291,10 +301,10 @@ namespace {
       return cargs;
     }
 
-    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    Py_ssize_t const len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
 
-    PyObject** items = PySequence_Fast_ITEMS(coll);
+    PyObject* const* items = PySequence_Fast_ITEMS(coll);
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
 
@@ -327,10 +337,10 @@ namespace {
       return cargs;
     }
 
-    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    Py_ssize_t const len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
 
-    PyObject** items = PySequence_Fast_ITEMS(coll);
+    PyObject* const* items = PySequence_Fast_ITEMS(coll);
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
       if (!PyUnicode_Check(item)) {
@@ -383,7 +393,7 @@ namespace {
       return false;
     }
 
-    int result = PyObject_IsInstance(obj, cfunc_type);
+    int const result = PyObject_IsInstance(obj, cfunc_type);
     return result == 1;
   }
 
@@ -446,12 +456,22 @@ namespace {
         PyObject* args = PyObject_GetAttrString(sig, "args");
 
         if (ret && args && PyTuple_CheckExact(args)) {
-          output_types.push_back(annotation_as_text(ret));
-          for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
-            PyObject* item = PyTuple_GET_ITEM(args, i);
-            input_types.push_back(annotation_as_text(item));
+          std::string const& ret_ann = annotation_as_text(ret);
+          if (!ret_ann.empty()) {
+            output_types.push_back(ret_ann);
+            for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
+              PyObject* item = PyTuple_GET_ITEM(args, i);
+              std::string const& inp_ann = annotation_as_text(item);
+              if (inp_ann.empty()) {
+                break;
+              }
+              input_types.push_back(inp_ann);
+            }
+
+            if (static_cast<Py_ssize_t>(input_types.size()) == PyTuple_GET_SIZE(args)) {
+              conversion_ok = true;
+            }
           }
-          conversion_ok = true;
         } else {
           PyErr_Clear();
         }
@@ -510,7 +530,7 @@ namespace {
   bool pylong_as_bool(PyObject* pyobject)
   {
     // range-checking python integer to C++ bool conversion
-    long l = PyLong_AsLong(pyobject);
+    long const l = PyLong_AsLong(pyobject);
     // fail to pass float -> bool; the problem is rounding (0.1 -> 0 -> False)
     if ((l != 0 && l != 1) || PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_ValueError, "boolean value should be bool, or integer 1 or 0");
@@ -531,7 +551,7 @@ namespace {
       // convert to Python int first, then to C long, that way we get a Python
       // OverflowError if out-of-range
       PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
-      long result = PyLong_AsLong(pylong);
+      long const result = PyLong_AsLong(pylong);
       Py_DECREF(pylong);
       return result;
     }
@@ -553,7 +573,7 @@ namespace {
       // convert to Python int first, then to C unsigned long, that way we get a
       // Python OverflowError if out-of-range
       PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
-      unsigned long result = PyLong_AsUnsignedLong(pylong);
+      unsigned long const result = PyLong_AsUnsignedLong(pylong);
       Py_DECREF(pylong);
       return result;
     }
@@ -564,7 +584,7 @@ namespace {
     // NOLINTNEXTLINE(modernize-use-integer-sign-comparison)
     if (ul == static_cast<unsigned long>(-1) && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
-      long i = PyLong_AS_LONG(pyobject);
+      long const i = PyLong_AS_LONG(pyobject);
       if (0 <= i) {
         ul = static_cast<unsigned long>(i);
       } else {
@@ -583,7 +603,7 @@ namespace {
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
   static dcarg name##_to_py(cpptype a)                                                             \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
     return dcarg{topy(a)};                                                                         \
   }                                                                                                \
                                                                                                    \
@@ -591,7 +611,7 @@ namespace {
                                                                                                    \
   static cpptype py_to_##name(dcarg a)                                                             \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
     auto i = static_cast<cpptype>(frompy(pyobj));                                                  \
     std::string msg;                                                                               \
@@ -609,11 +629,11 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     cpptype operator()(data_cell_index const& id)                                                  \
     {                                                                                              \
-      py_gilraii gil;                                                                              \
+      py_gilraii const gil;                                                                        \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
+      dcarg const res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */   \
       PyObject* pyres = res.get<PyObject*>();                                                      \
-      cpptype cres = frompy(pyres);                                                                \
+      cpptype const cres = frompy(pyres);                                                          \
       std::string msg;                                                                             \
       if (msg_from_py_error(msg, true)) {                                                          \
         Py_DECREF(pyres);                                                                          \
@@ -635,7 +655,7 @@ namespace {
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
   static dcarg name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                        \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
                                                                                                    \
     if (!v) {                                                                                      \
       Py_INCREF(Py_None);                                                                          \
@@ -684,18 +704,18 @@ namespace {
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
   static std::shared_ptr<std::vector<cpptype>> py_to_##name(dcarg a)                               \
   {                                                                                                \
-    py_gilraii gil;                                                                                \
+    py_gilraii const gil;                                                                          \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check(pyobj)) {                                                                    \
-      PyArrayObject* arr = reinterpret_cast<PyArrayObject*>(pyobj);                                \
+      PyArrayObject const* arr = reinterpret_cast<PyArrayObject*>(pyobj);                          \
                                                                                                    \
       /* TODO: flattening the array here seems to be the only workable solution */                 \
-      npy_intp* dims = PyArray_DIMS(arr);                                                          \
-      int nd = PyArray_NDIM(arr);                                                                  \
+      npy_intp const* dims = PyArray_DIMS(arr);                                                    \
+      int const nd = PyArray_NDIM(arr);                                                            \
       size_t total = 1;                                                                            \
       for (int i = 0; i < nd; ++i)                                                                 \
         total *= static_cast<size_t>(dims[i]);                                                     \
@@ -705,7 +725,7 @@ namespace {
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
     } else if (PyList_Check(pyobj)) {                                                              \
-      Py_ssize_t total = PyList_Size(pyobj);                                                       \
+      Py_ssize_t const total = PyList_Size(pyobj);                                                 \
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(pyobj, i);                                                 \
@@ -732,10 +752,10 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
     {                                                                                              \
-      py_gilraii gil;                                                                              \
+      py_gilraii const gil;                                                                        \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      dcarg pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */       \
-      auto cres = py_to_##name(pyres);                                    /* decrefs pyres */      \
+      dcarg const pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */ \
+      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
       return cres;                                                                                 \
     }                                                                                              \
   };
@@ -868,13 +888,59 @@ static PyObject* parse_args(PyObject* args,
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input product selectors
   if (input_types.size() != input_selectors.size()) {
-    PyErr_Format(PyExc_TypeError,
-                 "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
-                 input_selectors.size(),
-                 stringify(input_selectors).c_str(),
-                 input_types.size(),
-                 stringify(input_types).c_str());
-    return nullptr;
+    // allow fewer selectors than types if there are sufficient optional
+    // parameters on the Python side
+    bool optok = false;
+    if (input_selectors.size() < input_types.size()) {
+      static PyObject* opt_counter = nullptr;
+      if (!opt_counter) {
+        PyObject* phlexmod = PyImport_ImportModule("phlex");
+        if (phlexmod) {
+          opt_counter = PyObject_GetAttrString(phlexmod, "count_optional_arguments");
+          Py_DECREF(phlexmod);
+
+          // LCOV_EXCL_START
+          // this would only fail if the phlex installation were broken and
+          // only exists to get a proper error message instead of a segfault
+          // in that rather unlikely case
+          if (!opt_counter) {
+            PyErr_Clear();
+          }
+          // LCOV_EXCL_STOP
+        }
+      }
+
+      if (opt_counter) {
+        PyObject* optcnt = PyObject_CallOneArg(opt_counter, callable);
+        if (optcnt) {
+          long const l = PyLong_AsLong(optcnt);
+          Py_DECREF(optcnt);
+          // I'd use -1l if clang-tidy would allow it, but it insists on -1L ...
+          if (l != static_cast<long>(-1)) {
+            if ((l + input_selectors.size()) >= input_types.size()) {
+              optok = true;
+            }
+          } else {
+            PyErr_Clear();
+          }
+        }
+        // LCOV_EXCL_START
+        else {
+          PyErr_Clear(); // count_optional_arguments doesn't raise
+        }
+        // LCOV_EXCL_STOP
+      }
+    }
+
+    if (!optok) {
+      PyErr_Format(PyExc_TypeError,
+                   "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
+                   input_selectors.size(),
+                   stringify(input_selectors).c_str(),
+                   input_types.size(),
+                   stringify(input_types).c_str());
+      return nullptr;
+    }
   }
 
   // special case of Phlex Variant wrapper
@@ -918,7 +984,7 @@ static bool insert_input_converters(py_phlex_module* mod,
     // to be properly types, so every option is made explicit
 
     std::string const& pyname = input_converter_name(cname, i);
-    std::string output =
+    std::string const output =
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
     if (inp_type == "bool") {
@@ -1047,16 +1113,27 @@ static void* numba_function_address(PyObject* callable)
 static std::optional<identifier> transform_output_layer(
   std::string const& name, std::vector<product_selector> const& input_selectors)
 {
-  // TODO: output layers are ambiguous when inputs span layers. Reject that case until a
-  // well-defined output-layer policy exists.
-  auto result = static_cast<identifier>(input_selectors[0].layer);
-  for (auto const& selector : input_selectors | std::views::drop(1)) {
-    if (static_cast<identifier>(selector.layer) != result) {
-      PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
-      return std::nullopt;
+  // if a layer was provided, we'll re-use it for the intermediate Python products,
+  // otherwise also specify no layer for the intermediates (TODO: it may be worthwhile
+  // to explore using a "workspace" layer)
+  std::optional<identifier> output_layer;
+  // note: the following treats the first layer as special (as in, if the first layer
+  // is optional, but the next one is not, the check will succeed), but that's fine
+  // as for now such mixing isn't supported by the product selector
+  if (input_selectors[0].layer) {
+    output_layer = static_cast<identifier>(input_selectors[0].layer);
+    // TODO: it's not clear what the output layer will be if the input layers are not
+    // all the same, so for now, simply raise an error if their is any ambiguity
+    if (1 < input_selectors.size()) {
+      for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
+        if (static_cast<identifier>(iq_pq.layer) != output_layer.value()) {
+          PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
+          return std::nullopt; // error return
+        }
+      }
     }
   }
-  return result;
+  return output_layer; // not an error return if nullopt
 }
 
 static bool validate_transform_output(std::string const& name,
@@ -1124,8 +1201,9 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
     // clang-tidy is incorrect here, b/c the condition "rt_size == (Is + 1)" is only ever
     // true once, so the forward is only called once, and func is never used after move
     // NOLINTBEGIN(bugprone-use-after-move)
-    bool matched = (... || ((rt_size == (Is + 1))
-                              ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
+    bool const matched =
+      (... ||
+       ((rt_size == (Is + 1)) ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
                               : false));
     // NOLINTEND(bugprone-use-after-move)
 
@@ -1141,23 +1219,24 @@ static std::optional<product_selector> register_transform_callback(
   std::vector<product_selector> const& input_selectors,
   std::string const& output_type,
   std::string const& output_suffix,
-  identifier const& output_layer,
+  std::optional<identifier> output_layer,
   concurrency nconcur)
 {
   // Only a single output is supported until typed tuple conversion is implemented.
   std::string const pyname = "py_" + name;
   std::string const pyoutput = output_suffix + "_py";
-  auto output_selector = product_selector{
-    .creator = identifier(pyname), .layer = output_layer, .suffix = identifier(pyoutput)};
+  auto output_selector = product_selector{.creator = identifier(pyname),
+                                          .layer = std::move(output_layer),
+                                          .suffix = identifier(pyoutput)};
   auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     constexpr std::size_t n = sizeof...(Is);
     if (ccallf) {
-      jit_callback<dcarg, n> callback{callable, ccallf, output_type};
+      jit_callback<dcarg, n> const callback{callable, ccallf, output_type};
       mod->ph_module->transform(pyname, callback, nconcur)
         .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
     } else {
-      py_callback<dcarg, n> callback{callable};
+      py_callback<dcarg, n> const callback{callable};
       mod->ph_module->transform(pyname, callback, nconcur)
         .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
@@ -1195,7 +1274,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   }
 
   auto const output_layer = transform_output_layer(cname, input_selectors);
-  if (!output_layer) {
+  // transform_output_layer only exists to make clang-tidy happy and if it
+  // doesn't return an output_layer, then that's not necessarily an error as
+  // layer are optional: an actual error is communicated around the back using
+  // a Python exception that is reported to the caller in the usual way
+  if (!output_layer && PyErr_Occurred()) {
     Py_DECREF(callable);
     return nullptr;
   }
@@ -1218,7 +1301,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
                                                            input_selectors,
                                                            out_type,
                                                            output_suffixes[0],
-                                                           *output_layer,
+                                                           output_layer,
                                                            nconcur);
   if (!output_selector) {
     Py_DECREF(callable);
@@ -1286,13 +1369,16 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     constexpr size_t n = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
-      auto pq = input_selectors[i];
-      std::string c = input_converter_name(cname, i);
-      std::string suff =
+      auto const& pq = input_selectors[i];
+      std::string const c = input_converter_name(cname, i);
+      std::string const suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
 
+      // make a copy of "layer" so we can move it without involving a temporary
+      // identifier (which will fail, if no layer was specified)
+      auto l = pq.layer;
       return product_selector{
-        .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
+        .creator = identifier(c), .layer = std::move(l), .suffix = identifier(suff)};
     };
 
     auto insert_observe_for_callback = [&](auto& cb) {
@@ -1558,16 +1644,16 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output "selectors"
   // Since a selector in Python is just a dictionary, it isn't called out in the user
   // API as a selector
-  auto opq = validate_selector(registration->output);
+  auto opq = validate_selector(registration->output, false);
   if (!opq.has_value()) {
     // validate_selector has set a python exception with details about the error
     Py_XDECREF(wrapped_callable);
     return nullptr;
   }
 
-  algorithm_name creator = algorithm_name::create(std::string_view(*opq.value().creator));
-  identifier layer = opq.value().layer;
-  identifier suffix = opq.value().suffix.value_or("");
+  algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
+  identifier const layer = opq.value().layer;
+  identifier const suffix = opq.value().suffix.value_or("");
 
   // Provider callbacks retain the callable for the graph lifetime. A translator node
   // cannot be used here because sources do not have a module for adding one.

@@ -3,14 +3,12 @@
 #ifndef FORM_STORAGE_STORAGE_WRITER_HPP
 #define FORM_STORAGE_STORAGE_WRITER_HPP
 
+#include "core/placement.hpp"
 #include "istorage.hpp"
-#include "storage_utils.hpp"
 
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <utility> // for std::pair
 
 namespace form::detail::experimental {
 
@@ -30,11 +28,9 @@ namespace form::detail::experimental {
 
   private:
     std::map<std::string, std::shared_ptr<i_storage_file>> files_;
-    std::unordered_map<std::pair<std::string, std::string>,
-                       std::shared_ptr<i_storage_write_container>,
-                       pair_hash>
-      write_containers_;
-    std::map<std::string, std::map<std::string, int>> index_maps_;
+    // Keyed by placement so that technology is part of the container identity. Different
+    // technologies may use the same container name within a file.
+    std::map<placement, std::shared_ptr<i_storage_write_container>> write_containers_;
   };
 
 } // namespace form::detail::experimental

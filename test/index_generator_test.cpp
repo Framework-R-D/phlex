@@ -1,7 +1,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/index_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <vector>
 

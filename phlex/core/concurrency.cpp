@@ -1,6 +1,6 @@
 #include "phlex/concurrency.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 namespace phlex {
   concurrency const concurrency::unlimited{tbb::flow::unlimited};

@@ -3,7 +3,9 @@
 #ifndef FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 #define FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 
+#include "core/cell_index.hpp"
 #include "core/placement.hpp"
+#include "core/product_identity.hpp"
 #include "core/token.hpp"
 
 #include <memory>
@@ -29,22 +31,27 @@ namespace form::detail::experimental {
     virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    // Create the given product containers. FORM resolves each (creator, label) to a placement and
-    // calls this only with containers it has not created before. Persistence adds the matching
-    // navigation ("index") container for each place itself, so FORM stays opaque to it.
+    // Create the given product containers. FORM resolves each (creator, stage, label) to a placement
+    // and calls this only with containers it has not created before. Persistence adds the matching
+    // "index" container to each product's row space itself, so FORM stays opaque to it.
     virtual void create_containers(
       std::vector<std::pair<placement, std::type_info const*>> const& containers) = 0;
 
     // Write one product and return a token locating it: placement plus 0-based row (entry) number
-    // Throws if backend isn't row-addressed, causing token read lookup to fail
-    virtual token register_write(placement const& plcmnt,
+    // Throws if backend isn't row-addressed, causing token read lookup to fail.
+    virtual token register_write(product_identity const& product,
+                                 placement const& plcmnt,
                                  void const* data,
                                  std::type_info const& type) = 0;
 
-    // Finalize (commit) the product destination's current row, first recording `id` in that
-    // place's navigation ("index") container. Persistence owns the index: it derives the index
-    // container from the product placement, so FORM never names or manages it.
-    virtual void commit_place(placement const& plcmnt, std::string const& id) = 0;
+    // Commit product destination's current row and record the cell in its navigation container.
+    // Persistence owns the navigation container.
+    virtual void commit_place(placement const& plcmnt, cell_index const& cell) = 0;
+
+    // Finish the output by writing the accumulated navigation tables and product dictionary.
+    // May throw on finalization errors. The destructor calls finalize() as a safety net and
+    // suppresses exceptions. Idempotent; a failed call is not retried by the destructor.
+    virtual void finalize() = 0;
   };
 
   std::unique_ptr<i_persistence_writer> create_persistence_writer();

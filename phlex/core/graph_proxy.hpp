@@ -8,7 +8,7 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <memory>
@@ -22,6 +22,18 @@ namespace phlex {
 }
 
 namespace phlex::detail {
+  struct graph_registration_bundle {
+    // Non-owning references to framework-owned resources; this is a short-lived struct.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    configuration const& config;
+    tbb::flow::graph& graph;
+    phlex::experimental::identifier const& stage;
+    node_catalog& nodes;
+    resource_catalog& resources;
+    std::vector<std::string>& registration_errors;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  };
+
   // ==============================================================================
   // Registering user functions
 
@@ -38,8 +50,10 @@ namespace phlex::detail {
 
     graph_proxy(configuration const& config,
                 tbb::flow::graph& g,
+                phlex::experimental::identifier stage,
                 node_catalog& nodes,
-                std::vector<std::string>& errors)
+                std::vector<std::string>& errors,
+                resource_catalog& resources)
       requires(not is_bound_object<T>);
 
     /// @brief Binds a user algorithm object of type @p U to this proxy.
@@ -84,7 +98,7 @@ namespace phlex::detail {
                    concurrency c = concurrency::serial) const;
 
     /// @brief Registers an unfold node.
-    template <typename Splitter>
+    template <typename Unfolder>
     auto unfold(std::string_view name,
                 is_predicate_like auto pred,
                 auto unf,
@@ -108,9 +122,11 @@ namespace phlex::detail {
 
     graph_proxy(configuration const* config,
                 tbb::flow::graph& g,
+                phlex::experimental::identifier stage,
                 node_catalog& nodes,
                 std::shared_ptr<T> bound_obj,
-                std::vector<std::string>& errors)
+                std::vector<std::string>& errors,
+                resource_catalog& resources)
       requires(is_bound_object<T>);
 
   private:
@@ -119,19 +135,31 @@ namespace phlex::detail {
     configuration const* config_;
     // Non-owning references to framework-owned resources; graph_proxy<T> is a
     // short-lived builder.
-    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    tbb::flow::graph& graph_;
+    node_catalog& nodes_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier stage_;
     std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    resource_catalog& resources_;      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   template <typename T>
   graph_proxy<T>::graph_proxy(configuration const& config,
                               tbb::flow::graph& g,
+                              phlex::experimental::identifier stage,
                               node_catalog& nodes,
-                              std::vector<std::string>& errors)
+                              std::vector<std::string>& errors,
+                              resource_catalog& resources)
     requires(not is_bound_object<T>)
-    : config_{&config}, graph_{g}, nodes_{nodes}, errors_{errors}
+    :
+    config_{&config},
+    graph_{g},
+    nodes_{nodes},
+    stage_{std::move(stage)},
+    errors_{errors},
+    resources_{resources}
   {
   }
 
@@ -184,14 +212,14 @@ namespace phlex::detail {
   }
 
   template <typename T>
-  template <typename Splitter>
+  template <typename Unfolder>
   auto graph_proxy<T>::unfold(std::string_view name,
                               is_predicate_like auto pred,
                               auto unf,
                               std::string destination_data_layer,
                               concurrency c) const
   {
-    return glue<Splitter>{graph_, nodes_, nullptr, errors_, config_}.unfold(
+    return glue<Unfolder>{graph_, stage_, nodes_, nullptr, errors_, resources_, config_}.unfold(
       name, std::move(pred), std::move(unf), c, std::move(destination_data_layer));
   }
 
@@ -216,25 +244,45 @@ namespace phlex::detail {
   Proxy<U> graph_proxy<T>::bind_to(Args&&... args) const
     requires(not is_bound_object<T>)
   {
-    return Proxy<U>{
-      config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
+    return Proxy<U>{config_,
+                    graph_,
+                    stage_,
+                    nodes_,
+                    std::make_shared<U>(std::forward<Args>(args)...),
+                    errors_,
+                    resources_};
   }
 
   template <typename T>
   graph_proxy<T>::graph_proxy(configuration const* config,
                               tbb::flow::graph& g,
+                              phlex::experimental::identifier stage,
                               node_catalog& nodes,
                               std::shared_ptr<T> bound_obj,
-                              std::vector<std::string>& errors)
+                              std::vector<std::string>& errors,
+                              resource_catalog& resources)
     requires(is_bound_object<T>)
-    : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}
+    :
+    config_{config},
+    graph_{g},
+    nodes_{nodes},
+    stage_{std::move(stage)},
+    bound_obj_{std::move(bound_obj)},
+    errors_{errors},
+    resources_{resources}
   {
   }
 
   template <typename T>
   glue<T> graph_proxy<T>::create_glue(bool use_bound_object) const
   {
-    return glue{graph_, nodes_, (use_bound_object ? bound_obj_ : nullptr), errors_, config_};
+    return glue{graph_,
+                stage_,
+                nodes_,
+                (use_bound_object ? bound_obj_ : nullptr),
+                errors_,
+                resources_,
+                config_};
   }
 }
 

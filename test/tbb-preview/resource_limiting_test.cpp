@@ -1,12 +1,14 @@
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/flow_graph.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/spdlog.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/flow_graph.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <atomic>
+// Provides chrono literals used below but attributed to a transitive include by include-cleaner.
+#include <chrono> // IWYU pragma: keep
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -72,7 +74,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     flow::unlimited,
     std::tie(root_resource_provider),
     [&root_counter](unsigned int const i, auto& outputs, root const*) {
-      thread_counter c{root_counter};
+      thread_counter const c{root_counter};
       spdlog::info("Processing from node 1 {} with root token", i);
       std::get<0>(outputs).try_put(i);
     }};
@@ -82,8 +84,8 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     flow::unlimited,
     std::tie(root_resource_provider, genie_resource),
     [&root_counter, &genie_counter](unsigned int const i, auto& outputs, root const*, genie) {
-      thread_counter c1{root_counter};
-      thread_counter c2{genie_counter};
+      thread_counter const c1{root_counter};
+      thread_counter const c2{genie_counter};
       spdlog::info("Processing from node 2 {}", i);
       std::get<0>(outputs).try_put(i);
     }};
@@ -93,7 +95,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     flow::unlimited,
     std::tie(genie_resource),
     [&genie_counter](unsigned int const i, auto& outputs, genie) {
-      thread_counter c{genie_counter};
+      thread_counter const c{genie_counter};
       spdlog::info("Processing from node 3 {}", i);
       std::get<0>(outputs).try_put(i);
     }};
@@ -144,7 +146,7 @@ TEST_CASE("Serialize functions in diamond graph", "[multithreading]")
       flow::unlimited,
       std::tie(root_resource),
       [&root_counter, label](unsigned int const i, auto& outputs, root) {
-        thread_counter c{root_counter};
+        thread_counter const c{root_counter};
         spdlog::info("Processing from node {} {}", label, i);
         std::get<0>(outputs).try_put(i);
       }};
@@ -201,7 +203,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   flow::resource_limiter<database const*> db_limiter{&db1, &db13};
 
   auto fill_histo = [&root_counter](unsigned int const i, auto& outputs, root) {
-    thread_counter c{root_counter};
+    thread_counter const c{root_counter};
     start("Histogramming", i);
     spin_for(10ms);
     stop("Histogramming", i);
@@ -210,8 +212,8 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
 
   auto gen_fill_histo = [&root_counter,
                          &genie_counter](unsigned int const i, auto& outputs, root, genie) {
-    thread_counter c1{root_counter};
-    thread_counter c2{genie_counter};
+    thread_counter const c1{root_counter};
+    thread_counter const c2{genie_counter};
     start("Histo-generating", i);
     spin_for(10ms);
     stop("Histo-generating", i);
@@ -219,7 +221,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   };
 
   auto generate = [&genie_counter](unsigned int const i, auto& outputs, genie) {
-    thread_counter c{genie_counter};
+    thread_counter const c{genie_counter};
     start("Generating", i);
     spin_for(10ms);
     stop("Generating", i);
@@ -244,7 +246,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   // Nodes that use the DB resource limited to 2 tokens
   auto make_calibrator = [&db_counter](std::string_view algorithm) {
     return [&db_counter, algorithm](unsigned int const i, auto& outputs, database const* db) {
-      thread_counter c{db_counter, 2};
+      thread_counter const c{db_counter, 2};
       start(algorithm, i, db->id);
       spin_for(10ms);
       stop(algorithm, i, db->id);

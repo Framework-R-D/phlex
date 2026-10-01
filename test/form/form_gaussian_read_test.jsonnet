@@ -8,6 +8,7 @@
   sources: {
     form_standard_and_offset_source: {
       cpp: 'form_source',
+      stage: 'test',
       input_file: 'form_gaussian_write_test.root',
       algorithm: 'add_wires',
       plugin: 'add_standard_and_offset_wires',
@@ -16,6 +17,7 @@
     },
     form_standard_and_wider_source: {
       cpp: 'form_source',
+      stage: 'test',
       input_file: 'form_gaussian_write_test.root',
       algorithm: 'add_wires',
       plugin: 'add_standard_and_wider_wires',
