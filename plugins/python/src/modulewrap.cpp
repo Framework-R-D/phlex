@@ -786,6 +786,7 @@ namespace {
 
 namespace {
 
+  // NOLINTNEXTLINE(readability-function-size)
   PyObject* parse_args(PyObject* args,
                        PyObject* kwds,
                        std::string& functor_name,
@@ -971,6 +972,7 @@ namespace {
     return std::string_view{type_name}.substr(pos);
   }
 
+  // NOLINTNEXTLINE(readability-function-size)
   bool insert_input_converters(py_phlex_module* mod,
                                std::string const& cname, // TODO: shared_ptr<PyObject>
                                std::vector<product_selector> const& input_selectors,
@@ -1039,6 +1041,7 @@ namespace {
     return true;
   }
 
+  // NOLINTNEXTLINE(readability-function-size)
   bool insert_output_converter(py_phlex_module* mod,
                                std::string const& cname,
                                product_selector const& out_pq,
@@ -1326,6 +1329,7 @@ namespace {
     Py_RETURN_NONE;
   }
 
+  // NOLINTNEXTLINE(readability-function-size)
   PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds)
   {
     // Register a python observer by adding the necessary intermediate converter
