@@ -9,6 +9,7 @@
                 "CMAKE_CXX_STANDARD": "23",
                 "CMAKE_CXX_STANDARD_REQUIRED": "YES",
                 "CMAKE_CXX_EXTENSIONS": "NO",
+                "CMAKE_POLICY_DEFAULT_CMP0218", "OLD",
                 "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "CetProvideDependency"
             }
         },
