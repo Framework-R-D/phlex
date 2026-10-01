@@ -426,12 +426,12 @@ render_spack_template /tmp/spack.yaml.template /tmp/spack.yaml
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
-rm -f /tmp/spack.yaml /tmp/spack.yaml.template
 spack --timestamp env activate -d "$PHLEX_SPACK_ENV"
 spack --timestamp concretize
 chgrp -R spack "$PHLEX_SPACK_ENV"
 chmod -R g+rwX "$PHLEX_SPACK_ENV"
 find "$PHLEX_SPACK_ENV" -type d -exec chmod g+s {} +
+rm -f /tmp/spack.yaml /tmp/spack.yaml.template
 SPACK_CONCRETIZE_ENV
 
 ########################################################################
