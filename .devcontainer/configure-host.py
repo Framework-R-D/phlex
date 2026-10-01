@@ -32,7 +32,7 @@ def host_service(system: str, home: Path) -> dict:
         socket = info[2].removeprefix("unix://")
         if not socket.startswith("/run/user/") or not socket.endswith("/podman/podman.sock"):
             raise ValueError(f"Unexpected rootless VM socket: {socket}")
-        image = image or "localhost/phlex-dev:2026-09-21-aarch64"
+        image = image or "localhost/phlex-dev:2026-09-30"
         architecture = subprocess.check_output(
             ["podman", "image", "inspect", "--format", "{{.Architecture}}", image], text=True
         ).strip()
