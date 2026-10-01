@@ -49,7 +49,7 @@ void persistence_reader::read(std::string const& creator,
                               void const** data,
                               std::type_info const& type)
 {
-  std::unique_ptr<token> token = get_token(creator, stage, label, id);
+  std::unique_ptr<token> const token = get_token(creator, stage, label, id);
   store_reader_->read_container(*token, data, type, tech_settings_);
 }
 

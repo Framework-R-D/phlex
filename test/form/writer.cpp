@@ -90,7 +90,7 @@ int main(int argc, char** argv)
       std::vector<float> track_start_x;
       generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
       float check = 0.0;
-      for (float val : track_start_x) {
+      for (float const val : track_start_x) {
         check += val;
       }
 
@@ -104,18 +104,18 @@ int main(int argc, char** argv)
       std::vector<form::experimental::product_with_name> products;
       std::string const creator = "Toy_Tracker";
 
-      form::experimental::product_with_name pb = {
+      form::experimental::product_with_name const pb = {
         .label = "trackStart", .data = &track_start_x, .type = &typeid(std::vector<float>)};
       products.push_back(pb);
 
       std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
-      for (int val : track_n_hits) {
+      for (int const val : track_n_hits) {
         check += static_cast<float>(val);
       }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
 
-      form::experimental::product_with_name pb_int = {
+      form::experimental::product_with_name const pb_int = {
         .label = "trackNumberHits", .data = &track_n_hits, .type = &typeid(std::vector<int>)};
       products.push_back(pb_int);
 
@@ -127,9 +127,10 @@ int main(int argc, char** argv)
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check_points = " << check_points << '\n';
 
-      form::experimental::product_with_name pb_points = {.label = "trackStartPoints",
-                                                         .data = &start_points,
-                                                         .type = &typeid(std::vector<track_start>)};
+      form::experimental::product_with_name const pb_points = {.label = "trackStartPoints",
+                                                               .data = &start_points,
+                                                               .type =
+                                                                 &typeid(std::vector<track_start>)};
       products.push_back(pb_points);
 
       form.write(creator, form::test::test_stage, segment_id, products);
@@ -144,7 +145,7 @@ int main(int argc, char** argv)
     std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
     float check = 0.0;
-    for (float val : track_x) {
+    for (float const val : track_x) {
       check += val;
     }
 
@@ -156,7 +157,7 @@ int main(int argc, char** argv)
 
     std::string const creator = "Toy_Tracker_Event";
 
-    form::experimental::product_with_name pb = {
+    form::experimental::product_with_name const pb = {
       .label = "trackStartX", .data = &track_x, .type = &typeid(std::vector<float>)};
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << '\n';

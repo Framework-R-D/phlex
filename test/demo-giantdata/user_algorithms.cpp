@@ -24,7 +24,7 @@ void demo::accumulate_scw(demo::summed_clamped_waveforms& accumulator, demo::wav
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
   accumulator.size += wf.size();
   for (auto const& w : wf.data) {
-    for (double x : w.samples) {
+    for (double const x : w.samples) {
       accumulator.sum += x;
     }
   }
