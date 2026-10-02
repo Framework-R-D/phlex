@@ -15,6 +15,8 @@
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <concepts>
+#include <functional>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -148,6 +150,21 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
 
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
+}
+
+TEST_CASE("algorithm_bits are canonicalized by delegated signature", "[algorithm_bits]")
+{
+  auto first = [](input_type_1 const& input) { return output_type_1{input.value}; };
+  auto second = [](input_type_1 const& input) { return output_type_1{input.value * 2}; };
+
+  auto first_bits = algorithm_bits{std::shared_ptr<void_tag>{}, first};
+  auto second_bits = algorithm_bits{std::shared_ptr<void_tag>{}, second};
+
+  static_assert(std::same_as<decltype(first_bits), decltype(second_bits)>);
+  static_assert(std::same_as<decltype(first_bits)::algorithm_type,
+                             std::function<output_type_1(input_type_1 const&)>>);
+  CHECK(first_bits.number_inputs == 1u);
+  CHECK(first_bits.number_outputs == 1u);
 }
 
 TEST_CASE("transform_node stores multiple output products", "[transform_node]")
