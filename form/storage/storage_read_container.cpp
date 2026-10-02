@@ -2,6 +2,7 @@
 
 #include "storage_read_container.hpp"
 
+#include "core/container_naming.hpp"
 #include "storage/istorage.hpp"
 
 #include <memory>
@@ -12,16 +13,8 @@
 using namespace form::detail::experimental;
 
 storage_read_container::storage_read_container(std::string const& name) :
-  name_(name), file_(nullptr)
+  name_(name), t_name_(row_space_of(name)), c_name_(label_of(name).value_or("Main")), file_(nullptr)
 {
-  auto del_pos = name.find('/');
-  if (del_pos != std::string::npos) {
-    t_name_ = name.substr(0, del_pos);
-    c_name_ = name.substr(del_pos + 1);
-  } else {
-    t_name_ = name;
-    c_name_ = "Main";
-  }
 }
 
 std::string const& storage_read_container::name() { return name_; }
