@@ -10,59 +10,63 @@
 
 using namespace phlex::experimental;
 
-static bool format_traceback(std::string& msg,
+namespace {
+
+  bool format_traceback(std::string& msg,
 #if PY_VERSION_HEX < 0x30c000000
-                             PyObject* type,
-                             PyObject* value,
-                             PyObject* traceback)
+                        PyObject* type,
+                        PyObject* value,
+                        PyObject* traceback)
 #else
-                             PyObject* exception)
+                        PyObject* exception)
 #endif
-{
-  PyObject* tbmod = PyImport_ImportModule("traceback");
-  PyObject* format_exception = PyObject_GetAttrString(tbmod, "format_exception");
-  Py_DECREF(tbmod);
+  {
+    PyObject* tbmod = PyImport_ImportModule("traceback");
+    PyObject* format_exception = PyObject_GetAttrString(tbmod, "format_exception");
+    Py_DECREF(tbmod);
 
-  PyObject* formatted_tb = PyObject_CallFunctionObjArgs(
+    PyObject* formatted_tb = PyObject_CallFunctionObjArgs(
 #if PY_VERSION_HEX < 0x30c000000
-    format_exception, type, value, traceback, nullptr);
+      format_exception, type, value, traceback, nullptr);
 #else
-    format_exception, exception, nullptr);
+      format_exception, exception, nullptr);
 #endif
-  Py_DECREF(format_exception);
+    Py_DECREF(format_exception);
 
-  // LCOV_EXCL_START
-  if (!formatted_tb) {
+    // LCOV_EXCL_START
+    if (!formatted_tb) {
+      PyErr_Clear();
+      return false;
+    }
+    // LCOV_EXCL_STOP
+
+    PyObject* py_msg_empty = PyUnicode_FromString("");
+    PyObject* py_msg = PyUnicode_Join(py_msg_empty, formatted_tb);
+    Py_DECREF(py_msg_empty);
+    Py_DECREF(formatted_tb);
+
+    // LCOV_EXCL_START
+    if (!py_msg) {
+      PyErr_Clear();
+      return false;
+    }
+    // LCOV_EXCL_STOP
+
+    char const* c_msg = PyUnicode_AsUTF8(py_msg);
+    // LCOV_EXCL_START
+    if (c_msg) {
+      msg = c_msg;
+      Py_DECREF(py_msg);
+      return true;
+    }
+    // LCOV_EXCL_STOP
+
     PyErr_Clear();
-    return false;
-  }
-  // LCOV_EXCL_STOP
-
-  PyObject* py_msg_empty = PyUnicode_FromString("");
-  PyObject* py_msg = PyUnicode_Join(py_msg_empty, formatted_tb);
-  Py_DECREF(py_msg_empty);
-  Py_DECREF(formatted_tb);
-
-  // LCOV_EXCL_START
-  if (!py_msg) {
-    PyErr_Clear();
-    return false;
-  }
-  // LCOV_EXCL_STOP
-
-  char const* c_msg = PyUnicode_AsUTF8(py_msg);
-  // LCOV_EXCL_START
-  if (c_msg) {
-    msg = c_msg;
     Py_DECREF(py_msg);
-    return true;
+    return false;
   }
-  // LCOV_EXCL_STOP
 
-  PyErr_Clear();
-  Py_DECREF(py_msg);
-  return false;
-}
+} // namespace
 
 bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
 {

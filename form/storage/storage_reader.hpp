@@ -19,8 +19,6 @@ namespace form::detail::experimental {
     storage_reader() = default;
     ~storage_reader() override = default;
 
-    using table_t = form::experimental::config::tech_setting_config::table_t;
-
     int get_index(token const& token,
                   std::string const& id,
                   form::experimental::config::tech_setting_config const& settings) override;

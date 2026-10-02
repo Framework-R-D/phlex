@@ -29,13 +29,6 @@
 using namespace form::detail::experimental;
 
 namespace {
-  // Extracts the row space from a "row_space/label" container name.
-  std::string row_space_of(std::string const& container_name)
-  {
-    auto const separator = container_name.find(row_space_label_separator);
-    return separator == std::string::npos ? container_name : container_name.substr(0, separator);
-  }
-
   // The "index" container lives in the same row space as its product.
   placement index_placement_for(placement const& product_place)
   {

@@ -9,6 +9,7 @@
 #include <catch2/catch_tostring.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
@@ -80,9 +81,9 @@ namespace {
 
   class accumulator_test_fixture {
   public:
-    explicit accumulator_test_fixture(std::string node_name) :
+    explicit accumulator_test_fixture(std::string const& node_name) :
       accumulator_{g_,
-                   std::move(node_name),
+                   node_name,
                    "test_stage"_id,
                    "run"_id,
                    product_specifications(1),

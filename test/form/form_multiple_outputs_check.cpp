@@ -10,6 +10,7 @@
 #include "form/config.hpp"
 #include "navigation_check.hpp"
 #include "storage/storage_reader.hpp"
+#include "test/form/data_products/dune_example/hit_candidate.hpp"
 
 #include <TFile.h>
 #include <TKey.h>
@@ -24,7 +25,6 @@
 #include <set>
 #include <sstream>
 #include <string>
-#include <typeinfo>
 #include <vector>
 
 using namespace form::test;

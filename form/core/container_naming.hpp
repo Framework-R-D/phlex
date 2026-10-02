@@ -6,6 +6,7 @@
 #include "core/technology.hpp"
 
 #include <cctype>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -29,6 +30,23 @@ namespace form::detail::experimental {
     result += row_space_label_separator;
     result += label;
     return result;
+  }
+
+  /// The row-space part of a container name "row_space/label".
+  /// A name carrying no separator is all row space.
+  inline std::string row_space_of(std::string_view container_name)
+  {
+    return std::string{container_name.substr(0, container_name.find(row_space_label_separator))};
+  }
+
+  /// Returns the label after '/', or nullopt if no separator is present.
+  inline std::optional<std::string> label_of(std::string_view container_name)
+  {
+    auto const separator = container_name.find(row_space_label_separator);
+    if (separator == std::string_view::npos) {
+      return std::nullopt;
+    }
+    return std::string{container_name.substr(separator + 1)};
   }
 
   /// Replace characters not allowed in names with '_'.
