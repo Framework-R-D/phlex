@@ -1,8 +1,14 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+
 #include <algorithm>
 #include <cassert>
-#include <string>
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace {
   phlex::product_selectors const& for_output_only()
@@ -11,6 +17,11 @@ namespace {
       .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
     static phlex::product_selectors const for_output_only_queries{output_dummy};
     return for_output_only_queries;
+  }
+
+  bool is_output_only(phlex::product_selectors const& input_products)
+  {
+    return input_products == for_output_only();
   }
 }
 
@@ -71,10 +82,8 @@ namespace phlex::detail {
       a->second.resize(nargs_);
     }
     auto& elem = a->second;
-    if (nargs_ == 1ull) {
-      // We do not check that the product is in the store if only one argument is
-      // forwarded.  This enables us to forward arguments for regular nodes and also
-      // output nodes, which do not take individual data products.
+    if (is_output_only(*input_products_)) {
+      // Forward arguments for output stores
       elem[0] = store;
       return;
     }

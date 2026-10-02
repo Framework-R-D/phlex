@@ -1,8 +1,8 @@
 #ifndef TEST_OSTREAM_LOGGER_HPP
 #define TEST_OSTREAM_LOGGER_HPP
 
-#include "spdlog/sinks/ostream_sink.h"
-#include "spdlog/spdlog.h"
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <memory>
 #include <ostream>

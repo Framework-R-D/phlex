@@ -1,16 +1,16 @@
 #ifndef PHLEX_CORE_GLUE_HPP
 #define PHLEX_CORE_GLUE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
 #include <memory>
@@ -45,11 +45,19 @@ namespace phlex::detail {
   class glue {
   public:
     glue(tbb::flow::graph& g,
+         phlex::experimental::identifier const& stage,
          node_catalog& nodes,
          std::shared_ptr<T> bound_obj,
          std::vector<std::string>& errors,
+         resource_catalog& resources,
          configuration const* config = nullptr) :
-      graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}, config_{config}
+      graph_{g},
+      stage_{stage},
+      nodes_{nodes},
+      bound_obj_{std::move(bound_obj)},
+      errors_{errors},
+      resources_{resources},
+      config_{config}
     {
     }
 
@@ -65,11 +73,13 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return fold_api{config_,
                       name,
+                      stage_,
                       algorithm_bits(bound_obj_, std::move(f)),
                       c,
                       graph_,
                       nodes_,
                       errors_,
+                      resources_,
                       std::move(partition),
                       std::forward<InitArgs>(init_args)...};
     }
@@ -82,8 +92,16 @@ namespace phlex::detail {
                  concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<observer_node>(
-        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+      return make_registration<observer_node, declared_observer_ptr>(
+        config_,
+        name,
+        stage_,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -94,8 +112,15 @@ namespace phlex::detail {
                  concurrency c)
     {
       internal::verify_name(name, config_);
-      return provider_api{
-        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_};
+      return provider_api{config_,
+                          name,
+                          stage_,
+                          algorithm_bits{bound_obj_, std::move(f)},
+                          c,
+                          graph_,
+                          nodes_,
+                          errors_,
+                          resources_};
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -106,8 +131,16 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<transform_node>(
-        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+      return make_registration<transform_node, declared_transform_ptr>(
+        config_,
+        name,
+        stage_,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -128,8 +161,16 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<predicate_node>(
-        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+      return make_registration<predicate_node, declared_predicate_ptr>(
+        config_,
+        name,
+        stage_,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     auto unfold(std::string_view name,
@@ -143,12 +184,14 @@ namespace phlex::detail {
       return unfold_api<T, decltype(predicate), decltype(unfold)>{
         config_,
         name,
+        stage_,
         std::move(predicate),
         std::move(unfold),
         c,
         graph_,
         nodes_,
         errors_,
+        resources_,
         std::move(destination_data_layer)};
     }
 
@@ -174,10 +217,14 @@ namespace phlex::detail {
 
   private:
     // Non-owning references to framework-owned resources; glue<T> is a short-lived builder.
-    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    tbb::flow::graph& graph_;
+    phlex::experimental::identifier const& stage_;
+    node_catalog& nodes_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    resource_catalog& resources_;      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const* config_;
   };
 }

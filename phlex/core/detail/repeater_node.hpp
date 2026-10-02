@@ -1,14 +1,13 @@
 #ifndef PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 #define PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/message.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_queue.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_hash_map.h>
+#include <oneapi/tbb/concurrent_queue.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cstddef>
@@ -23,7 +22,7 @@ namespace phlex::detail::internal {
     public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
     repeater_node(tbb::flow::graph& g,
-                  std::string node_name,
+                  phlex::experimental::algorithm_name node_name,
                   phlex::experimental::identifier layer_name);
 
     tbb::flow::receiver<message>& data_port();
@@ -44,6 +43,8 @@ namespace phlex::detail::internal {
     using tagged_msg_t =
       tbb::flow::tagged_msg<std::size_t, message, indexed_end_token, index_message>;
     using multifunction_node_t = tbb::flow::multifunction_node<tagged_msg_t, message_tuple<1>>;
+
+    enum class cache_mode : unsigned char { unset, enabled, disabled };
 
     struct cached_product {
       std::shared_ptr<message> data_msg;
@@ -66,8 +67,8 @@ namespace phlex::detail::internal {
     tbb::flow::indexer_node<message, indexed_end_token, index_message> indexer_;
     multifunction_node_t repeater_;
     cache_t cached_products_;
-    std::atomic<bool> cache_enabled_{true};
-    std::string node_name_;
+    std::atomic<cache_mode> index_cache_mode_{cache_mode::unset};
+    phlex::experimental::algorithm_name node_name_;
     phlex::experimental::identifier layer_;
   };
 }

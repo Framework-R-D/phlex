@@ -59,17 +59,11 @@ namespace phlex {
       std::string_view algorithm;
     };
 
-    // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
-    explicit handle(std::same_as<T> auto const& product,
-                    data_cell_index const& id,
-                    detail::product_specification const& key,
-                    std::optional<experimental::identifier> stage = {}) :
-      product_{&product},
-      id_{&id},
-      creator_plugin_{key.plugin()},
-      creator_algorithm_{key.algorithm()},
-      suffix_(key.suffix()),
-      stage_(std::move(stage))
+    explicit handle(gsl::not_null<const_pointer> const product,
+                    gsl::not_null<data_cell_index const*> const index,
+                    gsl::not_null<experimental::product_specification const*> const spec,
+                    gsl::not_null<experimental::identifier const*> const stage) :
+      product_{product}, index_{index}, stage_{stage}, spec_{spec}
     {
     }
 
@@ -85,61 +79,45 @@ namespace phlex {
     handle(handle&&) noexcept = default;
     handle& operator=(handle&&) noexcept = default;
 
-    const_pointer operator->() const noexcept { return product_.get(); }
+    const_pointer operator->() const noexcept { return product_; }
     [[nodiscard]] const_reference operator*() const noexcept { return *operator->(); }
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
     // NOLINTEND(google-explicit-constructor)
-    auto const& data_cell_index() const noexcept { return *id_; }
+    auto const& data_cell_index() const noexcept { return *index_; }
 
     // Product specification information
     algorithm_name_view creator() const noexcept
     {
-      return {std::string_view(creator_plugin_), std::string_view(creator_algorithm_)};
+      return {std::string_view(spec_->plugin()), std::string_view(spec_->algorithm())};
     }
-    std::string_view suffix() const noexcept { return std::string_view(suffix_); }
-    std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
-    std::string_view stage() const noexcept
-    {
-      if (stage_.has_value()) {
-        return std::string_view(stage_.value());
-      }
-      return str_current;
-    }
-    std::string layer_path() const { return id_->layer_path().to_string(); }
+    std::string_view suffix() const noexcept { return std::string_view(spec_->suffix()); }
+    std::string_view layer() const noexcept { return std::string_view(index_->layer_name()); }
+    std::string_view stage() const noexcept { return std::string_view(*stage_); }
+    std::string layer_path() const { return index_->layer_path().to_string(); }
 
     template <typename U>
     friend class handle;
 
     bool operator==(handle other) const noexcept
     {
-      return product_ == other.product_ and id_ == other.id_;
+      return product_ == other.product_ and index_ == other.index_;
     }
 
   private:
-    // Non-owning pointers to the product and its data-cell index; both are non-null by
-    // construction, as enforced by gsl::not_null.
     gsl::not_null<const_pointer> product_;
-    gsl::not_null<class data_cell_index const*> id_;
-    experimental::identifier creator_plugin_;
-    experimental::identifier creator_algorithm_;
-    experimental::identifier suffix_;
-    detail::type_id type_;
-    std::optional<experimental::identifier> stage_;
-
-    // Utilities for stage name access until configuration supports these
-    constexpr static std::string_view str_current = "CURRENT";
+    gsl::not_null<class data_cell_index const*> index_;
+    gsl::not_null<experimental::identifier const*> stage_;
+    gsl::not_null<experimental::product_specification const*> spec_;
   };
 
+  // Deduction guide
   template <typename T>
-  handle(T const&, data_cell_index const&, detail::product_specification const&) -> handle<T>;
-
-  template <typename T>
-  handle(T const&,
-         data_cell_index const&,
-         detail::product_specification const&,
-         std::optional<experimental::identifier>) -> handle<T>;
+  handle(gsl::not_null<T const*>,
+         gsl::not_null<data_cell_index const*>,
+         gsl::not_null<experimental::product_specification const*>,
+         gsl::not_null<experimental::identifier const*>) -> handle<T>;
 }
 
 #endif // PHLEX_MODEL_HANDLE_HPP

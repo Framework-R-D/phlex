@@ -1,9 +1,13 @@
 #include "toy_tracker.hpp"
+
 #include "data_products/track_start.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cstdint>
+#include <iterator>
+#include <vector>
 
 toy_tracker::toy_tracker(int max_tracks) :
   gen_(std::chrono::system_clock::now().time_since_epoch().count()),

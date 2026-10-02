@@ -1,16 +1,28 @@
 //A root_rfield_read_container reads data products of a single type from vectors stored in an RNTuple field on disk.
 
 #include "root_rfield_read_container.hpp"
+
 #include "demangle_name.hpp"
+#include "handle_rexception.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_read_container.hpp"
 
-#include "ROOT/RNTupleReader.hxx"
-#include "ROOT/RNTupleView.hxx"
-#include "TDictionary.h"
-#include "TFile.h"
+#include <ROOT/RError.hxx>
+#include <ROOT/RNTupleReader.hxx>
+#include <ROOT/RNTupleTypes.hxx>
+#include <ROOT/RNTupleView.hxx>
+#include <TDictionary.h>
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
+#include <TFile.h> // IWYU pragma: keep
 
-#include <exception>
+#include <cassert>
+#include <cstring>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <utility>
 
 namespace {
@@ -50,14 +62,20 @@ namespace form::detail::experimental {
 
   void root_rfield_read_container_imp::prime(std::type_info const& type)
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
+    std::scoped_lock const guard(root_rfield_read_mutex());
 
     if (!tfile_) {
       throw std::runtime_error("root_rfield_read_container_imp::prime No file loaded");
     }
 
     if (!reader_) {
-      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      try {
+        reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      } catch (ROOT::RException const& e) {
+        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " +
+                            tfile_->GetName(),
+                          e);
+      }
     }
 
     if (!view_) {
@@ -71,44 +89,49 @@ namespace form::detail::experimental {
 
   bool root_rfield_read_container_imp::read(int id, void const** data, std::type_info const& type)
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
-
-    //Connect to file at the last possible moment at the cost of a little run-time branching
-    if (!view_) {
-      create_view(type);
-    }
-
-    if (std::cmp_greater_equal(id, reader_->GetNEntries())) {
-      return false;
-    }
-
-    //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
-    auto buffer = view_->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
-    assert(buffer);
-
-    view_->BindRawPtr(buffer.get());
+    std::scoped_lock const guard(root_rfield_read_mutex());
     try {
+
+      //Connect to file at the last possible moment at the cost of a little run-time branching
+      if (!view_) {
+        create_view(type);
+      }
+
+      if (std::cmp_greater_equal(id, reader_->GetNEntries())) {
+        return false;
+      }
+
+      //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
+      auto buffer = view_->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
+      assert(buffer);
+
+      view_->BindRawPtr(buffer.get());
       (*view_)(id);
+      *data =
+        buffer.release(); //Ownership transferred to Phlex through Persistence and interface layers.
+      //Any framework using FORM must free this memory.  FORM holds no reference to it.
     } catch (ROOT::RException const& e) {
-      throw std::runtime_error("root_rfield_read_container_imp::read got a ROOT exception: " +
-                               std::string(e.what()));
+      handle_rexception("failed to read from RNTuple", e);
     }
-    *data =
-      buffer.release(); //Ownership transferred to Phlex through Persistence and interface layers.
-    //Any framework using FORM must free this memory.  FORM holds no reference to it.
 
     return true;
   }
 
   int root_rfield_read_container_imp::entries()
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
+    std::scoped_lock const guard(root_rfield_read_mutex());
 
     if (!reader_) {
       if (!tfile_) {
         throw std::runtime_error("root_rfield_read_container_imp::entries No file loaded");
       }
-      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      try {
+        reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      } catch (ROOT::RException const& e) {
+        handle_rexception("Failed to open an RNTuple named " + top_name() + " from a file named " +
+                            tfile_->GetName(),
+                          e);
+      }
     }
 
     if (!view_ &&
@@ -129,7 +152,13 @@ namespace form::detail::experimental {
           "from on first read() call!");
       }
 
-      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      try {
+        reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
+      } catch (ROOT::RException const& e) {
+        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " +
+                            tfile_->GetName(),
+                          e);
+      }
     }
 
     try {
@@ -143,10 +172,10 @@ namespace form::detail::experimental {
           !TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str()) ||
           (strcmp(TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str())->GetName(),
                   TDictionary::GetDictionary(type)->GetName()) != 0)) {
-        throw std::runtime_error(
-          "root_rfield_read_container_imp::create_view type " + demangle_name(type) +
-          " requested for a field named " + col_name() +
-          " does not match the type in the file: " + view_->GetField().GetTypeName());
+        handle_rexception(
+          "type " + demangle_name(type) + " requested for a field named " + col_name() +
+            " does not match the type in the file: " + view_->GetField().GetTypeName(),
+          e);
       }
     }
   }

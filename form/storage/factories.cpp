@@ -2,10 +2,15 @@
 
 #include "storage/factories.hpp"
 
+#include "core/technology.hpp"
+#include "storage/istorage.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
+
+#include <memory>
+#include <string>
 
 #ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_read_container.hpp"

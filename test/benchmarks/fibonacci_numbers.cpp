@@ -1,6 +1,7 @@
 #include "test/benchmarks/fibonacci_numbers.hpp"
 
 #include <algorithm>
+#include <vector>
 
 namespace {
   auto fibs_less_than(int const n)

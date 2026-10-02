@@ -1,12 +1,21 @@
 // Copyright (C) 2025 ...
 
 #include "root_ttree_write_container.hpp"
+
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_write_association.hpp"
 
-#include "TFile.h"
-#include "TTree.h"
-
+// Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
+#include <TFile.h> // IWYU pragma: keep
+#include <TTree.h>
 #include <gsl/pointers>
+
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 
@@ -43,6 +52,9 @@ void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/
   if (tree_ == nullptr) {
     throw std::runtime_error("root_ttree_write_container_imp::setup_write no tree created");
   }
+  // Keep the tree's directory association for basket writing, but prevent automatic writes.
+  // FORM writes the tree explicitly when the container is destroyed.
+  tfile_->Remove(tree_.get());
 }
 
 std::uint64_t root_ttree_write_container_imp::fill(void const* /* data*/)

@@ -5,9 +5,14 @@
 // using Cling or even Numba's llvmlite.
 
 #include "dyncall.hpp"
-#include <stdexcept>
 
 #include <ffi.h>
+
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <variant>
 
 using namespace phlex::experimental;
 

@@ -1,8 +1,9 @@
-#include <algorithm>
+#include "user_algorithms.hpp"
 
 #include "summed_clamped_waveforms.hpp"
-#include "user_algorithms.hpp"
 #include "waveforms.hpp"
+
+#include <algorithm>
 
 // This function is used to transform an input Waveforms object into an
 // output Waveforms object. The output is a clamped version of the input.
@@ -23,7 +24,7 @@ void demo::accumulate_scw(demo::summed_clamped_waveforms& accumulator, demo::wav
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
   accumulator.size += wf.size();
   for (auto const& w : wf.data) {
-    for (double x : w.samples) {
+    for (double const x : w.samples) {
       accumulator.sum += x;
     }
   }

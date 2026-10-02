@@ -1,14 +1,20 @@
 #include "phlex/core/detail/accumulator_node.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "test/ostream_logger.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
-#include "oneapi/tbb/flow_graph.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_tostring.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <format>
 #include <map>
 #include <memory>
@@ -29,6 +35,8 @@ namespace Catch {
 
 using namespace oneapi;
 using namespace phlex::detail;
+using phlex::experimental::product_specification;
+using phlex::experimental::product_specifications;
 
 namespace {
   auto make_run_index(int run_number)
@@ -51,7 +59,8 @@ namespace {
     {
       auto it = messages_.find(idx->hash());
       assert(it != messages_.end());
-      return {it->second.store->get_product<int>(product_specification{}), it->second.id};
+      product_specification const spec{};
+      return {it->second.store->get_product<int>(gsl::make_not_null(&spec)), it->second.id};
     }
 
   private:
@@ -72,9 +81,10 @@ namespace {
 
   class accumulator_test_fixture {
   public:
-    explicit accumulator_test_fixture(std::string node_name) :
+    explicit accumulator_test_fixture(std::string const& node_name) :
       accumulator_{g_,
-                   std::move(node_name),
+                   node_name,
+                   "test_stage"_id,
                    "run"_id,
                    product_specifications(1),
                    [](phlex::data_cell_index const&) { return std::make_unique<int>(0); }},
@@ -221,6 +231,7 @@ TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithr
   auto accumulator = std::make_unique<internal::accumulator_node<int>>(
     g,
     "test_accumulator_warning",
+    "test_stage"_id,
     "run"_id,
     product_specifications(1),
     [](phlex::data_cell_index const&) { return std::make_unique<int>(0); });

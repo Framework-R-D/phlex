@@ -109,5 +109,11 @@ CheckOptions:
     value: 'final'
 
   # Misc settings
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: >-
+      __[^/]+/.*;
+      .*python[0-9.]+/.*;
+      boost/mp11/detail/.*;
+      boost/program_options/.*
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: '1'

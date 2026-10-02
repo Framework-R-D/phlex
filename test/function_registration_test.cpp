@@ -1,8 +1,9 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/handle.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <array>
 #include <string>
@@ -62,7 +63,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const product_suffixes = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

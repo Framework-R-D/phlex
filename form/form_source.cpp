@@ -1,13 +1,23 @@
-#include "phlex/source.hpp"
-
 #include "core/technology.hpp"
 #include "form/config.hpp"
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
-
+#include "form/product_with_name.hpp"
+#include "phlex/concurrency.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/index_generator.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/source.hpp"
 
 #include <cassert>
+#include <cstddef>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -65,22 +75,22 @@ namespace {
                       form::experimental::config::tech_setting_config const& tech_cfg,
                       std::string actual_creator,
                       std::string advertised_creator,
+                      std::string stage,
                       std::vector<std::string> const& products) :
       reader_(std::make_shared<form::experimental::form_reader_interface>(input_cfg, tech_cfg)),
       actual_creator_(std::move(actual_creator)),
       advertised_creator_(std::move(advertised_creator)),
+      stage_(std::move(stage)),
       products_(products)
     {
       // Ensure all builtin types are registered for dynamic dispatch
       form::experimental::ensure_builtin_form_product_types_registered();
     }
 
-    phlex::detail::provider_bundles create_providers(
-      phlex::product_selector const& selector) override
+    phlex::provider_bundles create_providers(phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
-      using namespace phlex::detail;
-      phlex::detail::provider_bundles bundles;
+      phlex::provider_bundles bundles;
 
       std::string const* product_type_name =
         form::experimental::find_form_product_type_name(selector.type);
@@ -97,27 +107,28 @@ namespace {
         product_specification spec{
           algorithm_name::create(advertised_creator_), identifier{name}, selector.type};
 
-        // Use selector's layer and stage; stage defaults to "event" if not specified
+        // Read and provide products at the configured stage.
         identifier const selector_layer = selector.layer;
-        identifier const selector_stage = selector.stage.value_or(identifier{"event"});
+        identifier const product_stage{stage_};
 
-        if (!selector.match(spec, selector_layer, selector_stage)) {
+        if (!selector.match(spec, selector_layer, product_stage)) {
           continue;
         }
 
-        reader_->prime(actual_creator_, name, *selected_entry->cpp_type);
+        reader_->prime(actual_creator_, stage_, name, *selected_entry->cpp_type);
 
-        auto provider_func = [this, name, product_type = *product_type_name](
-                               phlex::data_cell_index const& id) -> phlex::detail::product_ptr {
+        auto provider_func =
+          [this, name, product_type = *product_type_name](
+            phlex::data_cell_index const& id) -> phlex::experimental::product_ptr {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
 
         bundles.push_back(
-          phlex::detail::provider_bundle{.provider_function = provider_func,
-                                         .max_concurrency = phlex::concurrency::serial,
-                                         .spec = std::move(spec),
-                                         .layer = std::string(selector_layer.trans_get_string()),
-                                         .stage = std::string(selector_stage.trans_get_string())});
+          phlex::provider_bundle{.provider_function = provider_func,
+                                 .max_concurrency = phlex::concurrency::serial,
+                                 .spec = std::move(spec),
+                                 .layer = std::string(selector_layer.trans_get_string()),
+                                 .stage = stage_});
       }
 
       return bundles;
@@ -132,22 +143,23 @@ namespace {
         co_return;
       }
 
-      for (auto const& index_string : reader_->indices(actual_creator_, products_.front())) {
+      for (auto const& index_string :
+           reader_->indices(actual_creator_, stage_, products_.front())) {
         co_yield parse_index_string(index_string);
       }
     }
 
-    phlex::detail::product_ptr read_product_from_form(std::string const& creator,
-                                                      std::string const& product_name,
-                                                      std::string const& index_str,
-                                                      std::string const& product_type)
+    phlex::experimental::product_ptr read_product_from_form(std::string const& creator,
+                                                            std::string const& product_name,
+                                                            std::string const& index_str,
+                                                            std::string const& product_type)
     {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);
       if (entry && entry->cpp_type && entry->product_from_data_fn) {
         form::experimental::product_with_name pb{
           .label = product_name, .data = nullptr, .type = entry->cpp_type};
-        reader_->read(creator, index_str, pb);
+        reader_->read(creator, stage_, index_str, pb);
         return entry->product_from_data_fn(pb.data, product_name, index_str);
       }
       throw std::runtime_error("Unsupported FORM product type: " + product_type);
@@ -157,6 +169,7 @@ namespace {
     std::shared_ptr<form::experimental::form_reader_interface> reader_;
     std::string actual_creator_;
     std::string advertised_creator_;
+    std::string stage_;
     std::vector<std::string> products_;
   };
 }
@@ -170,6 +183,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
   auto const module_label = config.get<std::string>("module_label", "form_source");
   auto const products = config.get<std::vector<std::string>>("products");
+  auto const stage = config.get<std::string>("stage");
 
   std::string actual_creator = advertised_creator;
   auto const algorithm = config.get_if_present<std::string>("algorithm");
@@ -181,14 +195,14 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const technology = form::technology::from_string(tech_string);
 
   form::experimental::config::item_config input_cfg;
-  form::experimental::config::tech_setting_config tech_cfg;
+  form::experimental::config::tech_setting_config const tech_cfg;
   for (auto const& name : products) {
     input_cfg.add_item(name, input_file, technology);
   }
 
   // Register the source object with Phlex
   s.add_source<form_input_source>(
-    module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, products);
+    module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, stage, products);
 
   std::cout << "FORM input source registered successfully\n";
 }

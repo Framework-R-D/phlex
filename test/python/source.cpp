@@ -1,6 +1,6 @@
 #include "phlex/source.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
-#include <cstdint>
 
 using namespace phlex;
 

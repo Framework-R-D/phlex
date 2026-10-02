@@ -1,8 +1,9 @@
 #ifndef TEST_FORM_TEST_HELPERS_HPP
 #define TEST_FORM_TEST_HELPERS_HPP
 
-#include "data_products/track_start.hpp"
-#include "form/form_reader.hpp"
-#include "form/form_writer.hpp"
+namespace form::test {
+  /// Stage at which the FORM test fixtures write their products
+  inline constexpr char const* test_stage = "test_stage";
+}
 
 #endif // TEST_FORM_TEST_HELPERS_HPP

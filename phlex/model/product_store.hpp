@@ -1,14 +1,15 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/products.hpp"
+#include "phlex/phlex_model_export.hpp"
+
+#include <gsl/pointers>
 
 #include <cstddef>
 #include <memory>
@@ -21,11 +22,12 @@ namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
-                           algorithm_name source = default_source(),
-                           phlex::detail::products new_products = {},
-                           std::optional<identifier> stage = {});
+                           gsl::not_null<algorithm_name const*> source,
+                           gsl::not_null<identifier const*> stage,
+                           phlex::detail::products new_products = {});
     ~product_store();
-    static product_store_ptr base(algorithm_name base_name = default_source());
+    static product_store_ptr base(gsl::not_null<algorithm_name const*> creator,
+                                  gsl::not_null<identifier const*> stage);
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
@@ -34,22 +36,22 @@ namespace phlex::experimental {
 
     identifier const& layer_name() const noexcept;
     algorithm_name const& source() const noexcept;
+    identifier const& stage() const noexcept;
     data_cell_index_ptr const& index() const noexcept;
 
-    // Product interface
+    // Product interface; a specification used for get_handle must outlive the returned handle.
     template <typename T>
-    T const& get_product(phlex::detail::product_specification const& key) const;
+    T const& get_product(gsl::not_null<product_specification const*> spec) const;
 
     template <typename T>
-    handle<T> get_handle(phlex::detail::product_specification const& key) const;
+    handle<T> get_handle(gsl::not_null<product_specification const*> spec) const;
 
     // Thread-unsafe operations
     template <typename T>
-    void add_product(phlex::detail::product_specification const& key, T&& t);
+    void add_product(product_specification const& key, T&& t);
 
     template <typename T>
-    void add_product(phlex::detail::product_specification const& key,
-                     std::unique_ptr<phlex::detail::product<T>>&& t);
+    void add_product(product_specification const& key, std::unique_ptr<product<T>>&& t);
 
     // default Source identifier
     static experimental::algorithm_name default_source();
@@ -57,9 +59,8 @@ namespace phlex::experimental {
   private:
     phlex::detail::products products_;
     data_cell_index_ptr id_;
-    algorithm_name
-      source_; // FIXME: Should not have to copy (the source should outlive the product store)
-    std::optional<identifier> stage_; // No value means current stage
+    gsl::not_null<algorithm_name const*> source_;
+    gsl::not_null<identifier const*> stage_;
   };
 
   namespace detail {
@@ -101,31 +102,30 @@ namespace phlex::experimental {
 
   // Implementation details
   template <typename T>
-  void product_store::add_product(phlex::detail::product_specification const& key, T&& t)
+  void product_store::add_product(product_specification const& key, T&& t)
   {
-    add_product(
-      key, std::make_unique<phlex::detail::product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
+    add_product(key, std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
   }
 
   template <typename T>
-  void product_store::add_product(phlex::detail::product_specification const& key,
-                                  std::unique_ptr<phlex::detail::product<T>>&& t)
+  void product_store::add_product(product_specification const& key, std::unique_ptr<product<T>>&& t)
   {
     products_.add(key, std::move(t));
   }
 
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(
-    phlex::detail::product_specification const& key) const
+    gsl::not_null<product_specification const*> spec) const
   {
-    return handle<T>{products_.get<T>(key), *id_, key, stage_};
+    return handle<T>{
+      gsl::make_not_null(&get_product<T>(spec)), gsl::make_not_null(id_.get()), spec, stage_};
   }
 
   template <typename T>
   [[nodiscard]] T const& product_store::get_product(
-    phlex::detail::product_specification const& key) const
+    gsl::not_null<product_specification const*> spec) const
   {
-    return *get_handle<T>(key);
+    return products_.get<T>(*spec);
   }
 }
 

@@ -14,7 +14,7 @@ include_directories(${PROJECT_SOURCE_DIR}/form)
 
 # ROOT Storage toggle
 option(FORM_USE_ROOT_STORAGE "Enable ROOT Storage" ON)
-option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Storage" OFF)
+option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Storage" ${FORM_USE_ROOT_STORAGE})
 
 # RNTuple is a ROOT sub-technology and cannot be built without ROOT.
 if(FORM_USE_RNTUPLE_STORAGE AND NOT FORM_USE_ROOT_STORAGE)

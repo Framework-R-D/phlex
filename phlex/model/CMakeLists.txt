@@ -59,7 +59,7 @@ phlex_apply_optimizations(phlex_model)
 phlex_make_internal_library(
   phlex_model
   LIBRARIES
-  PUBLIC Boost::boost spdlog::spdlog fmt::fmt
+  PUBLIC Boost::boost spdlog::spdlog fmt::fmt Microsoft.GSL::GSL
   PRIVATE phlex_utilities_internal TBB::tbb
 )
 add_library(phlex::model_internal ALIAS phlex_model_internal)

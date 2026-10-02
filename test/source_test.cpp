@@ -1,12 +1,16 @@
-#include "phlex/source.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
+
+#include <memory>
 
 using namespace phlex;
 
 namespace {
   class empty_source final : public source {
-    detail::provider_bundles create_providers(product_selector const&) override { return {}; }
+    provider_bundles create_providers(product_selector const&) override { return {}; }
   };
 }
 

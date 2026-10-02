@@ -1,10 +1,19 @@
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/resource/catalog.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
-#include "phlex/model/data_cell_index.hpp"
+#include "phlex/metaprogramming/type_deduction.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/model/type_id.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/flow_graph.h"
+#include <catch2/catch_test_macros.hpp>
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
 #include <string>
@@ -15,6 +24,7 @@
 using namespace phlex;
 using namespace phlex::detail;
 using namespace phlex::experimental;
+using namespace phlex::experimental::literals;
 
 namespace {
   constexpr auto message_id = 42u;
@@ -39,30 +49,49 @@ namespace {
     auto operator<=>(output_type_2 const&) const = default;
   };
 
+  struct transform_resource {
+    using token_type = transform_resource const*;
+  };
+
+  struct unlimited_transform_resource {};
+
   output_type_1 double_value(input_type_1 const& input) { return {input.value * 2}; }
 
+  output_type_1 increment_with_resource(input_type_1 const& input, transform_resource const*)
+  {
+    return {input.value + 1};
+  }
+
+  output_type_1 increment_with_unlimited_resource(input_type_1 const& input,
+                                                  unlimited_transform_resource const*)
+  {
+    return {input.value + 1};
+  }
   auto number_and_label(input_type_1 const& input)
   {
     return std::tuple{output_type_1{input.value}, output_type_2{std::to_string(input.value)}};
   }
 
   template <typename T>
-  product_specification spec(char const* creator, char const* suffix)
+  product_specification spec(algorithm_name const& creator)
   {
-    return {algorithm_name{creator}, identifier{suffix}, make_type_id<T>()};
+    return {creator, ""_id, make_type_id<T>()};
   }
 
   template <typename T>
-  product_selector selector(char const* creator, char const* suffix)
+  product_selector selector(algorithm_name const& creator)
   {
-    return {.creator = creator, .layer = "job", .suffix = suffix, .type = make_type_id<T>()};
+    return {
+      .creator = creator.algorithm(), .layer = "job", .suffix = "", .type = make_type_id<T>()};
   }
 
   template <typename T>
-  product_store_ptr store_with_product(char const* creator, char const* suffix, T value)
+  product_store_ptr store_with_product(gsl::not_null<algorithm_name const*> creator,
+                                       gsl::not_null<identifier const*> stage,
+                                       T value)
   {
-    auto store = product_store::base(creator);
-    store->add_product(spec<T>(creator, suffix), std::move(value));
+    auto store = product_store::base(creator, stage);
+    store->add_product(spec<T>(*creator), std::move(value));
     return store;
   }
 
@@ -76,12 +105,23 @@ namespace {
 TEST_CASE("transform_node directly transforms one input product", "[transform_node]")
 {
   oneapi::tbb::flow::graph graph;
-  auto input_selector = selector<input_type_1>("input", "");
-  auto input_store = store_with_product("input", "", input_type_1{21});
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
   auto alg = algorithm_bits_for(double_value);
+  resource_catalog resources;
 
-  transform_node<decltype(alg)> node{
-    algorithm_name{"double_value"}, 1u, {}, graph, std::move(alg), {input_selector}, {}};
+  transform_node<decltype(alg)> node{algorithm_name{"double_value"},
+                                     "test_stage"_id,
+                                     1u,
+                                     {},
+                                     graph,
+                                     std::move(alg),
+                                     {input_selector},
+                                     {},
+                                     resources};
   declared_transform& transform = node;
 
   auto const& output_specs = transform.output();
@@ -103,7 +143,8 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   REQUIRE(output.store);
   CHECK(output.store->index() == input_store->index());
   CHECK(output.store->source() == algorithm_name{"double_value"});
-  CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{42});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{42});
 
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
@@ -112,17 +153,23 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
 TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 {
   oneapi::tbb::flow::graph graph;
-  auto input_selector = selector<input_type_1>("input", "");
-  auto input_store = store_with_product("input", "", input_type_1{7});
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage{"test_stage"};
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store =
+    store_with_product(gsl::not_null{&input_creator_name}, gsl::not_null{&stage}, input_type_1{7});
   auto alg = algorithm_bits_for(number_and_label);
+  resource_catalog resources;
 
   transform_node<decltype(alg)> node{algorithm_name{"number_and_label"},
+                                     "test_stage"_id,
                                      1u,
                                      {},
                                      graph,
                                      std::move(alg),
                                      {input_selector},
-                                     {"number", "label"}};
+                                     {"number", "label"},
+                                     resources};
   declared_transform& transform = node;
 
   oneapi::tbb::flow::queue_node<message> sink{graph};
@@ -145,9 +192,86 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   CHECK(output_specs[1].type() == make_type_id<output_type_2>());
 
   REQUIRE(output.store);
-  CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{7});
-  CHECK(output.store->get_product<output_type_2>(output_specs[1]) == output_type_2{"7"});
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{7});
+  CHECK(output.store->get_product<output_type_2>(
+          gsl::make_not_null(std::addressof(output_specs[1]))) == output_type_2{"7"});
 
+  CHECK(transform.num_calls() == 1u);
+  CHECK(transform.product_count() == 1u);
+}
+TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
+{
+  oneapi::tbb::flow::graph graph;
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
+  auto alg = algorithm_bits_for(increment_with_resource);
+  resource_catalog resources;
+  resources.add_serialized<transform_resource>();
+
+  transform_node<decltype(alg), transform_resource> node{algorithm_name{"increment_with_resource"},
+                                                         "test_stage"_id,
+                                                         1u,
+                                                         {},
+                                                         graph,
+                                                         std::move(alg),
+                                                         {input_selector},
+                                                         {},
+                                                         resources};
+  declared_transform& transform = node;
+
+  oneapi::tbb::flow::queue_node<message> sink{graph};
+  make_edge(transform.output_port(), sink);
+
+  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
+  graph.wait_for_all();
+
+  message output;
+  REQUIRE(sink.try_get(output));
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
+  CHECK(transform.num_calls() == 1u);
+  CHECK(transform.product_count() == 1u);
+}
+
+TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
+{
+  oneapi::tbb::flow::graph graph;
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
+  auto alg = algorithm_bits_for(increment_with_unlimited_resource);
+  resource_catalog resources;
+  resources.add_unlimited<unlimited_transform_resource>();
+
+  transform_node<decltype(alg), unlimited_transform_resource> node{
+    algorithm_name{"increment_with_unlimited_resource"},
+    "test_stage"_id,
+    1u,
+    {},
+    graph,
+    std::move(alg),
+    {input_selector},
+    {},
+    resources};
+  declared_transform& transform = node;
+
+  oneapi::tbb::flow::queue_node<message> sink{graph};
+  make_edge(transform.output_port(), sink);
+
+  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
+  graph.wait_for_all();
+
+  message output;
+  REQUIRE(sink.try_get(output));
+  REQUIRE(output.store);
+  CHECK(output.store->get_product<output_type_1>(
+          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
 }

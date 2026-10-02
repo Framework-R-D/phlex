@@ -1,10 +1,9 @@
 #ifndef PHLEX_MODEL_FLUSH_MESSAGES_HPP
 #define PHLEX_MODEL_FLUSH_MESSAGES_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <cstddef>
 #include <vector>

@@ -1,17 +1,23 @@
-#include <algorithm>
-
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/identifier.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/concurrent_vector.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/concurrent_vector.h>
+#include <spdlog/spdlog.h>
 
-#include "spdlog/spdlog.h"
+#include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <initializer_list>
+#include <iterator>
+#include <vector>
 
 using namespace phlex;
-using namespace oneapi::tbb;
+using namespace phlex::detail;
 
 namespace {
   // Provider algorithms
@@ -109,13 +115,45 @@ namespace {
     unsigned int const end_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
+
+  struct predicate_resource {
+    using token_type = predicate_resource const*;
+  };
+
+  bool evens_with_resource(unsigned int const value, predicate_resource const*)
+  {
+    return value % 2u == 0u;
+  }
+}
+
+TEST_CASE("Predicate receives a resource token", "[filtering][resource]")
+{
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+  g.add_serialized_resource<predicate_resource>();
+  g.provide("provide_num", give_me_nums, concurrency::unlimited)
+    .output_product("input", "num", "event");
+  g.predicate("evens_with_resource", evens_with_resource, concurrency::unlimited)
+    .input_family({.creator = "input", .layer = "event", .suffix = "num"},
+                  resource<predicate_resource>{});
+  g.observe(
+     "collect_evens", [](unsigned int) {}, concurrency::unlimited)
+    .input_family({.creator = "input", .layer = "event", .suffix = "num"})
+    .experimental_when("evens_with_resource");
+
+  g.execute();
+
+  CHECK(g.execution_count("evens_with_resource") == 10);
+  CHECK(g.execution_count("collect_evens") == 5);
 }
 
 TEST_CASE("Two predicates", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -142,7 +180,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -165,7 +203,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -190,13 +228,13 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     unsigned int begin;
     unsigned int end;
   };
-  std::vector<predicate_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
-                                        {.name = "exclude_6_to_7", .begin = 6, .end = 7},
-                                        {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
+  std::vector<predicate_config> const configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                              {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                              {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -223,7 +261,7 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");

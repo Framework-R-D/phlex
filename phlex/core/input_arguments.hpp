@@ -6,7 +6,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -27,10 +27,12 @@ namespace phlex::detail {
       auto const& store = msg.store;
       // TODO: This needs to be replaced with a properly engineered solution
       auto all_products = std::ranges::subrange(store->begin(), store->end()) | views::keys;
-      auto products =
-        all_products |
-        views::filter([this](product_specification const& spec) { return query.match(spec); }) |
-        std::ranges::to<std::vector>();
+      auto products = all_products |
+                      views::filter([this](phlex::experimental::product_specification const& spec) {
+                        return query.match(spec);
+                      }) |
+                      views::transform([](auto const& spec) { return gsl::make_not_null(&spec); }) |
+                      std::ranges::to<std::vector>();
       if (products.empty()) {
         throw std::runtime_error(fmt::format(
           "No products found matching the query {}\n Store (id {} from {}) contains:\n{}",
@@ -40,9 +42,11 @@ namespace phlex::detail {
           bulleted_list(all_products, /*indent=*/4)));
       }
       if (products.size() > 1) {
-        throw std::runtime_error(fmt::format("Multiple products found matching the query {}:\n{}",
-                                             query,
-                                             bulleted_list(products, /*indent=*/4)));
+        throw std::runtime_error(fmt::format(
+          "Multiple products found matching the query {}:\n{}",
+          query,
+          bulleted_list(products | views::transform([](auto spec) -> auto const& { return *spec; }),
+                        /*indent=*/4)));
       }
       return store->get_handle<handle_arg_t>(products[0]);
     }

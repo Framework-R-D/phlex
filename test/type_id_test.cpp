@@ -1,18 +1,20 @@
 #include "phlex/model/type_id.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-
-#include "fmt/format.h"
+#include <catch2/catch_test_macros.hpp>
+#include <fmt/format.h>
 
 #include <array>
 #include <atomic>
 #include <functional>
+#include <tuple>
+#include <type_traits>
 #include <vector>
 
-using namespace phlex::detail;
+using phlex::experimental::make_type_id;
+using phlex::experimental::type_id;
 
 namespace {
-  enum class test_enum { small, medium, large };
+  enum class test_enum : unsigned char { small, medium, large };
 
   struct test_struct {
     int a;
@@ -88,9 +90,9 @@ TEST_CASE("Type ID children detection", "[type_id]")
 
 TEST_CASE("Type ID output type deduction", "[type_id]")
 {
-  std::function test_fn = [](int a, float b) -> std::tuple<int, float> { return {a, b}; };
-  type_ids test_fn_out{make_type_id<int>(), make_type_id<float>()};
-  CHECK(make_output_type_ids<decltype(test_fn)>() == test_fn_out);
+  std::function const test_fn = [](int a, float b) -> std::tuple<int, float> { return {a, b}; };
+  phlex::detail::type_ids test_fn_out{make_type_id<int>(), make_type_id<float>()};
+  CHECK(phlex::detail::make_output_type_ids<decltype(test_fn)>() == test_fn_out);
 }
 
 TEST_CASE("Type ID string formatting", "[type_id]")
@@ -107,7 +109,7 @@ TEST_CASE("Type ID string formatting", "[type_id]")
   CHECK(fmt::format("{}", make_type_id<long double>()) == "long double");
   CHECK(fmt::format("{}", make_type_id<std::vector<float>>()) == "LIST float");
   CHECK(fmt::format("{}", make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
-  CHECK(fmt::format("{}", make_type_id<test_struct>()) == "STRUCT {int, char, int, int}");
+  CHECK(fmt::format("{}", make_type_id<test_struct>()) == "STRUCT {int, char, unsigned char, int}");
   CHECK(fmt::format("{}", make_type_id<std::vector<test_struct>>()) ==
-        "LIST STRUCT {int, char, int, int}");
+        "LIST STRUCT {int, char, unsigned char, int}");
 }

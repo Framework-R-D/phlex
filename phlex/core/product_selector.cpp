@@ -1,6 +1,16 @@
 #include "phlex/core/product_selector.hpp"
 
-#include "fmt/format.h"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
+
+#include <fmt/format.h>
+
+#include <compare>
+#include <string>
+#include <string_view>
+#include <tuple>
 
 namespace phlex {
   // Check that all products selected by /other/ would satisfy this query
@@ -26,7 +36,7 @@ namespace phlex {
   }
 
   // Check if a product_specification satisfies this query
-  bool product_selector::match(detail::product_specification const& spec) const
+  bool product_selector::match(experimental::product_specification const& spec) const
   {
     if (!creator_match(spec.creator())) {
       return false;
@@ -43,7 +53,7 @@ namespace phlex {
   }
 
   // Check if a product_specification, layer, and stage together satisfies this query
-  bool product_selector::match(detail::product_specification const& spec,
+  bool product_selector::match(experimental::product_specification const& spec,
                                experimental::identifier const& layer,
                                experimental::identifier const& stage) const
   {
@@ -103,9 +113,15 @@ namespace phlex {
            std::tie(rhs.type, rhs.creator, rhs.layer, rhs.suffix, rhs.stage);
   }
 
-  detail::product_specification const* resolve_in_store(product_selector const& query,
-                                                        experimental::product_store const& store)
+  experimental::product_specification const* resolve_in_store(
+    product_selector const& query, experimental::product_store const& store)
   {
+    // Protect against layer mismatch
+    if (query.layer) {
+      if (store.index()->layer_name() != *query.layer) {
+        return nullptr;
+      }
+    }
     for (auto const& [spec, _] : store) {
       if (query.match(spec)) {
         return &spec;

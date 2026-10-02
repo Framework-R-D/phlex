@@ -2,6 +2,11 @@
 
 #include "storage_associative_write_container.hpp"
 
+#include "storage/istorage.hpp"
+#include "storage/storage_write_container.hpp"
+
+#include <memory>
+#include <string>
 #include <utility>
 
 using namespace form::detail::experimental;

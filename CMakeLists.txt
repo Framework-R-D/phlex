@@ -78,7 +78,7 @@ find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
 # Main project declaration
-project(phlex VERSION 0.3.2 LANGUAGES CXX)
+project(phlex VERSION 0.4.1 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -157,10 +157,13 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 # add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
 
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
+include(${PROJECT_SOURCE_DIR}/Modules/private/PhlexTBB.cmake)
 
 # Dependencies required by public API
 find_package(Boost REQUIRED COMPONENTS json EXPORT)
 find_package(TBB REQUIRED EXPORT)
+phlex_check_tbb_resource_limiting()
+
 find_package(fmt REQUIRED EXPORT)
 find_package(spdlog REQUIRED EXPORT)
 find_package(Microsoft.GSL REQUIRED EXPORT)

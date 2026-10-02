@@ -1,7 +1,7 @@
 #ifndef PHLEX_UTILITIES_MAX_ALLOWED_PARALLELISM_HPP
 #define PHLEX_UTILITIES_MAX_ALLOWED_PARALLELISM_HPP
 
-#include "oneapi/tbb/global_control.h"
+#include <oneapi/tbb/global_control.h>
 
 #include <cstddef>
 

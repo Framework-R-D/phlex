@@ -1,13 +1,12 @@
 #ifndef PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 #define PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/index_router.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_tracker.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
@@ -15,12 +14,13 @@
 #include "phlex/model/flush_messages.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
-#include "oneapi/tbb/info.h"
+#include <oneapi/tbb/flow_graph.h>
+#include <oneapi/tbb/info.h>
 
 #include <concepts>
 #include <cstdint>
@@ -31,6 +31,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
@@ -42,9 +43,9 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
     [[nodiscard]] static framework_graph with_default_driver(
-      int max_parallelism = oneapi::tbb::info::default_concurrency());
+      std::string stage_name, int max_parallelism = oneapi::tbb::info::default_concurrency());
     [[nodiscard]] static framework_graph without_driver(
-      int max_parallelism = oneapi::tbb::info::default_concurrency());
+      std::string stage_name, int max_parallelism = oneapi::tbb::info::default_concurrency());
 
     ~framework_graph();
     framework_graph(framework_graph const&) = delete;
@@ -71,14 +72,16 @@ namespace phlex::detail {
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
-      return {config, graph_, nodes_, registration_errors_};
+      return {config, graph_, stage_, nodes_, registration_errors_, resources_};
     }
 
-    source_bundle source_proxy(configuration const& config)
+    graph_registration_bundle registration_bundle(configuration const& config)
     {
       return {.config = config,
               .graph = graph_,
+              .stage = stage_,
               .nodes = nodes_,
+              .resources = resources_,
               .registration_errors = registration_errors_};
     }
 
@@ -155,6 +158,20 @@ namespace phlex::detail {
       return make_glue().template add_source<Source>(name, std::forward<Args>(args)...);
     }
 
+    template <typename Resource, typename... Args>
+      requires unlimited_resource_registration<Resource, Args...>
+    void add_unlimited_resource(Args&&... args)
+    {
+      resources_.template add_unlimited<Resource>(std::forward<Args>(args)...);
+    }
+
+    template <typename Resource, typename... Args>
+      requires serialized_resource_registration<Resource, Args...>
+    void add_serialized_resource(Args&&... args)
+    {
+      resources_.template add_serialized<Resource>(std::forward<Args>(args)...);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
@@ -194,7 +211,7 @@ namespace phlex::detail {
       if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
-      return {graph_, nodes_, std::move(bound_object), registration_errors_};
+      return {graph_, stage_, nodes_, std::move(bound_object), registration_errors_, resources_};
     }
 
     void run();
@@ -204,15 +221,18 @@ namespace phlex::detail {
     void make_bookkeeping_edges();
 
     enum class driver_mode : std::uint8_t { default_driver, deferred_driver };
-    explicit framework_graph(driver_mode mode, int max_parallelism);
+    explicit framework_graph(driver_mode mode, std::string stage, int max_parallelism);
 
     resource_usage graph_resource_usage_;
+    phlex::experimental::identifier stage_;
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
+    // The graph_ object uses the filters_, nodes_, resources_, and hierarchy_ objects implicitly.
+    // These must be declared before graph_ so that they outlive it during destruction.
     data_layer_hierarchy hierarchy_{};
+    resource_catalog resources_;
     node_catalog nodes_;
     std::map<std::string, filter> filters_;
-    // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
     std::optional<framework_driver> driver_;
     std::vector<std::string> registration_errors_;

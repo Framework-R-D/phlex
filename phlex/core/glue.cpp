@@ -1,4 +1,5 @@
 #include "phlex/core/glue.hpp"
+
 #include "phlex/configuration.hpp"
 
 #include <stdexcept>

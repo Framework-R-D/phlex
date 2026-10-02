@@ -1,10 +1,9 @@
 #ifndef PHLEX_MODEL_DATA_CELL_TRACKER_HPP
 #define PHLEX_MODEL_DATA_CELL_TRACKER_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_messages.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <map>
 

@@ -2,8 +2,13 @@
 
 #include "form_reader.hpp"
 
+#include "form/config.hpp"
+#include "form/product_with_name.hpp"
+#include "persistence/ipersistence_reader.hpp"
+
 #include <stdexcept>
 #include <typeinfo>
+#include <vector>
 
 namespace form::experimental {
 
@@ -23,6 +28,7 @@ namespace form::experimental {
   }
 
   void form_reader_interface::read(std::string const& creator,
+                                   std::string const& stage,
                                    std::string const& segment_id,
                                    product_with_name& product)
   {
@@ -32,19 +38,21 @@ namespace form::experimental {
       throw std::runtime_error("No configuration found for product: " + product.label);
     }
 
-    pers_reader_->read(creator, product.label, segment_id, &product.data, *product.type);
+    pers_reader_->read(creator, stage, product.label, segment_id, &product.data, *product.type);
   }
 
   void form_reader_interface::prime(std::string const& creator,
+                                    std::string const& stage,
                                     std::string const& product_name,
                                     std::type_info const& type)
   {
-    pers_reader_->prime(creator, product_name, type);
+    pers_reader_->prime(creator, stage, product_name, type);
   }
 
   std::vector<std::string> form_reader_interface::indices(std::string const& creator,
+                                                          std::string const& stage,
                                                           std::string const& product_name)
   {
-    return pers_reader_->list_indices(creator, product_name);
+    return pers_reader_->list_indices(creator, stage, product_name);
   }
 }

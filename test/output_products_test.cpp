@@ -5,17 +5,23 @@
 // N.B. Output nodes will eventually be replaced with preserver nodes.
 // =======================================================================================
 
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <ranges>
 #include <set>
 #include <string>
+#include <utility>
 
 using namespace phlex;
 
@@ -37,27 +43,27 @@ namespace {
 
   constexpr std::string brahms() { return "Brahms"; }
 
-  detail::product_ptr give_me_a_name(data_cell_index const&)
+  experimental::product_ptr give_me_a_name(data_cell_index const&)
   {
-    return detail::product_for(brahms());
+    return experimental::product_for(brahms());
   }
 
   class test_source : public detail::source {
-    detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
-      using namespace phlex::detail;
       provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
-      product_specification spec{"provide_name", "", make_type_id<std::string>()};
+      experimental::product_specification spec{
+        "provide_name", "", experimental::make_type_id<std::string>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(phlex::detail::provider_bundle{.provider_function = give_me_a_name,
-                                                         .max_concurrency = concurrency::unlimited,
-                                                         .spec = std::move(spec),
-                                                         .layer = layer,
-                                                         .stage = stage});
+        bundles.push_back(provider_bundle{.provider_function = give_me_a_name,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(spec),
+                                          .layer = layer,
+                                          .stage = stage});
       }
       return bundles;
     }
@@ -69,7 +75,7 @@ TEST_CASE("Output data products", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<test_source>("test_source");
 

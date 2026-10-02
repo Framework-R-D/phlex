@@ -10,7 +10,7 @@ import numpy.typing as npt
 from phlex._typing import _C2C
 from pytest import raises
 
-from phlex import normalize_type
+from phlex import Variant, count_optional_arguments, normalize_type
 
 
 class TestTYPING:
@@ -103,3 +103,39 @@ class TestTYPING:
                 return "some type"
 
         assert normalize_type(SomeType()) == "some type"
+
+    def test_optional_argument_counting(self):
+        """Optional argument count from various signatures."""
+        # (silent) failing cases
+        assert count_optional_arguments(1) == 0
+        assert count_optional_arguments(None) == 0
+
+        # proper cases
+        def a0(): pass
+        def a1o0(a0): pass
+        def a1o1(a0=1): pass
+        def a2o0(a0, a1): pass
+        def a2o1(a0, a1=1): pass
+        def a2o2(a0=0, a1=1): pass
+
+        assert count_optional_arguments(a0) == 0
+        assert count_optional_arguments(a1o0) == 0
+        assert count_optional_arguments(a2o0) == 0
+        assert count_optional_arguments(a2o1) == 1
+        assert count_optional_arguments(a2o2) == 2
+
+        # special cases
+        v = Variant(a1o0, {"a0": int, "return": None}, "a1o0")
+        assert count_optional_arguments(v) == 0
+        v = Variant(a2o0, {"a0": int, "a1": int, "return": None}, "a2o0")
+        assert count_optional_arguments(v) == 0
+        v = Variant(a2o1, {"a0": int, "a1": int, "return": None}, "a2o1")
+        assert count_optional_arguments(v) == 1
+        v = Variant(a2o1, {"a0": int, "return": None}, "a2o1")
+        assert count_optional_arguments(v) == 1
+        v = Variant(a2o2, {"a0": int, "a1": int, "a2": int, "return": None}, "a2o2")
+        assert count_optional_arguments(v) == 2
+        v = Variant(a2o2, {"a0": int, "a1": int, "return": None}, "a2o2")
+        assert count_optional_arguments(v) == 2
+        v = Variant(a2o2, {"a0": int, "return": None}, "a2o2")
+        assert count_optional_arguments(v) == 2
