@@ -91,9 +91,7 @@ TEST_CASE("Output data products", "[graph]")
     .output_product_suffixes("squared_number");
 
   // Create another node that requires a data product from an implicit provider.
-  // Concurrency must be serial because the CHECK macro cannot be invoked in a parallel context.
-  g.observe(
-     "read_name", [](std::string const& name) { CHECK(name == brahms()); }, concurrency::serial)
+  g.observe("read_name", [](std::string const& name) { CHECK(name == brahms()); })
     .input_family(product_selector{.creator = "provide_name", .layer = "spill"});
 
   std::set<std::string> products_from_nodes;

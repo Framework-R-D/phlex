@@ -119,6 +119,12 @@ Coverage reports are uploaded to Codecov for tracking and PR integration, with a
 
 For clang-tidy workflow behavior, local command examples, and configuration details, see [CLANG_TIDY_CONFIGURATION.md](CLANG_TIDY_CONFIGURATION.md).
 
+## Catch2 Assertions in Framework Tests
+
+Test code that can execute on a framework worker thread must use non-fatal `CHECK`-family
+assertions. Do not use `REQUIRE`, `REQUIRE_FALSE`, `FAIL`, `SECTION`, test-case, generator, or
+benchmark macros from worker threads; fatal assertions can escape Catch2's test-case boundary.
+
 ## On GitHub Copilot
 
 The `.github/copilot-instructions.md` contains various "ground rules" to be observed by GitHub Copilot for every session. They are intended to be useful for everyone, but you can override or augment them yourself by creating a `<workspace>/.github/copilot-instructions.md` file. If this file exists, its contents will be merged with—but take precedence over—the repository level instructions.
