@@ -17,7 +17,6 @@ namespace form::detail::experimental {
     storage_writer() = default;
     ~storage_writer() override = default;
 
-    using table_t = form::experimental::config::tech_setting_config::table_t;
     void create_containers(
       std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
       form::experimental::config::tech_setting_config const& settings) override;

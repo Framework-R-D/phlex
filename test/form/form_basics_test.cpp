@@ -330,7 +330,7 @@ TEST_CASE("storage_write_container basics", "[form]")
 TEST_CASE("storage_write_association basics", "[form]")
 {
   storage_write_association a("my_assoc/extra");
-  CHECK(a.name() == "my_assoc"); // maybe_remove_suffix should remove /extra
+  CHECK(a.name() == "my_assoc"); // the association is named for the row space alone
 
   a.set_attribute("key",
                   "value"); // storage_write_association overrides set_attribute to do nothing
