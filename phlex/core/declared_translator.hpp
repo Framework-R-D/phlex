@@ -36,11 +36,12 @@ namespace phlex::detail {
   public:
     declared_translator(phlex::experimental::algorithm_name name,
                         std::vector<std::string> predicates,
-                        product_selectors input_products);
+                        product_selectors input_products,
+                        tbb::flow::graph& graph);
     ~declared_translator() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::experimental::product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -74,7 +75,8 @@ namespace phlex::detail {
                     AlgorithmBits alg,
                     product_selectors input_products,
                     std::vector<std::string> output) :
-      declared_translator{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_translator{
+        std::move(algo_name), std::move(predicates), std::move(input_products), g},
       output_{
         to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
@@ -118,7 +120,7 @@ namespace phlex::detail {
     {
       return tbb::flow::output_port<0>(translator_);
     }
-    product_specifications const& output() const override { return output_; }
+    phlex::experimental::product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,
@@ -144,7 +146,7 @@ namespace phlex::detail {
     }
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    product_specifications output_;
+    phlex::experimental::product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> translator_;
     std::atomic<std::size_t> calls_;

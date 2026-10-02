@@ -98,7 +98,9 @@ namespace phlex::detail {
                    concurrency c = concurrency::serial) const;
 
     /// @brief Registers a translator node.
-    auto translate(std::string name, is_translator_like auto f, concurrency c = concurrency::serial);
+    auto translate(std::string_view name,
+                   is_translator_like auto f,
+                   concurrency c = concurrency::serial) const;
 
     /// @brief Registers an unfold node.
     template <typename Unfolder>
