@@ -66,25 +66,25 @@ namespace phlex::detail {
 
       glue<T> make_glue(bool use_bound_object = true) const
       {
-        return {*context_.graph_,
-                *context_.stage_,
-                *context_.nodes_,
-                use_bound_object ? bound_object_ : nullptr,
-                *context_.errors_,
-                *context_.resources_,
-                context_.config_};
+        return {registration_core{context_.config_,
+                                  *context_.graph_,
+                                  *context_.stage_,
+                                  *context_.nodes_,
+                                  *context_.errors_,
+                                  *context_.resources_},
+                use_bound_object ? bound_object_ : nullptr};
       }
 
       template <typename U>
       glue<U> make_unbound_glue() const
       {
-        return {*context_.graph_,
-                *context_.stage_,
-                *context_.nodes_,
-                nullptr,
-                *context_.errors_,
-                *context_.resources_,
-                context_.config_};
+        return {registration_core{context_.config_,
+                                  *context_.graph_,
+                                  *context_.stage_,
+                                  *context_.nodes_,
+                                  *context_.errors_,
+                                  *context_.resources_},
+                nullptr};
       }
 
     private:
