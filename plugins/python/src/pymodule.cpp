@@ -41,6 +41,9 @@ namespace pymodule_register_providers {
           PyObject* res = PyObject_CallFunctionObjArgs(reg, pys, pyconfig, nullptr);
           Py_XDECREF(res);
         }
+        if (pys) {
+          invalidate_source(pys);
+        }
         Py_XDECREF(pyconfig);
         Py_XDECREF(pys);
         Py_DECREF(reg);
@@ -80,6 +83,9 @@ namespace pymodule_register_algorithms {
         if (pym && pyconfig) {
           PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
           Py_XDECREF(res);
+        }
+        if (pym) {
+          invalidate_module(pym);
         }
         Py_XDECREF(pyconfig);
         Py_XDECREF(pym);
