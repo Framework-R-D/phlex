@@ -24,7 +24,7 @@ namespace {
     {
     }
 
-    std::vector<int> operator()([[maybe_unused]] data_cell_index const& idx)
+    std::vector<int> operator()(data_cell_index const&)
     {
       std::vector<int> randoms(n_time_ticks_);
       for (auto& random : randoms) {

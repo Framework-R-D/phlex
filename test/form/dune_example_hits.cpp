@@ -5,9 +5,12 @@
 // Only candidate hits are used because Phlex cannot yet derive the type_id of the fitted hit.
 
 #include "dune_example_hit_maker.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
+#include "test/form/data_products/dune_example/hit_candidate.hpp"
 
 #include <stdexcept>
 #include <string>
