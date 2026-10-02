@@ -2,9 +2,6 @@ add_definitions("-UNDEBUG")
 
 find_package(Catch2 3.9 REQUIRED)
 
-# Disable __COUNTER__ for fetched and external Catch2 consumers to avoid pedantic warnings.
-target_compile_definitions(Catch2::Catch2 INTERFACE CATCH_CONFIG_NO_COUNTER)
-
 # FetchContent's redirect package does not populate Catch2_VERSION, but
 # cetmodules needs it to select Catch2::Catch2WithMain.  If FetchContent built
 # Catch2, then the version is 3.13.0.

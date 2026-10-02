@@ -2,60 +2,39 @@ include_guard()
 
 include(FetchContent)
 
-function(phlex_external_catch2_has_thread_safe_assertions result)
-  find_package(Catch2 3.9 QUIET)
-  if(NOT TARGET Catch2::Catch2)
-    set(${result} FALSE PARENT_SCOPE)
-    return()
-  endif()
-
-  get_target_property(catch2_include_dirs Catch2::Catch2 INTERFACE_INCLUDE_DIRECTORIES)
-  foreach(catch2_include_dir IN LISTS catch2_include_dirs)
-    set(catch2_user_config "${catch2_include_dir}/catch2/catch_user_config.hpp")
-    if(EXISTS "${catch2_user_config}")
-      file(
-        STRINGS "${catch2_user_config}"
-        catch2_thread_safe_assertions
-        REGEX "^#define CATCH_CONFIG_THREAD_SAFE_ASSERTIONS$"
-      )
-      if(catch2_thread_safe_assertions)
-        set(${result} TRUE PARENT_SCOPE)
-        return()
-      endif()
-    endif()
-  endforeach()
-
-  set(${result} FALSE PARENT_SCOPE)
-endfunction()
-
 set(CATCH_CONFIG_NO_COUNTER ON)
 set(CATCH_CONFIG_THREAD_SAFE_ASSERTIONS ON)
 
-phlex_external_catch2_has_thread_safe_assertions(phlex_use_external_catch2)
-if(NOT phlex_use_external_catch2)
-  set(phlex_restore_find_package_mode FALSE)
-  if(DEFINED FETCHCONTENT_TRY_FIND_PACKAGE_MODE)
-    set(phlex_restore_find_package_mode TRUE)
-    set(phlex_find_package_mode "${FETCHCONTENT_TRY_FIND_PACKAGE_MODE}")
-  endif()
-  set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE NEVER)
-endif()
+# TODO: Revisit this temporary probe-and-replace machinery: require external
+# Catch2 packages to provide the needed features and fail clearly if unsuitable.
+# Fetch only when absent, if still desired, and simplify test_catch2_cmake.py accordingly.
 
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG v3.13.0
-  GIT_SHALLOW ON
-  EXCLUDE_FROM_ALL # Do not install
-  FIND_PACKAGE_ARGS 3.9
+# Imported targets are directory-scoped, not function-scoped. Probe in a child
+# directory so a rejected package cannot collide with the fallback's targets.
+add_subdirectory(
+  "${CMAKE_CURRENT_LIST_DIR}/catch2-probe"
+  "${CMAKE_CURRENT_BINARY_DIR}/catch2-probe"
 )
-
-if(NOT phlex_use_external_catch2)
-  if(phlex_restore_find_package_mode)
-    set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE "${phlex_find_package_mode}")
-  else()
-    unset(FETCHCONTENT_TRY_FIND_PACKAGE_MODE)
-  endif()
+if(phlex_use_external_catch2)
+  find_package(Catch2 3.9 REQUIRED)
+else()
+  FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.13.0
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL # Do not install
+    OVERRIDE_FIND_PACKAGE
+  )
+  FetchContent_MakeAvailable(Catch2)
 endif()
 
-FetchContent_MakeAvailable(Catch2)
+# The fallback defines this in its generated header. Only add a consumer
+# definition for external packages whose header does not already define it.
+if(phlex_use_external_catch2 AND NOT phlex_catch2_has_no_counter)
+  get_target_property(phlex_catch2_target Catch2::Catch2 ALIASED_TARGET)
+  if(NOT phlex_catch2_target)
+    set(phlex_catch2_target Catch2::Catch2)
+  endif()
+  target_compile_definitions(${phlex_catch2_target} INTERFACE CATCH_CONFIG_NO_COUNTER)
+endif()
