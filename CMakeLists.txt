@@ -12,14 +12,6 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS 4.01.01
 )
 # ... and the Catch2 unit testing framework
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG v3.13.0
-  GIT_SHALLOW ON
-  EXCLUDE_FROM_ALL # Do not install
-  FIND_PACKAGE_ARGS
-)
 # ... and Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
   Microsoft.GSL
@@ -89,10 +81,11 @@ cet_cmake_env()
 set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
 set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
+# Prefer a suitably configured external Catch2; otherwise build the pinned fallback.
+include(Modules/private/PhlexCatch2.cmake)
+
 # Make tools available
-FetchContent_MakeAvailable(Catch2 Microsoft.GSL mimicpp)
-# Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
-set(CATCH_CONFIG_COUNTER OFF)
+FetchContent_MakeAvailable(Microsoft.GSL mimicpp)
 
 include(Modules/private/CreateCoverageTargets.cmake)
 include(Modules/private/PhlexSymbolVisibility.cmake)
