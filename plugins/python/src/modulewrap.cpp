@@ -835,7 +835,7 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // set concurrency, or the default of serial if not set
-  nconcur = nconcurrency > 0 ? concurrency(nconcur) : concurrency::serial;
+  nconcur = nconcurrency > 0 ? concurrency(nconcurrency) : concurrency::serial;
 
   // retrieve function name
   if (!pyname) {
