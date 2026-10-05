@@ -4,51 +4,28 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/utilities/bulleted_list.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include <fmt/format.h>
+#include <gsl/pointers>
 
-#include <algorithm>
 #include <cstddef>
-#include <ranges>
-#include <string>
 #include <tuple>
 #include <utility>
-#include <vector>
 
 namespace phlex::detail {
+  namespace internal {
+    PHLEX_CORE_EXPORT gsl::not_null<phlex::experimental::product_specification const*>
+    resolve_product(product_selector const& query, phlex::experimental::product_store const& store);
+  }
+
   template <typename T>
   struct retriever {
     using handle_arg_t = internal::handle_value_type<T>;
     product_selector query;
     auto retrieve(message const& msg) const
     {
-      namespace views = std::ranges::views;
       auto const& store = msg.store;
-      // TODO: This needs to be replaced with a properly engineered solution
-      auto all_products = std::ranges::subrange(store->begin(), store->end()) | views::keys;
-      auto products = all_products |
-                      views::filter([this](phlex::experimental::product_specification const& spec) {
-                        return query.match(spec);
-                      }) |
-                      views::transform([](auto const& spec) { return gsl::make_not_null(&spec); }) |
-                      std::ranges::to<std::vector>();
-      if (products.empty()) {
-        throw std::runtime_error(fmt::format(
-          "No products found matching the query {}\n Store (id {} from {}) contains:\n{}",
-          query,
-          store->index()->to_string(),
-          store->source().to_string(),
-          bulleted_list(all_products, /*indent=*/4)));
-      }
-      if (products.size() > 1) {
-        throw std::runtime_error(fmt::format(
-          "Multiple products found matching the query {}:\n{}",
-          query,
-          bulleted_list(products | views::transform([](auto spec) -> auto const& { return *spec; }),
-                        /*indent=*/4)));
-      }
-      return store->get_handle<handle_arg_t>(products[0]);
+      return store->get_handle<handle_arg_t>(internal::resolve_product(query, *store));
     }
   };
 
