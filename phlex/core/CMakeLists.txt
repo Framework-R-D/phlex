@@ -19,6 +19,7 @@ cet_make_library(
   framework_graph.cpp
   glue.cpp
   index_router.cpp
+  input_arguments.cpp
   make_computational_edges.cpp
   message.cpp
   node_catalog.cpp
