@@ -8,6 +8,7 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include <fmt/format.h>
 #include <gsl/assert>
@@ -315,7 +316,10 @@ namespace phlex::detail {
     gate_for(index)->set_flush_callback(
       [end_token_entries = std::move(end_token_entries)](flush_gate const& fc) {
         for (auto const& entry : *end_token_entries) {
-          auto const count = fc.committed_count_for_layer(entry.counting_layer_hash);
+          signed_size_t count = 0;
+          for (auto const hash : entry.counting_layer_hashes) {
+            count += fc.committed_count_for_layer(hash);
+          }
           entry.flush_port->try_put({.index = fc.index(), .count = count});
         }
       });
@@ -423,7 +427,7 @@ namespace phlex::detail {
   // Message entries: All slots from a node are appended if at least one slot exactly matches the
   // current layer and every slot either exactly matches or is a parent of the routed index.
   //
-  // End-token entries: each matching slot gets one entry per applicable descendant counting path.
+  // End-token entries: each matching slot gets one combined count of its applicable descendants.
   // An explicit counting layer selects descendant paths ending in that name; otherwise the
   // deepest compatible input paths are used. Pass-through slots need no completion token because
   // their products are forwarded once rather than cached for descendant invocations.
@@ -452,9 +456,9 @@ namespace phlex::detail {
                                     : matches_input_chain(layer_path, node_slots.input_layers);
         if (not pass_through) {
           auto hashes = counting_layer_hashes_under(layer_path, flush, node_slots.input_layers);
-          for (auto const hash : hashes) {
+          if (not hashes.empty()) {
             end_token_entries.push_back(
-              {.counting_layer_hash = hash, .flush_port = flush.flush_port});
+              {.counting_layer_hashes = std::move(hashes), .flush_port = flush.flush_port});
           }
         }
         message_slots.push_back(slot);

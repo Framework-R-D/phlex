@@ -39,7 +39,7 @@ namespace phlex::detail {
     // counting layer selects descendants whose trailing layer name matches it; an unset counting
     // layer selects the most-derived compatible input paths, separately on each hierarchy branch.
     // When the slot exactly matches a routed partition, these paths supply the committed counts
-    // that are forwarded individually as indexed_end_tokens to flush_port.
+    // that are combined into one indexed_end_token and forwarded to flush_port.
     struct flush_spec {
       std::optional<phlex::experimental::identifier> counting_layer;
       tbb::flow::receiver<indexed_end_token>* flush_port;
@@ -54,9 +54,11 @@ namespace phlex::detail {
       std::vector<phlex::experimental::identifier> input_layers;
     };
 
-    // Each entry identifies one descendant count in the partition gate's committed_counts_.
+    // One completion token per slot combines all applicable descendant counting paths.
+    // The hashes identify entries in the partition gate's committed_counts_; their sum balances
+    // the receiving slot's pending invocations when the partition flushes.
     struct end_token_entry {
-      std::size_t counting_layer_hash;
+      std::vector<std::size_t> counting_layer_hashes;
       tbb::flow::receiver<indexed_end_token>* flush_port;
     };
     using end_token_entries = std::vector<end_token_entry>;
