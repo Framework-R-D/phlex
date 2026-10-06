@@ -51,7 +51,6 @@ spack:
         - "+form"
         - "cxxstd=23"
         - "%cxx=gcc@${PHLEX_GCC_VERSION}"
-        - "^intel-tbb@2023.0.0:"
 
     py-cython:
       require:
