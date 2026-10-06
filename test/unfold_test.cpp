@@ -382,8 +382,12 @@ TEST_CASE("Nested unfold with a higher-layer input flushes the outer layer", "[g
     char const* description;
     std::vector<unsigned int> expected_b_counts;
   };
-  auto const test = GENERATE(scenario{.description = "Two-input nested unfold (issue reproducer)",
-                                      .expected_b_counts = {2u, 2u, 2u}});
+  auto const test =
+    GENERATE(scenario{.description = "Two-input nested unfold (issue reproducer)",
+                      .expected_b_counts = {2u, 2u, 2u}},
+             scenario{.description = "Some empty b children, including an empty spill partition",
+                      .expected_b_counts = {0u, 1u, 2u}},
+             scenario{.description = "All b partitions empty", .expected_b_counts = {0u, 0u, 0u}});
   CAPTURE(test.description);
 
   std::ostringstream output;
