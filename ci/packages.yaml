@@ -21,6 +21,7 @@ packages:
     require:
       - target=${PHLEX_SPACK_TARGET}
     providers:
+      "tbb:": [intel-tbb, intel-oneapi-tbb]
       "zlib-api:": [zlib]
 
   c:

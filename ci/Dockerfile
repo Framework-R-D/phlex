@@ -235,7 +235,7 @@ SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT"
 git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
-git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
+git clone --branch fix/tweak-tbb-for-targets https://github.com/greenc-FNAL/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
