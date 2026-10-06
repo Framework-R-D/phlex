@@ -79,6 +79,11 @@ namespace phlex::experimental {
     return layer_path_.back() == name;
   }
 
+  bool layer_path::contains(identifier const& name) const noexcept
+  {
+    return std::ranges::contains(layer_path_, name);
+  }
+
   std::string layer_path::to_string() const
   {
     return fmt::format("{}{}", is_complete() ? "/" : "", fmt::join(layer_path_, "/"));

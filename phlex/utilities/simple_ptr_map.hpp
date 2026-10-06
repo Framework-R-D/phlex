@@ -11,6 +11,7 @@
 //   - try_emplace(string, Ptr)
 //   - begin()
 //   - end()
+//   - size()
 //   - get(std::string const& key) [[not provided by std::map]]
 //
 // The 'get(...') function returns a bare pointer to the stored element if it exists;
@@ -44,8 +45,9 @@ namespace phlex::detail {
       return data_.try_emplace(std::move(node_name), std::move(node_ptr));
     }
 
-    auto begin() const { return data_.begin(); }
-    auto end() const { return data_.end(); }
+    auto begin() const noexcept { return data_.begin(); }
+    auto end() const noexcept { return data_.end(); }
+    auto size() const noexcept { return data_.size(); }
 
     ptr::element_type* get(std::string const& node_name) const
     {
