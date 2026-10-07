@@ -2,6 +2,7 @@
 
 #include "storage_associative_write_container.hpp"
 
+#include "core/container_naming.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_write_container.hpp"
 
@@ -12,16 +13,11 @@
 using namespace form::detail::experimental;
 
 storage_associative_write_container::storage_associative_write_container(std::string const& name) :
-  storage_write_container::storage_write_container(name), parent_(nullptr)
+  storage_write_container::storage_write_container(name),
+  t_name_(row_space_of(name)),
+  c_name_(label_of(name).value_or("Main")),
+  parent_(nullptr)
 {
-  auto del_pos = name.find('/');
-  if (del_pos != std::string::npos) {
-    t_name_ = name.substr(0, del_pos);
-    c_name_ = name.substr(del_pos + 1);
-  } else {
-    t_name_ = name;
-    c_name_ = "Main";
-  }
 }
 
 storage_associative_write_container::~storage_associative_write_container() = default;
