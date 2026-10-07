@@ -28,6 +28,7 @@ cet_make_library(
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
+  resource/catalog.cpp
   LIBRARIES
   PUBLIC
   TBB::tbb
