@@ -279,8 +279,8 @@
 
 **Dependency Management:**
 
-- FetchContent for test frameworks (Catch2, GSL)
-- find_package for external libraries (Boost, TBB, fmt)
+- FetchContent for test frameworks (Catch2)
+- find_package for installed external libraries (Microsoft GSL, Boost, TBB, fmt)
 - Cetmodules for HEP-specific packaging
 
 **Build Options:**

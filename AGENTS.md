@@ -41,7 +41,7 @@ Container images: `phlex-ci` (CI), `phlex-dev` (devcontainer/local dev).
 - **Intel TBB** — parallel execution engine
 - **Boost** (json, program_options), **fmt**, **spdlog**, **jsonnet** library
 - **Catch2 v3.10.0** (FetchContent) — C++ tests
-- **Microsoft GSL v4.2.0** (FetchContent) — C++ Core Guidelines support
+- **Microsoft GSL v4.2.0** — C++ Core Guidelines support
 - **pytest + pytest-cov** — Python tests
 
 ## Source Layout

@@ -29,7 +29,7 @@
 | Tool | Purpose |
 | ---- | ------- |
 | Catch2 v3.10.0 | C++ unit tests (FetchContent) |
-| Microsoft GSL v4.2.0 | Core Guidelines support (FetchContent) |
+| Microsoft GSL v4.2.0 | Core Guidelines support |
 | pytest + pytest-cov | Python tests |
 
 ## Build Options

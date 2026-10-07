@@ -20,15 +20,6 @@ FetchContent_Declare(
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
 )
-# ... and Microsoft's C++ Guideline Support Library
-FetchContent_Declare(
-  Microsoft.GSL
-  GIT_REPOSITORY https://github.com/microsoft/GSL
-  GIT_TAG v4.2.0
-  GIT_SHALLOW ON
-  EXCLUDE_FROM_ALL # Do not install
-  FIND_PACKAGE_ARGS
-)
 
 # ##############################################################################
 # Initial compilation flags for build types we care about. Setting these in the
@@ -81,7 +72,7 @@ set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
 set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
-FetchContent_MakeAvailable(Catch2 Microsoft.GSL)
+FetchContent_MakeAvailable(Catch2)
 # Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
 set(CATCH_CONFIG_COUNTER OFF)
 
