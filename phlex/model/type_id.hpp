@@ -3,19 +3,19 @@
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex/phlex_model_export.hpp"
 
-#include <boost/container_hash/hash.hpp>
-#include <boost/core/demangle.hpp>
 #include <boost/hash2/hash_append.hpp>
 #include <boost/pfr/core.hpp>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
-#include <array>
+#include <compare>
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <vector>
 
 namespace phlex::experimental {
@@ -24,7 +24,7 @@ namespace phlex::experimental {
   template <typename T>
   constexpr type_id make_type_id();
 
-  std::size_t hash_value(type_id const& id);
+  PHLEX_MODEL_EXPORT std::size_t hash_value(type_id const& id);
 }
 
 namespace phlex::detail {
@@ -100,7 +100,7 @@ namespace phlex::experimental {
 
     bool exact_compare(type_id const& rhs) const { return *exact_ == *(rhs.exact_); }
 
-    std::string exact_name() const { return boost::core::demangle(exact_->name()); }
+    PHLEX_MODEL_EXPORT std::string exact_name() const;
 
     template <typename T>
     friend constexpr type_id make_type_id();
@@ -299,52 +299,10 @@ namespace phlex::detail {
   }
 }
 
-namespace phlex::experimental {
-  inline std::size_t hash_value(type_id const& id)
-  {
-    std::size_t hash = std::hash<unsigned char>{}(id.id_);
-    if (id.has_children()) {
-      boost::hash_combine(hash, id.children_);
-    }
-    return hash;
-  }
-}
-
 template <>
 struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
-  auto format(phlex::experimental::type_id type, format_context& ctx) const
-  {
-    using namespace std::string_literals;
-    using namespace phlex::experimental;
-    if (!type.valid()) {
-      return fmt::formatter<std::string>::format("INVALID / EMPTY"s, ctx);
-    }
-    if (type.has_children()) {
-      std::string const out = fmt::format(
-        "{}STRUCT {{{}}}", type.is_list() ? "LIST " : "", fmt::join(type.children_, ", "));
-      return fmt::formatter<std::string>::format(out, ctx);
-    }
-
-    // Valid non-aggregate IDs use the contiguous builtin values, starting with void_v = 0.
-    // Once we move to C++26, we can use the reflection API to get the name of the type
-    // directly instead of hardcoding it as we do here.
-    static constexpr std::array<std::string_view, 10> fundamental_names{"void",
-                                                                        "bool",
-                                                                        "char",
-                                                                        "int",
-                                                                        "short",
-                                                                        "long",
-                                                                        "long long",
-                                                                        "float",
-                                                                        "double",
-                                                                        "long double"};
-    auto const fundamental = fundamental_names.at(static_cast<std::size_t>(type.fundamental()));
-    std::string const out = fmt::format("{}{}{}",
-                                        type.is_list() ? "LIST "s : ""s,
-                                        type.is_unsigned() ? "unsigned "s : ""s,
-                                        fundamental);
-    return fmt::formatter<std::string>::format(out, ctx);
-  }
+  PHLEX_MODEL_EXPORT format_context::iterator format(phlex::experimental::type_id type,
+                                                     format_context& ctx) const;
 };
 
 #endif // PHLEX_MODEL_TYPE_ID_HPP
