@@ -49,10 +49,11 @@
 //
 // =======================================================================================
 
+#include "phlex/core/fwd.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include <cassert>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -67,66 +68,48 @@ namespace phlex::detail {
   }
 
   template <typename Ptr>
-  class registrar {
+  class PHLEX_CORE_EXPORT registrar {
     using nodes = simple_ptr_map<Ptr>;
     using node_creator = std::function<Ptr(std::vector<std::string>, std::vector<std::string>)>;
 
   public:
-    explicit registrar(nodes& node_map, std::vector<std::string>& errors) :
-      nodes_{&node_map}, errors_{&errors}
-    {
-    }
+    explicit registrar(nodes& node_map, std::vector<std::string>& errors);
 
     registrar(registrar const&) = delete;
     registrar& operator=(registrar const&) = delete;
 
-    registrar(registrar&&) = default;
-    registrar& operator=(registrar&&) = default;
+    // Moving must clear the source creator so its destructor cannot register the node again.
+    registrar(registrar&& other) noexcept;
+    registrar& operator=(registrar&& other) noexcept;
 
-    bool has_predicates() const { return predicates_.has_value(); }
+    bool has_predicates() const;
 
-    void set_creator(node_creator creator) { creator_ = std::move(creator); }
-    void set_predicates(std::optional<std::vector<std::string>> predicates)
-    {
-      predicates_ = std::move(predicates);
-    }
+    void set_creator(node_creator creator);
+    void set_predicates(std::optional<std::vector<std::string>> predicates);
 
-    void set_output_product_suffixes(std::vector<std::string> output_product_suffixes)
-    {
-      create_node(std::move(output_product_suffixes));
-    }
+    void set_output_product_suffixes(std::vector<std::string> output_product_suffixes);
 
-    ~registrar() noexcept(false)
-    {
-      if (creator_) {
-        create_node(std::move(output_product_suffixes_));
-      }
-    }
+    ~registrar() noexcept(false);
 
   private:
-    std::vector<std::string> release_predicates()
-    {
-      return std::move(predicates_).value_or(std::vector<std::string>{});
-    }
+    std::vector<std::string> release_predicates();
 
-    void create_node(std::vector<std::string> output_product_suffixes)
-    {
-      assert(creator_);
-      auto create = std::exchange(creator_, node_creator{});
-      auto ptr = create(release_predicates(), std::move(output_product_suffixes));
-      auto name = ptr->name().to_string();
-      auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
-      if (not inserted) {
-        internal::add_to_error_messages(*errors_, "Node", name);
-      }
-    }
+    void create_node(std::vector<std::string> output_product_suffixes);
 
     nodes* nodes_;
     std::vector<std::string>* errors_;
-    node_creator creator_{};
+    node_creator creator_;
     std::optional<std::vector<std::string>> predicates_;
     std::vector<std::string> output_product_suffixes_;
   };
+
+  extern template class registrar<std::unique_ptr<declared_fold>>;
+  extern template class registrar<std::unique_ptr<declared_observer>>;
+  extern template class registrar<std::unique_ptr<declared_output>>;
+  extern template class registrar<std::unique_ptr<declared_predicate>>;
+  extern template class registrar<std::unique_ptr<declared_transform>>;
+  extern template class registrar<std::unique_ptr<declared_unfold>>;
+  extern template class registrar<std::unique_ptr<provider_node>>;
 }
 
 #endif // PHLEX_CORE_REGISTRAR_HPP
