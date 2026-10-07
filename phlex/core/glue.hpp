@@ -18,6 +18,7 @@
 #include <string_view>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace phlex {
   class configuration;
@@ -27,6 +28,10 @@ namespace phlex::detail {
   struct node_catalog;
   namespace internal {
     PHLEX_CORE_EXPORT void verify_name(std::string_view name, configuration const* config);
+    PHLEX_CORE_EXPORT void register_source(source_map& sources,
+                                           std::vector<std::string>& errors,
+                                           std::string_view name,
+                                           source_ptr src);
   }
 
   // ==============================================================================
@@ -198,11 +203,8 @@ namespace phlex::detail {
     template <std::derived_from<source> Source, typename... Args>
     void add_source(std::string_view name, Args&&... args)
     {
-      auto [_, inserted] = nodes_.sources.try_emplace(
-        std::string{name}, std::make_unique<Source>(std::forward<Args>(args)...));
-      if (not inserted) {
-        internal::add_to_error_messages(errors_, "Source", std::string{name}); // From registrar.hpp
-      }
+      internal::register_source(
+        nodes_.sources, errors_, name, std::make_unique<Source>(std::forward<Args>(args)...));
     }
 
   private:
