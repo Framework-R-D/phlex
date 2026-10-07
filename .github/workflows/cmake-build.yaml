@@ -129,13 +129,38 @@ jobs:
       )
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.generate.outputs.matrix }}
+      matrix: ${{ steps.expand-arch.outputs.matrix }}
     steps:
       - id: generate
         uses: Framework-R-D/action-generate-build-matrix@a867325d7153f7fcc7d64fc69eafcb2b97edae39 # v1
         with:
           user-input: ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
+
+      - name: Expand architecture matrix
+        # Cross each compiler/sanitizer combo with the supported architectures and
+        # attach the matching runner label.  Perfetto profiling runs on both, as the
+        # CI image installs the native tracebox prebuild for its own architecture.
+        id: expand-arch
+        shell: bash
+        env:
+          MATRIX_JSON: ${{ steps.generate.outputs.matrix }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          combos = json.loads(os.environ.get("MATRIX_JSON") or '{"include": []}').get("include", [])
+          runners = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
+
+          expanded = []
+          for combo in combos:
+              for arch, runner in runners.items():
+                  expanded.append({**combo, "arch": arch, "runner": runner})
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              print("matrix=" + json.dumps({"include": expanded}), file=handle)
+          PY
 
   build:
     needs: [setup, generate-matrix]
@@ -146,7 +171,7 @@ jobs:
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
       )
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
@@ -277,7 +302,7 @@ jobs:
         if: matrix.sanitizer == 'perfetto'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: perfetto-traces-${{ matrix.compiler }}
+          name: perfetto-traces-${{ matrix.compiler }}-${{ matrix.arch }}
           path: |
             ${{ needs.setup.outputs.build_path }}/**/*.pftrace
           retention-days: 30
