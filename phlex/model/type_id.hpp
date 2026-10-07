@@ -3,16 +3,18 @@
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex/phlex_model_export.hpp"
 
-#include <boost/container_hash/hash.hpp>
-#include <boost/core/demangle.hpp>
 #include <boost/hash2/hash_append.hpp>
 #include <boost/pfr/core.hpp>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
+#include <compare>
+#include <cstddef>
+#include <functional>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <vector>
 
 namespace phlex::experimental {
@@ -21,7 +23,7 @@ namespace phlex::experimental {
   template <typename T>
   constexpr type_id make_type_id();
 
-  std::size_t hash_value(type_id const& id);
+  PHLEX_MODEL_EXPORT std::size_t hash_value(type_id const& id);
 }
 
 namespace phlex::detail {
@@ -97,7 +99,7 @@ namespace phlex::experimental {
 
     bool exact_compare(type_id const& rhs) const { return *exact_ == *(rhs.exact_); }
 
-    std::string exact_name() const { return boost::core::demangle(exact_->name()); }
+    PHLEX_MODEL_EXPORT std::string exact_name() const;
 
     template <typename T>
     friend constexpr type_id make_type_id();
@@ -296,77 +298,10 @@ namespace phlex::detail {
   }
 }
 
-namespace phlex::experimental {
-  inline std::size_t hash_value(type_id const& id)
-  {
-    std::size_t hash = std::hash<unsigned char>{}(id.id_);
-    if (id.has_children()) {
-      boost::hash_combine(hash, id.children_);
-    }
-    return hash;
-  }
-}
-
 template <>
 struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
-  auto format(phlex::experimental::type_id type, format_context& ctx) const
-  {
-    using namespace std::string_literals;
-    using namespace phlex::experimental;
-    if (!type.valid()) {
-      return fmt::formatter<std::string>::format("INVALID / EMPTY"s, ctx);
-    }
-    if (type.has_children()) {
-      std::string const out = fmt::format(
-        "{}STRUCT {{{}}}", type.is_list() ? "LIST " : "", fmt::join(type.children_, ", "));
-      return fmt::formatter<std::string>::format(out, ctx);
-    }
-
-    std::string fundamental = "void"s;
-    switch (type.fundamental()) {
-    case type_id::builtin::void_v:
-      fundamental = "void"s;
-      break;
-    case type_id::builtin::bool_v:
-      fundamental = "bool"s;
-      break;
-    case type_id::builtin::char_v:
-      fundamental = "char"s;
-      break;
-    case type_id::builtin::int_v:
-      fundamental = "int"s;
-      break;
-
-    case type_id::builtin::short_v:
-      fundamental = "short"s;
-      break;
-
-    case type_id::builtin::long_v:
-      fundamental = "long"s;
-      break;
-
-    case type_id::builtin::long_long_v:
-      fundamental = "long long"s;
-      break;
-
-    case type_id::builtin::float_v:
-      fundamental = "float"s;
-      break;
-
-    case type_id::builtin::double_v:
-      fundamental = "double"s;
-      break;
-
-    case type_id::builtin::long_double_v:
-      fundamental = "long double"s;
-      break;
-    }
-    std::string const out = fmt::format("{}{}{}",
-                                        type.is_list() ? "LIST "s : ""s,
-                                        type.is_unsigned() ? "unsigned "s : ""s,
-                                        fundamental);
-    return fmt::formatter<std::string>::format(out, ctx);
-  }
+  PHLEX_MODEL_EXPORT format_context::iterator format(phlex::experimental::type_id type,
+                                                     format_context& ctx) const;
 };
 
 #endif // PHLEX_MODEL_TYPE_ID_HPP
