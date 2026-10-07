@@ -1,23 +1,73 @@
 # syntax=docker/dockerfile:1.4
 
-# Multi-target Dockerfile for building the Phlex CI and development images.
+# Multi-target podman/Dockerfile for building the Phlex CI and
+# development images.
 
+########################################################################
 # Podman instructions for building tagged images with this file:
 #
-#   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache:Z] \
-#       [-v ~/.gnupg:/run/gpg:Z] \
-#       --target ci   --tag phlex-ci:<tag>  .
-#   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache:Z] \
-#       [-v ~/.gnupg:/run/gpg:Z] \
-#       --target dev  --tag phlex-dev:<tag> .
-#   $ podman login ghcr.io --username <username> -p <token>
-#   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
-#   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
-# ... and optionally push either image as "latest".
+# Customizable variables for substitution in commands below:
 #
-# where <tag> is the date (e.g. "2025-08-12").
+#   GPG_KEY_ID=
+#   PHLEX_TAG_EXTRA=
+#
+#   PHLEX_DEFAULT_COMPILER=gcc
+#   PHLEX_GCC_VERSION=15.3
+#   PHLEX_LLVM_TARGET=auto
+#   PHLEX_LLVM_VERSION=22.1.8
+#   PHLEX_PODMAN_TARGET=ci|dev
+#   PHLEX_SPACK_CACHE= # /scratch/${USER}/phlex-build-cache...
+#   PHLEX_SPACK_TARGET=x86_64_v3|aarch64
+#   PHLEX_TAG_BASE=phlex-${PHLEX_PODMAN_TARGET}
+#   PHLEX_TAG_TAG=$(date +%F)${PHLEX_TAG_EXTRA}
+#   PHLEX_TAG_REMOTE=ghcr.io/framework-r-d/
+#
+# Derivative variables:
+#
+#   PHLEX_TAG_LOCAL=${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}-${PHLEX_SPACK_TARGET}
+#   PHLEX_TAG_LATEST=${PHLEX_TAG_REMOTE}${PHLEX_TAG_BASE}:latest
+#   PHLEX_TAG_MANIFEST=${PHLEX_TAG_REMOTE}${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}
+#
+# Docker build command:
+#
+#   podman build --format docker \
+#     ${PHLEX_SPACK_CACHE:+-v ${PHLEX_SPACK_CACHE}:/build-cache:Z} \
+#     -v ~/.gnupg:/run/gpg:Z \
+#     --target ${PHLEX_PODMAN_TARGET} --tag ${PHLEX_TAG_LOCAL} \
+#     ${GPG_KEY_ID:+--build-arg GPG_KEY_ID=${GPG_KEY_ID}} \
+#     --build_arg PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET} \
+#     --build_arg PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET} \
+#     --build_arg PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION} \
+#     --build_arg PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION} \
+#     --build_arg PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER} \
+#
+# Registry login command:
+#
+#   podman login ghcr.io --username <username> -p <token>
+#
+# Push image to registry:
+#
+#   podman push ${PHLEX_TAG_LOCAL} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
+#
+# After both architectures have been pushed:
+#
+#   podman manifest create ${PHLEX_TAG_MANIFEST}
+#
+# For each architecture-specific ${PHLEX_SPACK_LOCAL}:
+#
+#   podman manifest ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
+#
+# Inspect and push the full manifest:
+#
+#   podman manifest inspect ${PHLEX_TAG_MANIFEST}
+#   podman manifest push --all ${PHLEX_TAG_MANIFEST}
+#
+# If you are ready to turn over the latest tag, then:
+#
+#   podman tag ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_LATEST}
+#   podman push --all ${PHLEX_TAG_LATEST}
+#
+########################################################################
 #
 # Binary package signing (optional):
 #   When -v <local-spack-cache>:/build-cache is supplied, newly built
