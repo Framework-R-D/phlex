@@ -279,7 +279,7 @@
 
 **Dependency Management:**
 
-- FetchContent for test frameworks (Catch2, mimicpp, GSL)
+- FetchContent for test frameworks (Catch2, GSL)
 - find_package for external libraries (Boost, TBB, fmt)
 - Cetmodules for HEP-specific packaging
 

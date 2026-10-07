@@ -32,7 +32,7 @@ Primary build system with modern CMake practices.
 
 **Key Features**:
 
-- FetchContent for dependency management (Catch2, GSL, mimicpp, cetmodules)
+- FetchContent for dependency management (Catch2, GSL, cetmodules)
 - CTest integration for testing
 - Custom targets for coverage, clang-tidy, formatting
 - Multi-configuration support (Debug, Release, RelWithDebInfo, Coverage)
@@ -101,11 +101,6 @@ Fermilab's CMake modules for HEP software, providing:
 **Catch2** (v3.10.0)
 
 - Unit testing framework
-- Fetched via FetchContent
-
-**mimicpp** (v8)
-
-- Modern C++ mocking framework
 - Fetched via FetchContent
 
 **pytest** (Python)

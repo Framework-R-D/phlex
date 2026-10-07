@@ -29,7 +29,6 @@
 | Tool | Purpose |
 | ---- | ------- |
 | Catch2 v3.10.0 | C++ unit tests (FetchContent) |
-| mimicpp v8 | C++ mocking (FetchContent) |
 | Microsoft GSL v4.2.0 | Core Guidelines support (FetchContent) |
 | pytest + pytest-cov | Python tests |
 
