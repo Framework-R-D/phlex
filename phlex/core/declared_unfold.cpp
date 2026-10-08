@@ -9,11 +9,13 @@
 #include "phlex/model/products.hpp"
 #include "phlex/utilities/hashing.hpp"
 
+#include <fmt/format.h>
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cstddef>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +56,14 @@ namespace phlex::detail {
                       require_layers::always},
     child_layer_{std::move(child_layer)}
   {
+    // Forbid multi-layer inputs until Phlex v0.5.
+    std::set collapsed_layers{std::from_range, layers()};
+    if (collapsed_layers.size() > 1u) {
+      throw std::invalid_argument(
+        fmt::format("Unfolds cannot yet accept multi-layer inputs (node: {}, layers: {})",
+                    this->name().to_string(),
+                    collapsed_layers));
+    }
   }
 
   declared_unfold::~declared_unfold() = default;
