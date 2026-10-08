@@ -56,9 +56,6 @@ namespace pymodule_register_providers {
       }
       throw std::runtime_error(error_msg);
     }
-
-    //m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
-    //.output_product(product_selector{.creator = "input", .layer = "event", .suffix = "i"});
   }
 } // namespace pymodule_register_providers
 
