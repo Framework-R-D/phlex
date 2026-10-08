@@ -15,8 +15,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::detail {
   namespace internal {
@@ -26,21 +28,20 @@ namespace phlex::detail {
     // ==========================================================================================
     // A multilayer_slot (one per registered named_index_port) captures the routing decision
     // for one input slot of a multi-layer join node.  See the implementation file for the full
-    // description.  The slot is concerned purely with message routing — flush-side metadata is
+    // description.  The slot is concerned purely with message routing; flush-side metadata is
     // carried separately in a paired flush_spec (see below) so that the slot need not know
     // about counting layers or flush ports.
     class multilayer_slot;
     using multilayer_slots = std::vector<std::shared_ptr<multilayer_slot>>;
     using multilayer_slots_ptr = std::shared_ptr<multilayer_slots const>;
 
-    // The flush-side metadata for one registered named_index_port, paired positionally
-    // with the corresponding multilayer_slot in join_node_slots (below).  When the
-    // paired slot exactly matches a routed partition index, the router materializes one
-    // end_token_entry per descendant of the routed path whose trailing layer name equals
-    // `counting_layer`; the entry's count is later drawn from the gate's
-    // committed_counts_ at the resolved hash and forwarded to `flush_port`.
+    // Flush metadata paired positionally with the routing slot in join_node_slots. An explicit
+    // counting layer selects descendants whose trailing layer name matches it; an unset counting
+    // layer selects the most-derived compatible input paths, separately on each hierarchy branch.
+    // When the slot exactly matches a routed partition, these paths supply the committed counts
+    // that are combined into one indexed_end_token and forwarded to flush_port.
     struct flush_spec {
-      phlex::experimental::identifier counting_layer;
+      std::optional<phlex::experimental::identifier> counting_layer;
       tbb::flow::receiver<indexed_end_token>* flush_port;
     };
 
@@ -50,14 +51,14 @@ namespace phlex::detail {
     struct join_node_slots {
       multilayer_slots slots;
       std::vector<flush_spec> flush_specs;
+      std::vector<phlex::experimental::identifier> input_layers;
     };
 
-    // An end_token_entry binds a downstream flush_port to a specific path-aware
-    // committed-counts entry that the partition flush must subtract on the receiving side.
-    // The router materializes one entry per `(slot, counting-layer descendant path)`
-    // pair when resolving end tokens for a routed partition index.
+    // One completion token per slot combines all applicable descendant counting paths.
+    // The hashes identify entries in the partition gate's committed_counts_; their sum balances
+    // the receiving slot's pending invocations when the partition flushes.
     struct end_token_entry {
-      std::size_t counting_layer_hash;
+      std::vector<std::size_t> counting_layer_hashes;
       tbb::flow::receiver<indexed_end_token>* flush_port;
     };
     using end_token_entries = std::vector<end_token_entry>;
@@ -87,38 +88,29 @@ namespace phlex::detail {
     };
     using fold_partition_ports_t = std::map<std::string, fold_input_port_t>;
 
-    // Pairs an unfold's input layer name with the child layer name it produces.  These
-    // pairs let establish_layers() extend the static layer hierarchy with the dynamic
-    // paths that unfolds introduce at runtime, so that downstream path-aware hash
-    // resolution (e.g. counting_layer_hashes_under) can discover unfold-produced layers.
-    struct unfold_layer_pair {
-      phlex::experimental::identifier input;
-      phlex::experimental::identifier output;
+    // Keeps an unfold's input layers together with the child layer it produces. Only the deepest
+    // input on a compatible ancestor chain parents the children and receives the unfold's flush.
+    // This metadata lets the router discover generated paths before any runtime indices arrive.
+    struct unfold_layer_spec {
+      std::string name;
+      std::vector<phlex::experimental::identifier> input_layers;
+      phlex::experimental::identifier output_layer;
     };
 
     explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes const& flushes);
 
-    // Establishes the layer hierarchy, registers unfold metadata, and wires all TBB graph
-    // edges needed before execution.
-    //
-    // `layer_paths_from_driver` supplies the static layer paths (e.g. /job, /job/event).
-    // `unfold_layer_pairs` lets the router extend those paths with the dynamic layers
-    // produced by unfolds.  For each pair (in, out) and each known path whose trailing
-    // segment is `in`, a synthetic path with `out` appended is added to the hierarchy.
-    // The augmentation is iterated to a fixed point so that chained unfolds (out of one
-    // feeds into another) are fully resolved.
-    // `unfold_count_per_input_layer` registers how many unfolds produce children from each
-    // input layer, so that flush_gates are initialized with the correct expected child count
-    // when they are first created.
-    struct unfold_data {
-      std::vector<unfold_layer_pair> layer_pairs;
-      std::map<phlex::experimental::identifier, std::size_t> count_per_input_layer;
-    };
+    using unfold_data = std::vector<unfold_layer_spec>;
 
+    // Establishes the layer hierarchy, registers unfold flush expectations, and wires the TBB
+    // graph edges needed before execution. Driver declarations supply the static paths; their
+    // intermediate parents and implicit /job roots are included in the hierarchy.
+    // Unfold-generated paths and per-parent flush expectations are resolved together to a fixed
+    // point so chained unfolds are handled regardless of registration order. Each parent gate
+    // then waits for every unfold that produces children from that particular hierarchy path.
     void finalize(tbb::flow::graph& g,
-                  std::vector<phlex::experimental::layer_path> layer_paths_from_driver,
-                  unfold_data unfolds,
+                  std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
+                  unfold_data const& unfolds,
                   provider_input_ports_t provider_input_ports,
                   fold_partition_ports_t fold_partition_ports,
                   std::map<std::string, named_index_ports> const& multilayer_join_ports);
@@ -138,17 +130,15 @@ namespace phlex::detail {
                               bool is_lowest_layer,
                               std::size_t message_id);
     bool index_is_lowest_layer(data_cell_index_ptr const& index);
-    // Hash-only lookup, intended for classifying child layer hashes that arrive in flush
-    // messages (where only the hash is available, not a data_cell_index).  Returns the
-    // cached classification when known; defaults to lowest for unknown hashes, which is
-    // correct for unfold outputs (the only source of unknown hashes) and consistent with
-    // index_is_lowest_layer()'s fall-through default.
+    // Hash-only lookup for child paths from flush messages, where no data_cell_index is available.
+    // Returns the cached classification for known paths; unknown hashes default to lowest,
+    // consistently with index_is_lowest_layer()'s fallback.
     bool is_lowest_layer_hash(std::size_t layer_hash) const;
 
     // finalize() helpers — each owns one initialization step.
     void establish_layer_hierarchy(
-      std::vector<phlex::experimental::layer_path> layer_paths_from_driver,
-      std::vector<unfold_layer_pair> const& layer_pairs);
+      std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
+      unfold_data const& unfolds);
     void wire_provider_index_sets(tbb::flow::graph& g, provider_input_ports_t provider_input_ports);
     void wire_fold_partition_index_sets(tbb::flow::graph& g,
                                         fold_partition_ports_t fold_partition_ports);
@@ -172,30 +162,20 @@ namespace phlex::detail {
     flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
-    // Returns one path-aware layer_hash per static-hierarchy layer path whose trailing
-    // segment equals `counting_layer_name` and whose path lies strictly under
-    // `partition_layer_path`.  Used by `multilayer_slots_for` to materialize one
-    // end_token_entry per descendant counting-layer path when a slot's counting layer
-    // differs from its routing layer.
+    // Resolve all counting paths strictly below this partition for one receiving slot.
+    // An explicit counting layer matches trailing names; otherwise the candidate must contain
+    // all input layers and end in one of them. The path-aware hashes select committed counts
+    // from the partition's flush gate, including counts for unfold-produced descendants.
     std::vector<std::size_t> counting_layer_hashes_under(
       phlex::experimental::layer_path const& partition_layer_path,
-      phlex::experimental::identifier const& counting_layer_name) const;
-
-    // Returns the deepest (most-derived) layer name among `layer_names` according to the
-    // static hierarchy in `sorted_layer_paths_`.  Depth is determined by the maximum path
-    // length of any registered path whose trailing segment equals the layer name; the
-    // name with the greatest such depth wins, with ties broken by lexicographic order on
-    // the layer name itself for determinism.  Layer names that aren't present in
-    // `sorted_layer_paths_` (rare — should only occur for genuinely-unknown layers)
-    // contribute a depth of 0 and are therefore never selected when a known peer exists.
-    phlex::experimental::identifier deepest_layer_name(
-      std::vector<phlex::experimental::identifier> const& layer_names) const;
+      internal::flush_spec const& flush,
+      std::vector<phlex::experimental::identifier> const& input_layers) const;
 
     tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
     tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;
     std::atomic<std::size_t> received_indices_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;
-    // Layer paths from the driver, sorted lexicographically.  Used to resolve a slot's
+    // Driver and unfold paths, sorted lexicographically. Used to resolve a slot's
     // counting-layer name into the set of path-aware layer hashes that the flush gate
     // will populate, when the counting layer differs from the routing layer.
     std::vector<phlex::experimental::layer_path> sorted_layer_paths_;
@@ -217,8 +197,8 @@ namespace phlex::detail {
       multilayer_join_slots_;
 
     // This struct lets multilayer_slots_for return message slots and end-token entries together,
-    // instead of passing concurrent_hash_map accessors as output parameters. End-token entries are
-    // generated only for fold partition slots: one entry per descendant path at the counting layer.
+    // instead of passing concurrent_hash_map accessors as output parameters. End-token entries
+    // contain one combined descendant count per receiving slot.
     struct multilayer_slot_cache_entry {
       internal::multilayer_slots_ptr message_slots;
       internal::end_token_entries_ptr end_token_entries;
@@ -237,9 +217,10 @@ namespace phlex::detail {
     using const_accessor = gates_t::const_accessor;
     gates_t flush_gates_;
 
-    // Number of unfolds that will send flush messages for each input layer.  Used to
-    // initialize flush_gates with the correct expected child count.
-    std::map<phlex::experimental::identifier, std::size_t> unfold_count_per_input_layer_;
+    // Layer-path hashes, not bare names: repeated names can have different unfold parents.
+    // These counts are passed to flush_gate; see its expected_flush_count documentation for why
+    // a gate may need to wait for flushes from multiple unfolds.
+    std::map<std::size_t, std::size_t> number_unfolds_per_parent_path_;
   };
 }
 
