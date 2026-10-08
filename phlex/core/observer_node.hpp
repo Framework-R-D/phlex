@@ -80,11 +80,6 @@ namespace phlex::detail {
       return receiver_for<num_products>(join_, input(), input_product, observer_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<num_products>(join_, observer_);
-    }
-
     template <std::size_t... Is>
     void call(function_t const& ft,
               messages_t<num_products> const& messages,

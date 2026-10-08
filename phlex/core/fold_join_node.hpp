@@ -191,17 +191,6 @@ namespace phlex::detail {
   }
 
   namespace detail {
-    // Returns pointers to all N input ports of the join node.  Only valid for N > 1;
-    // callers with a single input should use the node directly.
-    template <typename FoldResult, std::size_t N>
-    std::vector<tbb::flow::receiver<message>*> input_ports(fold_join_node<FoldResult, N>& join)
-    {
-      return [&join]<std::size_t... Is>(
-               std::index_sequence<Is...>) -> std::vector<tbb::flow::receiver<message>*> {
-        return {&input_port<1 + Is>(join)...}; // +1 to skip the result repeater port
-      }(std::make_index_sequence<N>{});
-    }
-
     // Looks up the port index for the given input product query, then returns a reference to
     // the corresponding input port of the join node.  Only valid for N > 1.
     template <typename FoldResult, std::size_t N>
@@ -212,14 +201,6 @@ namespace phlex::detail {
       auto const index = port_index_for(input_products, input_product);
       return receiver_for<1ull>(join, index); // Start at 1 to skip the result repeater port
     }
-  }
-
-  // Returns all input-port pointers for a node.  For N == 1 the node itself is the sole
-  // receiver; for N > 1 each port of the join is returned.
-  template <typename FoldResult, std::size_t N>
-  std::vector<tbb::flow::receiver<message>*> input_ports(fold_join_node<FoldResult, N>& join)
-  {
-    return detail::input_ports(join);
   }
 
   // Returns the receiver for the input port that corresponds to the given input product query.

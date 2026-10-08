@@ -93,11 +93,6 @@ namespace phlex::detail {
       return builder::output_port(predicate_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<num_products>(join_, predicate_);
-    }
-
     template <std::size_t... Is>
     bool call(function_t const& ft,
               messages_t<num_products> const& messages,

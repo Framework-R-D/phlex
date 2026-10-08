@@ -107,11 +107,6 @@ namespace phlex::detail {
       return receiver_for<num_products>(join_, input(), input_product, transform_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<num_products>(join_, transform_);
-    }
-
     tbb::flow::sender<message>& output_port() override { return builder::output_port(transform_); }
     phlex::experimental::product_specifications const& output() const override { return output_; }
 
