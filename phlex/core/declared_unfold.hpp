@@ -58,7 +58,6 @@ namespace phlex::detail {
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;
     virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
     virtual phlex::experimental::product_specifications const& output() const = 0;
-    virtual std::size_t product_count() const = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
 

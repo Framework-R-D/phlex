@@ -131,7 +131,6 @@ namespace phlex::detail {
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final { return join_.emitted_result_count(); }
 
     std::size_t apply_fold(
       function_t const& ft,
