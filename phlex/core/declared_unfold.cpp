@@ -10,12 +10,16 @@
 #include "phlex/utilities/hashing.hpp"
 
 #include <fmt/format.h>
+// IWYU wants to remove the include below, but it is needed for the fmt::format call.
+#include <fmt/ranges.h> // IWYU pragma: keep
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cstddef>
 #include <memory>
+#include <ranges>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
