@@ -31,7 +31,7 @@ namespace phlex::detail {
   // The externally visible entry point for plugin modules is create_module,
   // with the signature:
   //   extern "C" void create_module(
-  //     phlex::detail::module_graph_proxy<phlex::detail::void_tag> m,
+  //     phlex::detail::module_graph_proxy<phlex::detail::void_tag> const& m,
   //     phlex::configuration const& config)
   //
   // User plugins define this function via the PHLEX_REGISTER_ALGORITHMS macro,
@@ -59,7 +59,7 @@ namespace phlex::detail {
     //      destructor creates the node and inserts it at the end of the
     //      registration statement. For output nodes, an explicit call does
     //      this.
-    //   2. Sources: glue::source() inserts directly into `sources`, bypassing
+    //   2. Sources: glue::add_source() inserts directly into `sources`, bypassing
     //      the registrar.
     //   3. Implicit provider_node objects: make_computational_edges() creates
     //      and inserts into `providers` later, during graph finalization, to

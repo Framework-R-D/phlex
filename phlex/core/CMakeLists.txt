@@ -57,7 +57,6 @@ install(
     framework_graph.hpp
     fwd.hpp
     glue.hpp
-    graph_proxy.hpp
     input_arguments.hpp
     message.hpp
     multilayer_join_node.hpp
@@ -68,6 +67,7 @@ install(
     products_consumer.hpp
     provider_node.hpp
     registrar.hpp
+    registration_context.hpp
     registration_api.hpp
     resource_api.hpp
     source.hpp

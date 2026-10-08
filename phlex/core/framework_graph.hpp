@@ -6,6 +6,7 @@
 #include "phlex/core/index_router.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/core/registration_context.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_tracker.hpp"
@@ -15,6 +16,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
 #include "phlex/phlex_core_export.hpp"
+#include "phlex/resource.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
@@ -72,17 +74,17 @@ namespace phlex::detail {
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
-      return {config, graph_, stage_, nodes_, registration_errors_, resources_};
+      return internal::proxy_factory::module_proxy(make_registration_context(&config));
     }
 
-    graph_registration_bundle registration_bundle(configuration const& config)
+    internal::registration_carrier registration_carrier(configuration const& config)
     {
-      return {.config = config,
-              .graph = graph_,
-              .stage = stage_,
-              .nodes = nodes_,
-              .resources = resources_,
-              .registration_errors = registration_errors_};
+      return internal::registration_carrier{make_registration_context(&config)};
+    }
+
+    resources_graph_proxy resources_proxy(configuration const& config)
+    {
+      return internal::proxy_factory::resources_proxy(make_registration_context(&config));
     }
 
     phlex::detail::driver_proxy driver_proxy(std::vector<std::string> const& strings = {})
@@ -202,7 +204,13 @@ namespace phlex::detail {
       if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
-      return {graph_, stage_, nodes_, std::move(bound_object), registration_errors_, resources_};
+      return internal::registration_state<T>{make_registration_context(), std::move(bound_object)}
+        .make_glue();
+    }
+
+    internal::registration_context make_registration_context(configuration const* config = nullptr)
+    {
+      return {config, graph_, stage_, nodes_, registration_errors_, resources_};
     }
 
     void run();
