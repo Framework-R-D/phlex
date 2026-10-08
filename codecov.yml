@@ -9,37 +9,47 @@ coverage:
   status:
     project:
       default:
-        # Restrict to unittests flag so scripts coverage does not dilute
-        # the project-wide 80% threshold.
         flags:
-          - unittests
+          - amd64
+        paths:
+          - phlex/**
+          - form/**
+          - plugins/**
         target: 80%
         threshold: 2%
         if_ci_failed: error
     patch:
       default:
-        # Restrict to unittests flag for the same reason.
         flags:
-          - unittests
+          - amd64
+        paths:
+          - phlex/**
+          - form/**
+          - plugins/**
         target: 80%
         threshold: 5%
 
+component_management:
+  individual_components:
+    - component_id: framework
+      name: Framework
+      paths:
+        - phlex/**
+        - form/**
+        - plugins/**
+    - component_id: scripts
+      name: Scripts
+      paths:
+        - scripts/**
+
 flags:
-  unittests:
-    # Coverage from the main C++ and Python test suite.
-    paths:
-      - "!scripts/"
+  amd64:
     carryforward: true
-  scripts:
-    # Coverage for scripts/ utility modules.  No status thresholds are set
-    # yet; the flag is tracked and visible in the CodeCov UI but does not
-    # gate CI.
-    paths:
-      - scripts/
+  arm64:
     carryforward: true
 
 comment:
-  layout: "header, diff, flags, files, footer"
+  layout: "header, diff, flags, components, files, footer"
   behavior: default
   require_changes: false
   require_base: false
