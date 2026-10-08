@@ -23,7 +23,6 @@
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <gsl/pointers>
-#include <oneapi/tbb/concurrent_unordered_map.h>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
@@ -33,7 +32,6 @@
 #include <functional>
 #include <iterator>
 #include <memory>
-#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -86,7 +84,6 @@ namespace phlex::detail {
           auto result =
             call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
-          ++product_count_[store->index()->layer_hash()];
 
           products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
@@ -126,21 +123,12 @@ namespace phlex::detail {
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final
-    {
-      std::size_t result{};
-      for (auto const& count : product_count_ | std::views::values) {
-        result += count.load();
-      }
-      return result;
-    }
 
     input_retriever_types<input_product_types> input_{input_arguments<input_product_types>()};
     phlex::experimental::product_specifications output_;
     join_or_none_t<num_products> join_;
     node_t transform_;
     std::atomic<std::size_t> calls_;
-    tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };
 
 }

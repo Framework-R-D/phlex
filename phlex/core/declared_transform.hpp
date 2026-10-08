@@ -11,7 +11,6 @@
 
 #include <oneapi/tbb/flow_graph.h>
 
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,7 +26,6 @@ namespace phlex::detail {
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual phlex::experimental::product_specifications const& output() const = 0;
-    virtual std::size_t product_count() const = 0;
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;

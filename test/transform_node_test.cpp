@@ -148,7 +148,6 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
           gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{42});
 
   CHECK(transform.num_calls() == 1u);
-  CHECK(transform.product_count() == 1u);
 }
 
 TEST_CASE("transform_node stores multiple output products", "[transform_node]")
@@ -199,7 +198,6 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
           gsl::make_not_null(std::addressof(output_specs[1]))) == output_type_2{"7"});
 
   CHECK(transform.num_calls() == 1u);
-  CHECK(transform.product_count() == 1u);
 }
 TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
 {
@@ -235,7 +233,6 @@ TEST_CASE("transform_node receives a resource token", "[transform_node][resource
   CHECK(output.store->get_product<output_type_1>(
           gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
-  CHECK(transform.product_count() == 1u);
 }
 
 TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
@@ -274,5 +271,4 @@ TEST_CASE("transform_node receives an unlimited resource", "[transform_node][res
   CHECK(output.store->get_product<output_type_1>(
           gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
-  CHECK(transform.product_count() == 1u);
 }
