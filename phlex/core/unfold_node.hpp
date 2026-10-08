@@ -183,7 +183,6 @@ namespace phlex::detail {
           new_products.add_all(output_, std::move(prods));
           running_value = next_value;
         }
-        ++product_count_;
 
         auto child = g.make_child(counter++, std::move(new_products));
         auto const msg_id = msg_counter_.fetch_add(1);
@@ -194,7 +193,6 @@ namespace phlex::detail {
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<input_args> input_{input_arguments<input_args>()};
     phlex::experimental::product_specifications output_;
@@ -202,7 +200,6 @@ namespace phlex::detail {
     node_t unfold_;
     std::atomic<std::size_t> msg_counter_; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_;
-    std::atomic<std::size_t> product_count_;
   };
 }
 

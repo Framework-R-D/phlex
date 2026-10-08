@@ -12,7 +12,6 @@
 
 #include <oneapi/tbb/flow_graph.h>
 
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -30,7 +29,6 @@ namespace phlex::detail {
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual phlex::experimental::product_specifications const& output() const = 0;
     virtual tbb::flow::receiver<index_message>& partition_port() = 0;
-    virtual std::size_t product_count() const = 0;
     phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
 
   private:
