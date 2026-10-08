@@ -25,6 +25,7 @@
 #include "test/products_for_output.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <spdlog/spdlog.h>
 
 #include <atomic>
@@ -185,6 +186,20 @@ TEST_CASE("Splitting the processing", "[graph]")
   CHECK(g.execution_count("iterate_through") == index_limit);
   CHECK(g.execution_count("add_numbers") == 20);
   CHECK(g.execution_count("check_sum_same") == index_limit);
+}
+
+TEST_CASE("Multi-layer unfolds not supported until v0.5", "[graph][unfold]")
+{
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  CHECK_THROWS_WITH(
+    g.unfold<iota_two_inputs>("iota_two_inputs",
+                              &iota_two_inputs::predicate,
+                              &iota_two_inputs::unfold,
+                              concurrency::unlimited,
+                              "subevent")
+      .input_family(product_selector{.layer = "run"}, product_selector{.layer = "event"}),
+    "Unfolds cannot yet accept multi-layer inputs (node: iota_two_inputs, layers: {\"run\", "
+    "\"event\"})");
 }
 
 // =======================================================================================
