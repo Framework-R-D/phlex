@@ -1,7 +1,11 @@
+#include "phlex/core/input_arguments.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/model/type_id.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -9,6 +13,8 @@
 #include <gsl/pointers>
 
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -53,6 +59,58 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(*h == many_numbers);
   CHECK(h.suffix() == "numbers");
   CHECK(store->get_product<std::vector<int>>(gsl::make_not_null(&numbers_spec)) == many_numbers);
+}
+
+TEST_CASE("Product retrieval requires exactly one match", "[data model]")
+{
+  using Catch::Matchers::ContainsSubstring;
+
+  auto const creator = algorithm_name::create("test_algorithm");
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
+  phlex::detail::message const msg{.store = store};
+  phlex::detail::retriever<int> const input{.query = {.type = make_type_id<int>()}};
+
+  SECTION("No match in an empty store")
+  {
+    CHECK_THROWS_WITH(input.retrieve(msg), ContainsSubstring("No products found"));
+  }
+
+  product_specification const first{creator, "first"_id, make_type_id<int>()};
+  product_specification const second{creator, "second"_id, make_type_id<int>()};
+  product_specification const unrelated{creator, "unrelated"_id, make_type_id<double>()};
+  store->add_product(first, 17);
+  store->add_product(unrelated, 2.5);
+
+  SECTION("No match lists the available products and store identity")
+  {
+    phlex::detail::retriever<int> const missing{
+      .query = {.suffix = "missing"_id, .type = make_type_id<int>()}};
+    CHECK_THROWS_WITH(
+      missing.retrieve(msg),
+      ContainsSubstring("No products found matching the query " + missing.query.to_string()) &&
+        ContainsSubstring(store->index()->to_string()) && ContainsSubstring(creator.to_string()) &&
+        ContainsSubstring(first.to_string()) && ContainsSubstring(unrelated.to_string()));
+  }
+
+  SECTION("A unique match returns the matching product handle")
+  {
+    auto const retrieved = input.retrieve(msg);
+    REQUIRE(retrieved);
+    CHECK(*retrieved == 17);
+    CHECK(retrieved.suffix() == "first");
+  }
+
+  SECTION("Ambiguous matches list only the matching products")
+  {
+    store->add_product(second, 25);
+    CHECK_THROWS_AS(input.retrieve(msg), std::runtime_error);
+    CHECK_THROWS_WITH(
+      input.retrieve(msg),
+      ContainsSubstring("Multiple products found matching the query " + input.query.to_string()) &&
+        ContainsSubstring(first.to_string()) && ContainsSubstring(second.to_string()) &&
+        !ContainsSubstring(unrelated.to_string()));
+  }
 }
 
 TEST_CASE("Product store derivation", "[data model]")
