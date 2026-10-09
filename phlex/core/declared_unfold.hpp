@@ -2,12 +2,12 @@
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
 #include "phlex/core/message.hpp"
+#include "phlex/core/producer.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -45,7 +45,7 @@ namespace phlex::detail {
     std::size_t child_count_ = 0;
   };
 
-  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer, public producer {
   public:
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
@@ -54,10 +54,13 @@ namespace phlex::detail {
                     std::string child_layer);
     ~declared_unfold() override;
 
-    virtual tbb::flow::sender<message>& output_port() = 0;
+    phlex::experimental::algorithm_name const& name() const noexcept override
+    {
+      return products_consumer::name();
+    }
+
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;
     virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
-    virtual phlex::experimental::product_specifications const& output() const = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
 

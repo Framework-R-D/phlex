@@ -52,6 +52,7 @@ install(
     declared_unfold.hpp
     fold_join_node.hpp
     fold_node.hpp
+    producer.hpp
     producer_catalog.hpp
     make_computational_edges.hpp
     filter.hpp

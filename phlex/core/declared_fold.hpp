@@ -2,11 +2,11 @@
 #define PHLEX_CORE_DECLARED_FOLD_HPP
 
 #include "phlex/core/message.hpp"
+#include "phlex/core/producer.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -17,7 +17,7 @@
 #include <vector>
 
 namespace phlex::detail {
-  class PHLEX_CORE_EXPORT declared_fold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_fold : public products_consumer, public producer {
   public:
     declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
@@ -26,8 +26,11 @@ namespace phlex::detail {
                   std::string partition_layer);
     ~declared_fold() override;
 
-    virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual phlex::experimental::product_specifications const& output() const = 0;
+    phlex::experimental::algorithm_name const& name() const noexcept override
+    {
+      return products_consumer::name();
+    }
+
     virtual tbb::flow::receiver<index_message>& partition_port() = 0;
     phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
 
