@@ -55,7 +55,7 @@
 #
 # For each architecture-specific ${PHLEX_SPACK_LOCAL}:
 #
-#   podman manifest ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
+#   podman manifest add ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
 #
 # Inspect and push the full manifest:
 #
@@ -65,7 +65,7 @@
 # If you are ready to turn over the latest tag, then:
 #
 #   podman tag ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_LATEST}
-#   podman push --all ${PHLEX_TAG_LATEST}
+#   podman push ${PHLEX_TAG_LATEST}
 #
 ########################################################################
 #
