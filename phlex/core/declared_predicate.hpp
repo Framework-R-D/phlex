@@ -1,8 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_PREDICATE_HPP
 #define PHLEX_CORE_DECLARED_PREDICATE_HPP
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -16,7 +16,7 @@
 namespace phlex::detail {
   struct predicate_result;
 
-  class PHLEX_CORE_EXPORT declared_predicate : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_predicate : public consumer {
   public:
     declared_predicate(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
