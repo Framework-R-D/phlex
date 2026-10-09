@@ -30,16 +30,9 @@ namespace {
   // important bits of the cleanup are the TBB container, and flagging that the
   // interpreter has finalized (or a crash may ensue on shutdown).
 
-  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
-  // Process-wide shutdown flag and per-thread state registry; both must be mutable.
-  // If the registry's allocation throws at startup, terminating is the right outcome.
+  // Process-wide shutdown flag; must be mutable.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::atomic<bool> py_tstate_finalized{false};
-
-  tbb::enumerable_thread_specific<py_tstate,
-                                  tbb::cache_aligned_allocator<py_tstate>,
-                                  tbb::ets_key_per_instance>
-    all_py_tstates;
-  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
 
   struct py_tstate {
     PyThreadState* ts_;
@@ -58,6 +51,15 @@ namespace {
     py_tstate(py_tstate&&) = delete;
     py_tstate& operator=(py_tstate&&) = delete;
   };
+
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+  // Process-wide per-thread state registry;must be mutable. And if the registry's
+  // allocation throws at startup, terminating is the right outcome.
+  tbb::enumerable_thread_specific<py_tstate,
+                                  tbb::cache_aligned_allocator<py_tstate>,
+                                  tbb::ets_key_per_instance>
+    all_py_tstates;
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
 
   inline void ensure_local_py_tstate()
   {
