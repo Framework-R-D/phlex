@@ -21,7 +21,7 @@ namespace phlex::detail {
     using filter_base::input_ports_type;
     using filter_base::output_ports_type;
 
-    explicit filter(oneapi::tbb::flow::graph& g, products_consumer& consumer);
+    explicit filter(oneapi::tbb::flow::graph& g, consumer& consumer);
     explicit filter(oneapi::tbb::flow::graph& g, declared_output& output);
 
     auto& data_port() { return input_port<0>(*this); }
