@@ -61,9 +61,17 @@ namespace {
 
   inline void ensure_local_py_tstate()
   {
+    // LCOV_EXCL_START
+    // Since we don't have a shutdown/finalize procedure, the following can't
+    // technically happen and anyway, it would be very hard to write a test case
+    // for it (phlex nodes would have to run _after_ graph execution). I don't want
+    // to disable this check, though, since it provides an informative message if
+    // for whatever reason this RAII is used in a place where it shouldn't be (it
+    // would be a coding error, not something testable), so suppression it is.
     if (py_tstate_finalized.load(std::memory_order_acquire)) {
       throw std::logic_error("Python GIL acquire attempt after interpreter shutdown");
     }
+    // LCOV_EXCL_STOP
     all_py_tstates.local();
   }
 
