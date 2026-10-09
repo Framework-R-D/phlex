@@ -8,6 +8,7 @@ observers for verification.
 import numba
 import numpy as np
 from adder import add
+from phlex import Variant
 
 # arg0 suff, arg1 suff, type, result
 specs = (
@@ -86,3 +87,10 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         concurrency=4,
     )
 
+    m.observe(
+        Variant(new_o(1), {"y": int, "return": None}, name="obs_wrapped_int32"),
+        input_family=[
+            {"creator": "wrapped_add_int32", "layer": "event", "suffix": "wrapped_sum_int32"}
+        ],
+        concurrency=4,
+    )
