@@ -7,6 +7,8 @@
 #include "wrap.hpp"
 
 #include <fmt/format.h>
+// IWYU does not know that the implementation for supporting ranges is in fmt/ranges.h
+#include <fmt/ranges.h> // IWYU pragma: keep
 
 #include <array>
 #include <cstddef>
@@ -96,11 +98,11 @@ PyObject* phlex::experimental::wrap_source(phlex_source_t const& source)
 
 namespace {
 
-  inline std::string stringify(std::vector<std::string>& v) { return fmt::format("{:n}", v); }
+  inline std::string stringify(std::vector<std::string> const& v) { return fmt::format("{:n}", v); }
 
-  inline std::string stringify(std::vector<product_selector>& v)
+  inline std::string stringify(std::vector<product_selector> const& v)
   {
-    return fmt::format("{:n}", std::ranges::views::transform(v, &product_selector::to_string));
+    return fmt::format("{:n}", std::views::transform(v, &product_selector::to_string));
   }
 
   inline std::string input_converter_name(std::string const& algname, size_t arg)
