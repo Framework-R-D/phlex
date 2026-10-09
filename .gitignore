@@ -60,3 +60,4 @@ docs/build/
 .secrets
 actionlint
 .coverage
+/uv.lock

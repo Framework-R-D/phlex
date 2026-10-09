@@ -41,6 +41,7 @@ component_management:
       name: Scripts
       paths:
         - scripts/**
+        - ci/**
 
 flags:
   amd64:
@@ -63,7 +64,6 @@ ignore:
   - "build-*/**" # Ignore build directories (generic 2/3)
   - "*-build/**" # Ignore build directories (generic 3/3)
   - ".coverage-generated/**" # Ignore normalized symlink tree
-  - "ci/**" # Ignore CI scripts
   - "docs/**" # Ignore documentation
   - "examples/**" # Ignore example code
 
