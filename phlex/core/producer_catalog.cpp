@@ -1,5 +1,6 @@
 #include "phlex/core/producer_catalog.hpp"
 
+#include "phlex/core/producer.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
@@ -15,6 +16,7 @@
 #include <cstdint>
 #include <map>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -175,6 +177,18 @@ namespace {
 }
 
 namespace phlex::detail {
+  producer_catalog::producer_catalog(std::span<producer* const> producers)
+  {
+    for (auto* node : producers) {
+      for (auto const& product_spec : node->output()) {
+        producers_.emplace(product_spec.suffix(),
+                           named_output_port{.node = node->name(),
+                                             .output_port = &node->output_port(),
+                                             .type = product_spec.type()});
+      }
+    }
+  }
+
   std::vector<producer_catalog::named_output_port const*> producer_catalog::find_producers(
     product_selector const& query,
     phlex::experimental::algorithm_name const& consumer_name,
