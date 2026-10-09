@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -102,6 +103,9 @@ namespace phlex::detail {
 
   PHLEX_CORE_EXPORT std::size_t port_index_for(product_selectors const& input_products,
                                                product_selector const& input_product);
+
+  PHLEX_CORE_EXPORT tbb::flow::receiver<message>& receiver_for(
+    std::span<tbb::flow::receiver<message>* const> receivers, std::size_t index);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP
