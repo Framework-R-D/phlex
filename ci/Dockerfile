@@ -438,6 +438,7 @@ SPACK_INSTALL_GCC
 # Create, activate, and concretize the phlex-ci Spack environment
 
 COPY spack.yaml /tmp/spack.yaml.template
+COPY promote_phlex_dependencies.py /tmp/promote_phlex_dependencies.py
 RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
@@ -478,10 +479,12 @@ rm -rf "$PHLEX_SPACK_ENV"
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
 spack --timestamp env activate -d "$PHLEX_SPACK_ENV"
 spack --timestamp concretize
+# Phlex itself is not installed; promote its dependencies so activation reaches their hooks.
+spack python /tmp/promote_phlex_dependencies.py
 chgrp -R spack "$PHLEX_SPACK_ENV"
 chmod -R g+rwX "$PHLEX_SPACK_ENV"
 find "$PHLEX_SPACK_ENV" -type d -exec chmod g+s {} +
-rm -f /tmp/spack.yaml /tmp/spack.yaml.template
+rm -f /tmp/spack.yaml /tmp/spack.yaml.template /tmp/promote_phlex_dependencies.py
 SPACK_CONCRETIZE_ENV
 
 ########################################################################

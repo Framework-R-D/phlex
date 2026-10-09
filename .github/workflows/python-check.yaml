@@ -178,6 +178,7 @@ jobs:
           uv run --with pytest --with PyYAML --with pytest-cov \
             pytest scripts/test/ -v \
             --cov=scripts \
+            --cov=ci \
             --cov-report="xml:${GITHUB_WORKSPACE}/coverage-scripts.xml" \
             --cov-report=term-missing
 
