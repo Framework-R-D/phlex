@@ -3,6 +3,7 @@
 #include <oneapi/tbb/enumerable_thread_specific.h>
 
 #include <atomic>
+#include <stdexcept>
 
 namespace {
 
@@ -29,13 +30,25 @@ namespace {
   // important bits of the cleanup are the TBB container, and flagging that the
   // interpreter has finalized (or a crash may ensue on shutdown).
 
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+  // Process-wide shutdown flag and per-thread state registry; both must be mutable.
+  // If the registry's allocation throws at startup, terminating is the right outcome.
   std::atomic<bool> py_tstate_finalized{false};
+
+  tbb::enumerable_thread_specific<py_tstate,
+                                  tbb::cache_aligned_allocator<py_tstate>,
+                                  tbb::ets_key_per_instance>
+    all_py_tstates;
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
 
   struct py_tstate {
     PyThreadState* ts_;
     py_tstate()
     {
       PyGILState_Ensure();
+      // Must hold the GIL before saving the state; could set it to nullptr in
+      // the member initializer, but that's just more noise.
+      // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
       ts_ = PyEval_SaveThread();
       // no GIL held, but thread state kept alive with +1 refcount
     }
@@ -46,15 +59,11 @@ namespace {
     py_tstate& operator=(py_tstate&&) = delete;
   };
 
-  tbb::enumerable_thread_specific<py_tstate,
-                                  tbb::cache_aligned_allocator<py_tstate>,
-                                  tbb::ets_key_per_instance>
-    all_py_tstates;
-
   inline void ensure_local_py_tstate()
   {
-    if (py_tstate_finalized.load(std::memory_order_acquire))
+    if (py_tstate_finalized.load(std::memory_order_acquire)) {
       throw std::logic_error("Python GIL acquire attempt after interpreter shutdown");
+    }
     all_py_tstates.local();
   }
 
@@ -63,6 +72,9 @@ namespace {
 phlex::experimental::py_gilraii::py_gilraii()
 {
   ensure_local_py_tstate();
+  // Must alive the thread state before grabbing the GIL here as that's the whole
+  // point of caching it; setting it to nullptr first is just more noise.
+  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   gil_state_ = PyGILState_Ensure();
 }
 
