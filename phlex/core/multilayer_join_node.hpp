@@ -183,18 +183,6 @@ namespace phlex::detail {
   }
 
   namespace internal {
-    // Returns pointers to all N input ports of the join node.  Only valid for N > 1;
-    // callers with a single input should use the node directly.
-    template <std::size_t N>
-    std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join)
-    {
-      static_assert(N > 1ull, "input_ports should not be called for N=1");
-      return [&join]<std::size_t... Is>(
-               std::index_sequence<Is...>) -> std::vector<tbb::flow::receiver<message>*> {
-        return {&input_port<Is>(join)...};
-      }(std::make_index_sequence<N>{});
-    }
-
     // Looks up the port index for the given input product query, then returns a reference to
     // the corresponding input port of the join node.  Only valid for N > 1.
     template <std::size_t N>
@@ -205,18 +193,6 @@ namespace phlex::detail {
       static_assert(N > 1ull, "receiver_for should not be called for N=1");
       auto const index = port_index_for(input_products, input_product);
       return receiver_for<0ull, N>(join, index);
-    }
-  }
-
-  // Returns all input-port pointers for a node.  For N == 1 the node itself is the sole
-  // receiver; for N > 1 each port of the join is returned.
-  template <std::size_t N, typename Node>
-  std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join, Node& node)
-  {
-    if constexpr (N == 1ull) {
-      return {&node};
-    } else {
-      return internal::input_ports<N>(join);
     }
   }
 

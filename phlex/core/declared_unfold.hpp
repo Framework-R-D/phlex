@@ -1,41 +1,27 @@
 #ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
-#include "phlex/core/concepts.hpp"
-#include "phlex/core/fwd.hpp"
-#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/multilayer_join_node.hpp"
-#include "phlex/core/node_builder.hpp"
+#include "phlex/core/producer.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/flush_messages.hpp"
-#include "phlex/model/handle.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
-#include <atomic>
-#include <concepts>
 #include <cstddef>
-#include <functional>
-#include <iterator>
-#include <map>
 #include <memory>
-#include <ranges>
-#include <stdexcept>
 #include <string>
-#include <type_traits>
-#include <utility>
 #include <vector>
 
 namespace phlex::detail {
+  class products;
+  struct unfold_flush;
 
   class PHLEX_CORE_EXPORT generator {
   public:
@@ -59,7 +45,7 @@ namespace phlex::detail {
     std::size_t child_count_ = 0;
   };
 
-  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer, public producer {
   public:
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
@@ -68,11 +54,13 @@ namespace phlex::detail {
                     std::string child_layer);
     ~declared_unfold() override;
 
-    virtual tbb::flow::sender<message>& output_port() = 0;
+    phlex::experimental::algorithm_name const& name() const noexcept override
+    {
+      return products_consumer::name();
+    }
+
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;
     virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
-    virtual phlex::experimental::product_specifications const& output() const = 0;
-    virtual std::size_t product_count() const = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
 
@@ -82,176 +70,6 @@ namespace phlex::detail {
 
   using declared_unfold_ptr = std::unique_ptr<declared_unfold>;
   using declared_unfolds = simple_ptr_map<declared_unfold_ptr>;
-
-  // =====================================================================================
-
-  // The callable_adapter class template exists to support predicate and unfold functions
-  // that may or may not take the object as the first argument.
-  template <typename Object, typename Callable>
-  class callable_adapter {
-  public:
-    callable_adapter(Object& obj, Callable const& callable) : obj_{obj}, callable_{callable} {}
-
-    template <typename... Args>
-    auto operator()(Args&&... args) const
-      requires(std::invocable<Callable const&, Object&, Args...> ||
-               std::invocable<Callable const&, Args...>)
-    {
-      if constexpr (std::invocable<Callable const&, Object&, Args...>) {
-        return std::invoke(callable_, obj_, std::forward<Args>(args)...);
-      } else {
-        return std::invoke(callable_, std::forward<Args>(args)...);
-      }
-    }
-
-  private:
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    Object& obj_;
-    Callable const& callable_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
-  };
-
-  template <typename Object, typename Predicate, typename Unfold, typename... Resources>
-  class unfold_node : public declared_unfold {
-    using all_input_args = constructor_parameter_types<Object>;
-    static constexpr std::size_t num_inputs = std::tuple_size_v<all_input_args>;
-    using input_args = all_input_args;
-    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
-    using function_t = std::decay_t<Unfold>;
-    using builder = node_builder<messages_t<num_inputs>,
-                                 multifunction_outputs<message, index_message, unfold_flush>,
-                                 std::tuple<Resources...>>;
-    using node_t = builder::node_t;
-
-  public:
-    unfold_node(phlex::experimental::algorithm_name algo_name,
-                phlex::experimental::identifier stage,
-                std::size_t concurrency,
-                std::vector<std::string> predicates,
-                tbb::flow::graph& g,
-                Predicate&& predicate,
-                Unfold&& unfold,
-                product_selectors input_products,
-                std::vector<std::string> output_product_suffixes,
-                std::string child_layer_name,
-                resource_catalog& resources) :
-      declared_unfold{std::move(algo_name),
-                      std::move(predicates),
-                      std::move(input_products),
-                      g,
-                      std::move(child_layer_name)},
-      output_{to_product_specifications(name(),
-                                        std::move(output_product_suffixes),
-                                        make_type_ids<skip_first_type<return_type<Unfold>>>())},
-      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
-      unfold_{builder::make(
-        g,
-        concurrency,
-        resources,
-        std::move(unfold),
-        [this, stage = std::move(stage), p = std::move(predicate)](
-          function_t const& ufold,
-          messages_t<num_inputs> const& messages,
-          auto& outputs,
-          auto&&... resource_tokens) {
-          auto const& msg = most_derived(messages);
-          auto const& store = msg.store;
-
-          generator gen{store, gsl::not_null{&name()}, gsl::not_null{&stage}, child_layer()};
-          call(p,
-               ufold,
-               store->index(),
-               gen,
-               messages,
-               std::make_index_sequence<num_inputs>{},
-               resource_tokens...);
-          std::get<2>(outputs).try_put({.index = store->index(),
-                                        .layer_hash = gen.child_layer_hash(),
-                                        .count = gen.child_count()});
-        })}
-    {
-      if constexpr (num_inputs > 1ull) {
-        make_edge(join_, unfold_);
-      }
-    }
-
-  private:
-    tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
-    {
-      return receiver_for<num_inputs>(join_, input(), input_product, unfold_);
-    }
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<num_inputs>(join_, unfold_);
-    }
-
-    tbb::flow::sender<message>& output_port() override
-    {
-      return tbb::flow::output_port<0>(unfold_);
-    }
-    tbb::flow::sender<index_message>& output_index_port() override
-    {
-      return tbb::flow::output_port<1>(unfold_);
-    }
-    tbb::flow::sender<unfold_flush>& flush_sender() override
-    {
-      return tbb::flow::output_port<2>(unfold_);
-    }
-    phlex::experimental::product_specifications const& output() const override { return output_; }
-
-    template <std::size_t... Is>
-    void call(Predicate const& predicate,
-              Unfold const& unfold,
-              data_cell_index_ptr const& unfolded_id,
-              generator& g,
-              messages_t<num_inputs> const& messages,
-              std::index_sequence<Is...>,
-              auto&&... resource_tokens)
-    {
-      ++calls_;
-      Object obj = [this, &messages]() {
-        if constexpr (num_inputs == 1ull) {
-          return Object(std::get<Is>(input_).retrieve(messages)...);
-        } else {
-          return Object(std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
-        }
-      }();
-      std::size_t counter = 0;
-      auto running_value = obj.initial_value();
-      while (callable_adapter{obj, predicate}(running_value)) {
-        products new_products{num_outputs};
-        auto const new_id = unfolded_id->make_child(child_layer(), counter);
-        auto const adapter = callable_adapter{obj, unfold};
-        if constexpr (requires { adapter(running_value, *new_id, resource_tokens...); }) {
-          auto [next_value, prods] = adapter(running_value, *new_id, resource_tokens...);
-          new_products.add_all(output_, std::move(prods));
-          running_value = next_value;
-        } else {
-          auto [next_value, prods] = adapter(running_value, resource_tokens...);
-          new_products.add_all(output_, std::move(prods));
-          running_value = next_value;
-        }
-        ++product_count_;
-
-        auto child = g.make_child(counter++, std::move(new_products));
-        auto const msg_id = msg_counter_.fetch_add(1);
-        tbb::flow::output_port<0>(unfold_).try_put({.store = child, .id = msg_id});
-        tbb::flow::output_port<1>(unfold_).try_put({.index = child->index(), .msg_id = msg_id});
-      }
-    }
-
-    named_index_ports index_ports() final { return join_.index_ports(); }
-    std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final { return product_count_.load(); }
-
-    input_retriever_types<input_args> input_{input_arguments<input_args>()};
-    phlex::experimental::product_specifications output_;
-    join_or_none_t<num_inputs> join_;
-    node_t unfold_;
-    std::atomic<std::size_t> msg_counter_; // Is this sufficient?  Probably not.
-    std::atomic<std::size_t> calls_;
-    std::atomic<std::size_t> product_count_;
-  };
 }
 
 #endif // PHLEX_CORE_DECLARED_UNFOLD_HPP
