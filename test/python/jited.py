@@ -8,6 +8,7 @@ observers for verification.
 import numba
 import numpy as np
 from adder import add
+
 from phlex import Variant
 
 # arg0 suff, arg1 suff, type, result
