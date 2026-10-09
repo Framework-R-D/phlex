@@ -199,6 +199,7 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 
   CHECK(transform.num_calls() == 1u);
 }
+
 TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
 {
   oneapi::tbb::flow::graph graph;
