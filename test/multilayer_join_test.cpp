@@ -1,3 +1,4 @@
+#include "phlex/core/detail/join_support.hpp"
 #include "phlex/core/fold_join_node.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
@@ -166,6 +167,24 @@ TEST_CASE("Single-input algorithms bypass join lookup", "[join]")
   tbb::flow::queue_node<message> node{graph};
   CHECK(join.index_ports().empty());
   CHECK(&receiver_for<1>(join, {}, {}, node) == &node);
+}
+
+TEST_CASE("Join support with no inputs counts at the partition layer", "[join]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<indexed_end_token> tokens{graph};
+  tbb::flow::queue_node<index_message> indices{graph};
+  named_index_port const partition{
+    .layer = "job"_id, .counting_layer = "event"_id, .token_port = &tokens, .index_port = &indices};
+  internal::join_support support{graph, algorithm_name::create("empty_join_test"), {}, partition};
+
+  CHECK_FALSE(support.has_repeaters());
+  auto const& ports = support.index_ports();
+  REQUIRE(ports.size() == 1);
+  CHECK(ports[0].layer == partition.layer);
+  CHECK(ports[0].counting_layer == partition.layer);
+  CHECK(ports[0].token_port == &tokens);
+  CHECK(ports[0].index_port == &indices);
 }
 
 TEST_CASE("Fold join cached receivers exclude the partition port", "[join]")
