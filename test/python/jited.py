@@ -9,6 +9,8 @@ import numba
 import numpy as np
 from adder import add
 
+from phlex import Variant
+
 # arg0 suff, arg1 suff, type, result
 specs = (
     ("i", "j", np.int32, 1),
@@ -46,6 +48,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     for arg0, arg1, t, res in specs:
         tn = t.__name__
 
+        # GIL-free transforms, which run 100% in C/C++
         f_a = numba.cfunc(f"{tn}({tn}, {tn})", nogil=True, nopython=True, cache=True)(add)
         m.transform(
             f_a,
@@ -58,6 +61,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             concurrency=4,
         )
 
+        # GIL-free observers
         f_o = numba.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
         m.observe(
             f_o,
@@ -65,3 +69,29 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             input_family=[{"creator": "add_" + tn, "layer": "event", "suffix": "sum_" + tn}],
             concurrency=4,
         )
+
+    # GIL-releasing transform, called through the wrapper; this is a special case
+    # to hit the thread state caching code and only tested on ints, since all types
+    # follow the same path
+    f_aw = numba.njit("int32(int32, int32)", nogil=True, cache=True)(add)
+    def wrapped_gilreleasing(i: int, j: int) -> int:
+        return f_aw(i, j)
+
+    m.transform(
+        wrapped_gilreleasing,
+        name="wrapped_add_int32",
+        input_family=[
+            {"creator": "input", "layer": "event", "suffix": "i"},
+            {"creator": "input", "layer": "event", "suffix": "j"},
+        ],
+        output_product_suffixes=["wrapped_sum_int32"],
+        concurrency=4,
+    )
+
+    m.observe(
+        Variant(new_o(1), {"y": int, "return": None}, name="obs_wrapped_int32"),
+        input_family=[
+            {"creator": "wrapped_add_int32", "layer": "event", "suffix": "wrapped_sum_int32"}
+        ],
+        concurrency=4,
+    )
