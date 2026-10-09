@@ -1,10 +1,10 @@
 #ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/producer.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
@@ -45,7 +45,7 @@ namespace phlex::detail {
     std::size_t child_count_ = 0;
   };
 
-  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer, public producer {
+  class PHLEX_CORE_EXPORT declared_unfold : public consumer, public producer {
   public:
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
@@ -56,7 +56,7 @@ namespace phlex::detail {
 
     phlex::experimental::algorithm_name const& name() const noexcept override
     {
-      return products_consumer::name();
+      return consumer::name();
     }
 
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;

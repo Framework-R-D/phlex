@@ -2,6 +2,7 @@
 #define PHLEX_CORE_PREDICATE_NODE_HPP
 
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
@@ -10,7 +11,6 @@
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"

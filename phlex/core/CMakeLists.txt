@@ -24,7 +24,6 @@ cet_make_library(
   node_catalog.cpp
   producer_catalog.cpp
   product_selector.cpp
-  products_consumer.cpp
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
@@ -69,7 +68,6 @@ install(
     observer_node.hpp
     predicate_node.hpp
     product_selector.hpp
-    products_consumer.hpp
     provider_node.hpp
     registrar.hpp
     registration_api.hpp
