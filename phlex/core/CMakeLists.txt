@@ -12,6 +12,7 @@ cet_make_library(
   declared_transform.cpp
   declared_unfold.cpp
   detail/filter_impl.cpp
+  detail/join_support.cpp
   detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
   detail/repeater_node.cpp
@@ -95,6 +96,7 @@ install(
   FILES
     detail/accumulator_node.hpp
     detail/filter_impl.hpp
+    detail/join_support.hpp
     detail/make_algorithm_name.hpp
     detail/maybe_predicates.hpp
     detail/repeater_node.hpp

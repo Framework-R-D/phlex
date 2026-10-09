@@ -2,7 +2,7 @@
 #define PHLEX_CORE_FOLD_JOIN_NODE_HPP
 
 #include "phlex/core/detail/accumulator_node.hpp"
-#include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/detail/join_support.hpp"
 #include "phlex/core/message.hpp"
 
 #include <oneapi/tbb/flow_graph.h>
@@ -76,7 +76,7 @@ namespace phlex::detail {
                    phlex::experimental::algorithm_name const& node_name,
                    phlex::experimental::identifier const& stage,
                    phlex::experimental::identifier const& partition_layer_name,
-                   std::vector<phlex::experimental::identifier> layer_names,
+                   std::vector<phlex::experimental::identifier> const& layer_names,
                    phlex::experimental::product_specifications output,
                    result_initializer_t result_initializer) :
       base_t{g},
@@ -86,28 +86,26 @@ namespace phlex::detail {
                        partition_layer_name,
                        std::move(output),
                        std::move(result_initializer)},
-      join_{make_join(g, std::make_index_sequence<NInputs>{})},
-      name_{node_name},
-      partition_layer_{partition_layer_name},
-      layers_{std::move(layer_names)}
+      support_{g,
+               node_name,
+               layer_names,
+               named_index_port{partition_layer_name,
+                                std::nullopt,
+                                &result_repeater_.flush_port(),
+                                &result_repeater_.index_port()}},
+      join_{make_join(g, std::make_index_sequence<NInputs>{})}
     {
-      assert(NInputs == layers_.size());
-
-      // We do not worry about collapsing layers for the fold-join node as the accumulator
-      // repeater will always belong to a higher layer than (at least one of) the data products
-      // that serve as input to the fold operation.
-      repeaters_.reserve(NInputs);
-      for (auto const& layer : layers_) {
-        repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
-      }
+      assert(NInputs == layer_names.size());
 
       make_edge(tbb::flow::output_port<1>(result_repeater_), input_port<0>(join_));
       auto set_ports = [this]<std::size_t... Is>(std::index_sequence<Is...>) {
         this->set_external_ports(
-          input_t{result_repeater_.partition_port(), repeaters_[Is]->data_port()...},
+          input_t{result_repeater_.partition_port(), support_.repeater(Is).data_port()...},
           output_t{join_});
         // Connect repeaters to join
-        (make_edge(*repeaters_[Is], input_port<Is + 1>(join_)), ...);
+        (make_edge(support_.repeater(Is), input_port<Is + 1>(join_)), ...);
+        // Logical data index i maps to external port i + 1, excluding the partition port.
+        receivers_ = {&input_port<Is + 1>(*this)...};
       };
 
       set_ports(std::make_index_sequence<NInputs>{});
@@ -140,52 +138,30 @@ namespace phlex::detail {
     // at its own input layer.
     //
     // FIXME: For multi-input folds, the "most-derived" input layer is the deepest of
-    // `layers_` in the data hierarchy.  Until the router exposes a depth comparison, we
-    // pick `layers_[0]`; all current tests have single-input folds so this is correct in
+    // `layer_names` in the data hierarchy.  Until the router exposes a depth comparison, we
+    // pick `layer_names[0]`; all current tests have single-input folds so this is correct in
     // practice.
-    std::vector<named_index_port> index_ports()
+    std::vector<named_index_port> index_ports() { return support_.index_ports(); }
+
+    tbb::flow::receiver<message>& receiver(std::size_t index)
     {
-      std::vector<named_index_port> result;
-      result.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      phlex::experimental::identifier const counting_layer_for_partition =
-        layers_.empty() ? partition_layer_ : layers_[0];
-      result.emplace_back(partition_layer_,
-                          counting_layer_for_partition,
-                          &result_repeater_.flush_port(),
-                          &result_repeater_.index_port());
-      for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.emplace_back(
-          layers_[i], layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
-      }
-      return result;
+      return phlex::detail::receiver_for(receivers_, index);
     }
 
   private:
     internal::accumulator_node<FoldResult> result_repeater_;
-    std::vector<std::unique_ptr<internal::repeater_node>> repeaters_;
+    // Destroy the join before its data repeaters, then the typed accumulator.
+    internal::join_support support_;
     tbb::flow::join_node<join_args_t, tbb::flow::tag_matching> join_;
-    // Immutable after construction; tbb::flow::join_node is already non-movable.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    phlex::experimental::algorithm_name const name_;
-    phlex::experimental::identifier const partition_layer_;
-    std::vector<phlex::experimental::identifier> const layers_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::vector<tbb::flow::receiver<message>*> receivers_;
   };
 
-  // Translates a runtime port index into a reference to the corresponding compile-time
-  // input port by recursively incrementing the compile-time parameter I until it matches
-  // the runtime index.
-  template <std::size_t I, typename FoldResult, std::size_t N>
+  // Uses cached data receivers, excluding the partition port, for runtime lookup.
+  template <typename FoldResult, std::size_t N>
   tbb::flow::receiver<message>& receiver_for(fold_join_node<FoldResult, N>& join,
                                              std::size_t const index)
   {
-    if constexpr (I < N + 1) { // +1 to account for the result repeater port at index 0
-      if (I != index + 1ull) { // +1 to account for the result repeater port at index 0
-        return receiver_for<I + 1ull>(join, index);
-      }
-      return input_port<I>(join);
-    }
-    throw std::runtime_error("Should never get here");
+    return join.receiver(index);
   }
 
   namespace detail {
@@ -197,7 +173,7 @@ namespace phlex::detail {
                                                product_selector const& input_product)
     {
       auto const index = port_index_for(input_products, input_product);
-      return receiver_for<1ull>(join, index); // Start at 1 to skip the result repeater port
+      return join.receiver(index);
     }
   }
 
