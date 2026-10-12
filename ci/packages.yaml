@@ -13,8 +13,8 @@
 #     live in each environment's spack.yaml, not here.
 #   - System zlib is declared external so Spack does not build its own
 #     zlib / zlib-ng, eliminating duplicate virtual-provider builds.
-#   - PHLEX_SPACK_TARGET must be set at build time to either "amd64" or "arm64"
-#     to select the appropriate microarchitecture.
+#   - ${PHLEX_SPACK_TARGET} is substituted at build time with the normalized
+#     Spack target ("x86_64_v3" or "aarch64").
 
 packages:
   all:
