@@ -1,5 +1,6 @@
 #include "wrap.hpp"
 
+#include <oneapi/tbb/cache_aligned_allocator.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
 
 #include <atomic>
@@ -52,14 +53,14 @@ namespace {
     py_tstate& operator=(py_tstate&&) = delete;
   };
 
-  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,bugprone-throwing-static-initialization)
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp,bugprone-throwing-static-initialization)
   // Process-wide per-thread state registry;must be mutable. And if the registry's
   // allocation throws at startup, terminating is the right outcome.
   tbb::enumerable_thread_specific<py_tstate,
                                   tbb::cache_aligned_allocator<py_tstate>,
                                   tbb::ets_key_per_instance>
     all_py_tstates;
-  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,bugprone-throwing-static-initialization)
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp,bugprone-throwing-static-initialization)
 
   inline void ensure_local_py_tstate()
   {
