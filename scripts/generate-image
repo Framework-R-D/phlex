@@ -51,6 +51,8 @@ fi
 PHLEX_TAG_LOCAL="${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}-${PHLEX_SPACK_TARGET}"
 
 args=(podman build --format docker)
+have_cache=0
+
 if [ -n "$PHLEX_SPACK_CACHE" ]; then
   have_cache=1
   args+=(-v "${PHLEX_SPACK_CACHE}:/build-cache:Z")

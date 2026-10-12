@@ -45,9 +45,7 @@ component_management:
 
 flags:
   amd64:
-    carryforward: true
   arm64:
-    carryforward: true
 
 comment:
   layout: "header, diff, flags, components, files, footer"
