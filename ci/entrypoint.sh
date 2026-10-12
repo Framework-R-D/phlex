@@ -28,7 +28,7 @@ case "$PHLEX_SPACK_TARGET" in
     : "${PHLEX_LLVM_TARGET:=x86}"
     ;;
   aarch64)
-    : "${PHLEX_LLVM_TARGET:=AArch64}"
+    : "${PHLEX_LLVM_TARGET:=aarch64}"
     ;;
   *)
     echo "ERROR: PHLEX_SPACK_TARGET must be 'x86_64_v3' or 'aarch64'" >&2
@@ -39,12 +39,10 @@ esac
 
 # Validate that SPACK target and LLVM target are compatible (no x86_64_v3 + AArch64, no aarch64 + x86)
 case "$PHLEX_SPACK_TARGET-$PHLEX_LLVM_TARGET" in
-  x86_64_v3-AArch64|aarch64-x86)
+  *-auto|x86_64_v3-x86|aarch64-aarch64) ;;
+  *)
     echo "ERROR: Host/target mismatch: PHLEX_SPACK_TARGET=$PHLEX_SPACK_TARGET with PHLEX_LLVM_TARGET=$PHLEX_LLVM_TARGET" >&2
     exit 1
-    ;;
-  *)
-    # Valid combinations: x86_64_v3+x86, aarch64+AArch64
     ;;
 esac
 

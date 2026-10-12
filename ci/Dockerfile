@@ -35,11 +35,12 @@
 #     -v ~/.gnupg:/run/gpg:Z \
 #     --target ${PHLEX_PODMAN_TARGET} --tag ${PHLEX_TAG_LOCAL} \
 #     ${GPG_KEY_ID:+--build-arg GPG_KEY_ID=${GPG_KEY_ID}} \
-#     --build_arg PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET} \
-#     --build_arg PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET} \
-#     --build_arg PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION} \
-#     --build_arg PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION} \
-#     --build_arg PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER} \
+#     --build-arg PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET} \
+#     --build-arg PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET} \
+#     --build-arg PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION} \
+#     --build-arg PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION} \
+#     --build-arg PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER} \
+#     ci/
 #
 # Registry login command:
 #
@@ -53,7 +54,7 @@
 #
 #   podman manifest create ${PHLEX_TAG_MANIFEST}
 #
-# For each architecture-specific ${PHLEX_SPACK_LOCAL}:
+# For each architecture-specific ${PHLEX_TAG_LOCAL}:
 #
 #   podman manifest add ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
 #
@@ -102,13 +103,10 @@ ARG GPG_KEY_ID
 FROM ubuntu:24.04 AS base
 
 # Build arguments
-# ARG PHLEX_SPACK_TARGET=amd64
-ARG PHLEX_SPACK_TARGET=aarch64
+ARG PHLEX_SPACK_TARGET=auto
 ARG PHLEX_LLVM_TARGET=auto
 ARG PHLEX_GCC_VERSION=15.3
-# ARG PHLEX_GCC_VERSION=16.2
 ARG PHLEX_LLVM_VERSION=22.1.8
-# ARG PHLEX_LLVM_VERSION=23.1.2
 ARG PHLEX_DEFAULT_COMPILER=gcc
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -129,7 +127,7 @@ SHELL ["/bin/bash", "-c"]
 RUN <<'ARCH_MAP_VALIDATE'
 set -euo pipefail
 case "$PHLEX_SPACK_SOURCE_TARGET" in
-  amd64|arm64|x86_64_v3|aarch64) ;;
+  auto|amd64|arm64|x86_64_v3|aarch64) ;;
   *)
     echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', 'x86_64_v3', or 'aarch64'" >&2
     echo "       Got: '$PHLEX_SPACK_SOURCE_TARGET'" >&2
@@ -200,8 +198,7 @@ set -euo pipefail
 # This check runs early, before any Spack clone/install/concretization operations
 NATIVE_ARCH=$(dpkg --print-architecture)
 case "$NATIVE_ARCH" in
-  amd64)
-    if [ "$PHLEX_SPACK_SOURCE_TARGET" != "amd64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "x86_64_v3" ]; then
+  amd64) if [ "$PHLEX_SPACK_SOURCE_TARGET" != "auto" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "amd64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "x86_64_v3" ]; then
       echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
       echo "       CI images must be built for the host architecture" >&2
       exit 1
@@ -210,8 +207,7 @@ case "$NATIVE_ARCH" in
     normalized_spack_target=x86_64_v3
     normalized_llvm_target=x86
     ;;
-  arm64)
-    if [ "$PHLEX_SPACK_SOURCE_TARGET" != "arm64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "aarch64" ]; then
+  arm64) if [ "$PHLEX_SPACK_SOURCE_TARGET" != "auto" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "arm64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "aarch64" ]; then
       echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
       echo "       CI images must be built for the host architecture" >&2
       exit 1
@@ -285,7 +281,7 @@ SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT"
 git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
-git clone --branch fix/tweak-tbb-for-targets https://github.com/greenc-FNAL/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
+git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
@@ -296,7 +292,7 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 render_spack_template() {
   if [ "$#" -ne 2 ]; then
-    echo "ERROR: render_target_descriptor requires template, output" >&2
+    echo "ERROR: render_spack_template requires template, output" >&2
     exit 1
   fi
 
@@ -451,7 +447,7 @@ set -euo pipefail
 
 render_spack_template() {
   if [ "$#" -ne 2 ]; then
-    echo "ERROR: render_target_descriptor requires template, output" >&2
+    echo "ERROR: render_spack_template requires template, output" >&2
     exit 1
   fi
 
