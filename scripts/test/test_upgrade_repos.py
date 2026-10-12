@@ -112,6 +112,7 @@ def test_upgrade_repo_api_reports_invalid_yaml_with_path_context(
         upgrade["upgrade_spack_repo_api"](make_repo(tmp_path))
 
     assert error.value.__cause__ is not None
+    assert str(repo_yaml) in str(error.value)
 
 
 def test_clean_package_imports_rewrites_nested_recipes_only(
@@ -194,11 +195,23 @@ def test_main_skips_builtin_repo_and_upgrades_custom_repo(
     custom.mkdir()
     builtin_yaml = builtin / "repo.yaml"
     builtin_yaml.write_text("repo:\n  api: v1.0\n", encoding="utf-8")
+    builtin_recipe = builtin / "packages" / "builtin" / "package.py"
+    builtin_recipe.parent.mkdir(parents=True)
+    builtin_recipe.write_text("import llnl.util.filesystem as filesystem\n", encoding="utf-8")
     custom_yaml = custom / "repo.yaml"
     custom_yaml.write_text("repo:\n  api: v1.0\n", encoding="utf-8")
+    custom_recipe = custom / "packages" / "custom" / "package.py"
+    custom_recipe.parent.mkdir(parents=True)
+    custom_recipe.write_text("import llnl.util.filesystem as filesystem\n", encoding="utf-8")
 
     upgrade["spack"].repo.PATH.repos = [make_repo(builtin, "builtin"), make_repo(custom, "custom")]
     upgrade["main"]()
 
     assert yaml.safe_load(builtin_yaml.read_text(encoding="utf-8"))["repo"]["api"] == "v1.0"
     assert yaml.safe_load(custom_yaml.read_text(encoding="utf-8"))["repo"]["api"] == "v2.2"
+    assert (
+        builtin_recipe.read_text(encoding="utf-8") == "import llnl.util.filesystem as filesystem\n"
+    )
+    assert (
+        custom_recipe.read_text(encoding="utf-8") == "import spack.util.filesystem as filesystem\n"
+    )
