@@ -35,14 +35,14 @@ namespace {
   std::atomic<bool> py_tstate_finalized{false};
 
   struct py_tstate {
-    PyThreadState* ts_;
+    PyThreadState* ts;
     py_tstate()
     {
       PyGILState_Ensure();
       // Must hold the GIL before saving the state; could set it to nullptr in
       // the member initializer, but that's just more noise.
       // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-      ts_ = PyEval_SaveThread();
+      ts = PyEval_SaveThread();
       // no GIL held, but thread state kept alive with +1 refcount
     }
     ~py_tstate() = default;
@@ -52,14 +52,14 @@ namespace {
     py_tstate& operator=(py_tstate&&) = delete;
   };
 
-  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,bugprone-throwing-static-initialization)
   // Process-wide per-thread state registry;must be mutable. And if the registry's
   // allocation throws at startup, terminating is the right outcome.
   tbb::enumerable_thread_specific<py_tstate,
                                   tbb::cache_aligned_allocator<py_tstate>,
                                   tbb::ets_key_per_instance>
     all_py_tstates;
-  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,bugprone-throwing-static-initialization)
 
   inline void ensure_local_py_tstate()
   {
@@ -105,12 +105,12 @@ phlex::experimental::py_gilraii::~py_gilraii() { PyGILState_Release(gil_state_);
 //  PyThreadState* self = PyThreadState_Get();
 //
 //  for (auto& e : all_py_tstates) {
-//    if (e.ts_ == self)
+//    if (e.ts == self)
 //      continue;
 //
 //    // cleanup Python thread states
-//    PyThreadState_Clear(e.ts_);  // may run Python code
-//    PyThreadState_Delete(e.ts_); // free memory
+//    PyThreadState_Clear(e.ts);  // may run Python code
+//    PyThreadState_Delete(e.ts); // free memory
 //  }
 //
 //  PyGILState_Release(s);
