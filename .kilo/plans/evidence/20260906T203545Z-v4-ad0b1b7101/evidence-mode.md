@@ -1,4 +1,0 @@
-mode=evidence_only_case_study
-native_spack=unavailable
-native_cxx23=unavailable
-podman_pasta_rootless=unavailable

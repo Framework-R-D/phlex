@@ -1,3 +1,0 @@
-status_outside_bound_evidence=unchanged
-hashes=unchanged
-result=passed

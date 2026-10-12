@@ -1,1 +1,0 @@
-Provenance captured; v3/v4 state and evidence were read-only inputs.
