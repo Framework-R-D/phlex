@@ -1,6 +1,6 @@
 # Native macOS Devcontainer
 
-The initializer generates the gitignored `docker-compose.host.yml` before VS Code resolves Compose. On Apple Silicon it requires a running rootless arm64 Podman VM and selects the local `localhost/phlex-dev:2026-09-21-aarch64` image. Set `PHLEX_DEV_IMAGE` in the environment launching VS Code to select another locally built arm64 image. Linux retains the Dockerfile's GHCR default.
+The initializer generates the gitignored `docker-compose.host.yml` before VS Code resolves Compose. On Apple Silicon it requires a running rootless arm64 Podman VM and selects the `ghcr.io/framework-r-d/phlex-dev:latest` image. Set `PHLEX_DEV_IMAGE` in the environment launching VS Code to select another image. Linux retains the Dockerfile's GHCR default.
 
 macOS uses pasta networking. Ordinary development does not mount the Podman engine socket or disable SELinux container labeling. Host Kilo configuration and auth inputs are read-only; auth is copied into the container-private data volume when first created.
 

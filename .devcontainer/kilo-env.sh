@@ -679,6 +679,7 @@ kilo_env_run_self_tests_impl() {
   local missing_root_stderr
   local script_path
   local child_output
+  local source_safety_output_ready
   local tests_failed
 
   fixture_root="$1"
@@ -687,6 +688,7 @@ kilo_env_run_self_tests_impl() {
   fixture_env="${fixture_root}/relay-map.env"
   fixture_artifact="${fixture_root}/artifact-sha256.txt"
   tests_failed=0
+  source_safety_output_ready=0
 
   printf '=== Kilo config rewrite self-test ===\n'
   printf 'INFO: native mount/runtime integration unavailable; fixture-only consumer logic validated.\n'
@@ -1227,9 +1229,13 @@ EOF
   fi
   script_path="${script_path}/$(basename "${BASH_SOURCE[0]}")"
 
-  if ! child_output=$(
-    PHLEX_RELAY_FIXTURE_DIR="$fixture_root" \
-      bash --noprofile --norc -c '
+  if [ -e "${KILO_ENV_FIXED_ROOT}/relay-map.json" ] || [ -e "${KILO_ENV_FIXED_ROOT}/relay-map.env" ]; then
+    kilo_env_print_error \
+      "source-safety test requires ${KILO_ENV_FIXED_ROOT} to contain neither relay-map.json nor relay-map.env"
+    tests_failed=1
+  elif ! child_output=$(
+      PHLEX_RELAY_FIXTURE_DIR="$fixture_root" \
+        bash --noprofile --norc -c '
 script_path=$1
 set -euf -o pipefail
 before_flags=$-
@@ -1260,57 +1266,60 @@ printf "%s\n" \
   "relays_env=${PHLEX_HOST_RELAYS_ENV-unset}" \
   "gateway=${PHLEX_HOST_GATEWAY-unset}"
 ' bash "$script_path"
-  ); then
+    ); then
     printf 'FAIL: production source-safety child shell exited unexpectedly\n' >&2
     tests_failed=1
   else
     printf 'PASS: production source-safety child shell stayed alive\n'
+    source_safety_output_ready=1
   fi
 
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "status")" "0" \
-    "production sourcing returns success"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "before_flags")" \
-    "$(kilo_env_extract_output_value "$child_output" "after_flags")" \
-    "production sourcing preserves shell flags"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "before_opts_sha")" \
-    "$(kilo_env_extract_output_value "$child_output" "after_opts_sha")" \
-    "production sourcing preserves shell options"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay25114")" "unset" \
-    "production sourcing clears stale PHLEX_HOST_RELAY_25114"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay25300")" "unset" \
-    "production sourcing clears stale PHLEX_HOST_RELAY_25300"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "config")" "unset" \
-    "production sourcing clears stale KILO_CONFIG_CONTENT"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "config_path")" "unset" \
-    "production sourcing clears stale KILO_CONFIG_PATH"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay_file")" \
-    "${KILO_ENV_FIXED_ROOT}/relay-map.json" \
-    "production sourcing keeps the fixed relay-map.json path"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relays_env")" \
-    "${KILO_ENV_FIXED_ROOT}/relay-map.env" \
-    "production sourcing keeps the fixed relay-map.env path"; then
-    tests_failed=1
-  fi
-  if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "gateway")" \
-    "$KILO_ENV_HOST_GATEWAY" \
-    "production sourcing keeps PHLEX_HOST_GATEWAY"; then
-    tests_failed=1
+  if [ "$source_safety_output_ready" -eq 1 ]; then
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "status")" "0" \
+      "production sourcing returns success"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "before_flags")" \
+      "$(kilo_env_extract_output_value "$child_output" "after_flags")" \
+      "production sourcing preserves shell flags"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "before_opts_sha")" \
+      "$(kilo_env_extract_output_value "$child_output" "after_opts_sha")" \
+      "production sourcing preserves shell options"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay25114")" "unset" \
+      "production sourcing clears stale PHLEX_HOST_RELAY_25114"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay25300")" "unset" \
+      "production sourcing clears stale PHLEX_HOST_RELAY_25300"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "config")" "unset" \
+      "production sourcing clears stale KILO_CONFIG_CONTENT"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "config_path")" "unset" \
+      "production sourcing clears stale KILO_CONFIG_PATH"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay_file")" \
+      "${KILO_ENV_FIXED_ROOT}/relay-map.json" \
+      "production sourcing keeps the fixed relay-map.json path"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relays_env")" \
+      "${KILO_ENV_FIXED_ROOT}/relay-map.env" \
+      "production sourcing keeps the fixed relay-map.env path"; then
+      tests_failed=1
+    fi
+    if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "gateway")" \
+      "$KILO_ENV_HOST_GATEWAY" \
+      "production sourcing keeps PHLEX_HOST_GATEWAY"; then
+      tests_failed=1
+    fi
   fi
 
   if ! kilo_env_assert_hash_unchanged "$fixture_map" "$fixture_map_before" \

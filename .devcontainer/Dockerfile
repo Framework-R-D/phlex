@@ -1,4 +1,4 @@
-ARG PHLEX_DEV_IMAGE=ghcr.io/framework-r-d/phlex-dev:2026-07-23
+ARG PHLEX_DEV_IMAGE=ghcr.io/framework-r-d/phlex-dev:latest
 FROM ${PHLEX_DEV_IMAGE}
 
 # Validate Python site-packages symlink.

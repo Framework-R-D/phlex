@@ -72,6 +72,15 @@ parse_cli_args "$@" || exit 1
 # --- Relay configuration ---
 DEFAULT_PHLEX_RELAY_STATE_DIR="${HOME}/.phlex-devcontainer-tmp/relays"
 
+canonical_path() {
+  python3 - "$1" <<'PY'
+import os
+import sys
+
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
 if [ "$MODE" = "self-test" ]; then
   if [ -n "${PHLEX_RELAY_STATE_DIR:-}" ]; then
     :
@@ -79,6 +88,13 @@ if [ "$MODE" = "self-test" ]; then
     PHLEX_RELAY_STATE_DIR="${SELF_TEST_ROOT%/}/relay-state"
   else
     echo "ERROR: --self-test requires PHLEX_RELAY_STATE_DIR or a directory argument" >&2
+    exit 1
+  fi
+
+  canonical_state_dir=$(canonical_path "$PHLEX_RELAY_STATE_DIR") || exit 1
+  canonical_default_state_dir=$(canonical_path "$DEFAULT_PHLEX_RELAY_STATE_DIR") || exit 1
+  if [ "$canonical_state_dir" = "$canonical_default_state_dir" ]; then
+    echo "ERROR: --self-test must not use the production relay state directory" >&2
     exit 1
   fi
 else
@@ -137,10 +153,19 @@ ensure_bind_dir() {
 }
 
 RELAY_ALLOWLIST="25114=25115,25300=25301"
+PHLEX_RELAY_ALLOWED_RANGE="${PHLEX_RELAY_ALLOWED_RANGE:-10.88.0.0/16}"
 READ_PID=""
 
 declare -a valid_source_ports=()
 declare -a valid_dest_ports=()
+SELF_TEST_BLOCKER_PID=""
+SELF_TEST_LISTENER_25114_PID=""
+SELF_TEST_LISTENER_25300_PID=""
+SELF_TEST_ROGUE_PID=""
+SELF_TEST_SAVED_HOST_PORTS=""
+SELF_TEST_SAVED_HOST_PORTS_SET=0
+SELF_TEST_SAVED_TEST_PORTS=""
+SELF_TEST_SAVED_TEST_PORTS_SET=0
 
 trim_whitespace() {
   printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
@@ -185,7 +210,7 @@ numeric_listen_spec() {
   if is_darwin; then
     printf '%s\n' "TCP-LISTEN:${dest_port},bind=127.0.0.1,fork,reuseaddr"
   else
-    printf '%s\n' "TCP-LISTEN:${dest_port},fork,reuseaddr"
+    printf '%s\n' "TCP-LISTEN:${dest_port},fork,reuseaddr,range=${PHLEX_RELAY_ALLOWED_RANGE}"
   fi
 }
 
@@ -224,13 +249,26 @@ loopback_listener_ready_linux() {
 }
 
 relay_listener_ready_linux() {
+  local pid="${2:-}"
   local port="$1"
 
   command -v ss >/dev/null 2>&1 || return 1
   ss -H -ltn 2>/dev/null | awk -v v4="0.0.0.0:$port" -v v6="[::]:$port" -v star="*:$port" '
     $4 == v4 || $4 == v6 || $4 == star { found = 1 }
     END { exit !found }
-  '
+  ' || return 1
+
+  if [ -n "$pid" ]; then
+    linux_relay_process_has_allowed_range "$pid"
+  fi
+}
+
+linux_relay_process_has_allowed_range() {
+  local cmdline
+  local pid="$1"
+
+  cmdline=$(ps -p "$pid" -o command= 2>/dev/null) || return 1
+  [[ "$cmdline" == *"range=${PHLEX_RELAY_ALLOWED_RANGE}"* ]]
 }
 
 detect_source_listener() {
@@ -283,7 +321,9 @@ numeric_pid_has_listener_linux() {
   ss -H -ltnp 2>/dev/null | awk -v pid_fragment="pid=$pid," -v v4="0.0.0.0:$dest_port" -v v6="[::]:$dest_port" -v star="*:$dest_port" '
     ($4 == v4 || $4 == v6 || $4 == star) && index($0, pid_fragment) { found = 1 }
     END { exit !found }
-  '
+  ' || return 1
+
+  relay_listener_ready_linux "$dest_port" "$pid"
 }
 
 numeric_pid_has_listener() {
@@ -439,20 +479,47 @@ wait_for_relay_listener_absent() {
   return 1
 }
 
+aux_unix_socket_ready() {
+  local value="$1"
+
+  [ -S "$value" ] || return 1
+  python3 - "$value" <<'PY'
+import socket
+import sys
+
+sock = socket.socket(socket.AF_UNIX)
+sock.settimeout(0.5)
+try:
+    sock.connect(sys.argv[1])
+finally:
+    sock.close()
+PY
+}
+
+aux_endpoint_ready_once() {
+  local kind="$1"
+  local value="$2"
+
+  case "$kind" in
+    unix-socket)
+      aux_unix_socket_ready "$value"
+      ;;
+    tcp-port)
+      aux_tcp_listener_ready "$value"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 wait_for_aux_endpoint_ready() {
   local attempts=0
   local kind="$1"
   local value="$2"
 
   while [ "$attempts" -lt 40 ]; do
-    case "$kind" in
-      unix-socket)
-        [ -S "$value" ] && return 0
-        ;;
-      tcp-port)
-        aux_tcp_listener_ready "$value" && return 0
-        ;;
-    esac
+    aux_endpoint_ready_once "$kind" "$value" && return 0
     sleep 0.1
     attempts=$((attempts + 1))
   done
@@ -556,7 +623,7 @@ start_socat_relay() {
     return 1
   fi
 
-  if wait_for_aux_endpoint_ready "$ready_kind" "$ready_value"; then
+  if aux_endpoint_ready_once "$ready_kind" "$ready_value"; then
     echo "${label} relay already ready"
     return 0
   fi
@@ -933,19 +1000,30 @@ mode_cleanup_owned() {
 }
 
 mode_self_test() {
-  local blocker_pid=""
   local default_env="${DEFAULT_PHLEX_RELAY_STATE_DIR}/relay-map.env"
   local default_env_hash_before=""
   local default_env_missing_before=0
   local default_json="${DEFAULT_PHLEX_RELAY_STATE_DIR}/relay-map.json"
   local default_json_hash_before=""
   local default_json_missing_before=0
-  local listener_25114=""
-  local listener_25300=""
-  local rogue_pid=""
-  local saved_host_ports="${PHLEX_HOST_RELAY_PORTS-__unset__}"
-  local saved_test_ports="${PHLEX_TEST_RELAY_PORTS-__unset__}"
   local test_failed=0
+
+  SELF_TEST_BLOCKER_PID=""
+  SELF_TEST_LISTENER_25114_PID=""
+  SELF_TEST_LISTENER_25300_PID=""
+  SELF_TEST_ROGUE_PID=""
+  SELF_TEST_SAVED_HOST_PORTS=""
+  SELF_TEST_SAVED_HOST_PORTS_SET=0
+  SELF_TEST_SAVED_TEST_PORTS=""
+  SELF_TEST_SAVED_TEST_PORTS_SET=0
+  if [ "${PHLEX_HOST_RELAY_PORTS+x}" = x ]; then
+    SELF_TEST_SAVED_HOST_PORTS="$PHLEX_HOST_RELAY_PORTS"
+    SELF_TEST_SAVED_HOST_PORTS_SET=1
+  fi
+  if [ "${PHLEX_TEST_RELAY_PORTS+x}" = x ]; then
+    SELF_TEST_SAVED_TEST_PORTS="$PHLEX_TEST_RELAY_PORTS"
+    SELF_TEST_SAVED_TEST_PORTS_SET=1
+  fi
 
   assert_file_content() {
     local actual=""
@@ -1002,51 +1080,46 @@ mode_self_test() {
   }
 
   restore_saved_environment() {
-    if [ "$saved_host_ports" = "__unset__" ]; then
+    if [ "$SELF_TEST_SAVED_HOST_PORTS_SET" -eq 0 ]; then
       unset PHLEX_HOST_RELAY_PORTS
     else
-      PHLEX_HOST_RELAY_PORTS="$saved_host_ports"
+      PHLEX_HOST_RELAY_PORTS="$SELF_TEST_SAVED_HOST_PORTS"
     fi
 
-    if [ "$saved_test_ports" = "__unset__" ]; then
+    if [ "$SELF_TEST_SAVED_TEST_PORTS_SET" -eq 0 ]; then
       unset PHLEX_TEST_RELAY_PORTS
     else
-      PHLEX_TEST_RELAY_PORTS="$saved_test_ports"
+      PHLEX_TEST_RELAY_PORTS="$SELF_TEST_SAVED_TEST_PORTS"
     fi
   }
 
   self_test_cleanup() {
     mode_cleanup_owned >/dev/null 2>&1 || true
 
-    if [ -n "$blocker_pid" ] && kill -0 "$blocker_pid" 2>/dev/null; then
-      terminate_pid_gracefully "$blocker_pid" >/dev/null 2>&1 || true
+    if [ -n "$SELF_TEST_BLOCKER_PID" ] && kill -0 "$SELF_TEST_BLOCKER_PID" 2>/dev/null; then
+      terminate_pid_gracefully "$SELF_TEST_BLOCKER_PID" >/dev/null 2>&1 || true
     fi
-    blocker_pid=""
+    SELF_TEST_BLOCKER_PID=""
 
-    if [ -n "$rogue_pid" ] && kill -0 "$rogue_pid" 2>/dev/null; then
-      terminate_pid_gracefully "$rogue_pid" >/dev/null 2>&1 || true
+    if [ -n "$SELF_TEST_ROGUE_PID" ] && kill -0 "$SELF_TEST_ROGUE_PID" 2>/dev/null; then
+      terminate_pid_gracefully "$SELF_TEST_ROGUE_PID" >/dev/null 2>&1 || true
     fi
-    rogue_pid=""
+    SELF_TEST_ROGUE_PID=""
 
-    if [ -n "$listener_25114" ] && kill -0 "$listener_25114" 2>/dev/null; then
-      terminate_pid_gracefully "$listener_25114" >/dev/null 2>&1 || true
+    if [ -n "$SELF_TEST_LISTENER_25114_PID" ] && kill -0 "$SELF_TEST_LISTENER_25114_PID" 2>/dev/null; then
+      terminate_pid_gracefully "$SELF_TEST_LISTENER_25114_PID" >/dev/null 2>&1 || true
     fi
-    listener_25114=""
+    SELF_TEST_LISTENER_25114_PID=""
 
-    if [ -n "$listener_25300" ] && kill -0 "$listener_25300" 2>/dev/null; then
-      terminate_pid_gracefully "$listener_25300" >/dev/null 2>&1 || true
+    if [ -n "$SELF_TEST_LISTENER_25300_PID" ] && kill -0 "$SELF_TEST_LISTENER_25300_PID" 2>/dev/null; then
+      terminate_pid_gracefully "$SELF_TEST_LISTENER_25300_PID" >/dev/null 2>&1 || true
     fi
-    listener_25300=""
+    SELF_TEST_LISTENER_25300_PID=""
 
     restore_saved_environment
   }
 
   trap 'self_test_cleanup' EXIT HUP INT TERM
-
-  if [ "$PHLEX_RELAY_STATE_DIR" = "$DEFAULT_PHLEX_RELAY_STATE_DIR" ]; then
-    echo "ERROR: --self-test must not use the production relay state directory" >&2
-    return 1
-  fi
 
   mkdir -p "$PHLEX_RELAY_STATE_DIR" "$RELAY_PID_DIR"
   write_relay_maps
@@ -1063,8 +1136,8 @@ mode_self_test() {
     default_env_missing_before=1
   fi
 
-  listener_25114=$(start_python_loopback_listener 25114 25114)
-  listener_25300=$(start_python_loopback_listener 25300 25300)
+  SELF_TEST_LISTENER_25114_PID=$(start_python_loopback_listener 25114 25114)
+  SELF_TEST_LISTENER_25300_PID=$(start_python_loopback_listener 25300 25300)
   wait_for_source_listener_ready 25114 || {
     echo "ERROR: source listener 25114 did not become ready" >&2
     return 1
@@ -1135,7 +1208,7 @@ mode_self_test() {
   assert_empty_state || test_failed=1
 
   echo "Self-test: listener-start failure"
-  blocker_pid=$(start_python_loopback_listener 25115 blocker)
+  SELF_TEST_BLOCKER_PID=$(start_python_loopback_listener 25115 blocker)
   wait_for_source_listener_ready 25115 || {
     echo "ERROR: blocking listener on 25115 did not become ready" >&2
     return 1
@@ -1155,11 +1228,11 @@ mode_self_test() {
     echo "ERROR: surviving relay 25301 did not reach source 25300" >&2
     test_failed=1
   }
-  terminate_pid_gracefully "$blocker_pid" >/dev/null 2>&1 || {
+  terminate_pid_gracefully "$SELF_TEST_BLOCKER_PID" >/dev/null 2>&1 || {
     echo "ERROR: failed to stop blocking listener on 25115" >&2
     test_failed=1
   }
-  blocker_pid=""
+  SELF_TEST_BLOCKER_PID=""
   if ! mode_cleanup_owned; then
     echo "ERROR: cleanup after listener-start failure failed" >&2
     test_failed=1
@@ -1207,44 +1280,44 @@ mode_self_test() {
   assert_empty_state || test_failed=1
 
   echo "Self-test: unavailable source input"
-  if ! terminate_pid_gracefully "$listener_25300" >/dev/null 2>&1; then
+  if ! terminate_pid_gracefully "$SELF_TEST_LISTENER_25300_PID" >/dev/null 2>&1; then
     echo "ERROR: failed to stop source listener 25300 for unavailable-source test" >&2
     test_failed=1
   fi
-  listener_25300=""
+  SELF_TEST_LISTENER_25300_PID=""
   PHLEX_HOST_RELAY_PORTS="$RELAY_ALLOWLIST"
   if mode_default; then
     echo "ERROR: unavailable source relay input unexpectedly succeeded" >&2
     test_failed=1
   fi
   assert_empty_state || test_failed=1
-  listener_25300=$(start_python_loopback_listener 25300 25300)
+  SELF_TEST_LISTENER_25300_PID=$(start_python_loopback_listener 25300 25300)
   wait_for_source_listener_ready 25300 || {
     echo "ERROR: source listener 25300 did not restart" >&2
     return 1
   }
 
   echo "Self-test: cleanup ownership boundary"
-  rogue_pid=$(start_python_loopback_listener 26001 rogue)
+  SELF_TEST_ROGUE_PID=$(start_python_loopback_listener 26001 rogue)
   wait_for_source_listener_ready 26001 || {
     echo "ERROR: rogue process listener 26001 did not become ready" >&2
     return 1
   }
-  printf '%s\n' "$rogue_pid" > "$(relay_pid_file 25114)"
+  printf '%s\n' "$SELF_TEST_ROGUE_PID" > "$(relay_pid_file 25114)"
   if mode_cleanup_owned; then
     echo "ERROR: cleanup-owned unexpectedly succeeded on an unowned PID file" >&2
     test_failed=1
   fi
-  if ! kill -0 "$rogue_pid" 2>/dev/null; then
+  if ! kill -0 "$SELF_TEST_ROGUE_PID" 2>/dev/null; then
     echo "ERROR: cleanup-owned terminated an unrelated process" >&2
     test_failed=1
   fi
   rm -f "$(relay_pid_file 25114)"
-  terminate_pid_gracefully "$rogue_pid" >/dev/null 2>&1 || {
+  terminate_pid_gracefully "$SELF_TEST_ROGUE_PID" >/dev/null 2>&1 || {
     echo "ERROR: failed to stop rogue process listener 26001" >&2
     test_failed=1
   }
-  rogue_pid=""
+  SELF_TEST_ROGUE_PID=""
   assert_empty_state || test_failed=1
 
   if [ "$default_json_missing_before" -eq 1 ]; then
