@@ -31,11 +31,12 @@ namespace phlex::detail {
 
   struct indexed_end_token {
     data_cell_index_ptr index;
-    // The count is the number of direct children processed for this index. It uses signed_size_t
+    // The count is the number of invocations covered by this partition's completion token.
+    // It combines all applicable descendant counting paths and uses signed_size_t
     // because it is subtracted from a pending-invocations counter, which may be negative when the
     // indexed_end_token arrives before all pending invocations are processed.
     // (See the pending_invocations members in repeater_node and accumulator_node.)
-    signed_size_t count;
+    signed_size_t count{};
   };
 
   struct message {

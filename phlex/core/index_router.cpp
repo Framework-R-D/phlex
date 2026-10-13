@@ -8,6 +8,7 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include <fmt/format.h>
 #include <gsl/assert>
@@ -317,7 +318,10 @@ namespace phlex::detail {
     gate_for(index)->set_flush_callback(
       [end_token_entries = std::move(end_token_entries)](flush_gate const& fc) {
         for (auto const& entry : *end_token_entries) {
-          auto const count = fc.committed_count_for_layer(entry.counting_layer_hash);
+          signed_size_t count = 0;
+          for (auto const hash : entry.counting_layer_hashes) {
+            count += fc.committed_count_for_layer(hash);
+          }
           entry.flush_port->try_put({.index = fc.index(), .count = count});
         }
       });
@@ -425,7 +429,7 @@ namespace phlex::detail {
   // Message entries: All slots from a node are appended if at least one slot exactly matches the
   // current layer and every slot either exactly matches or is a parent of the routed index.
   //
-  // End-token entries select descendants ending in the slot's counting layer.
+  // End-token entries combine descendants ending in the slot's counting layer.
   auto index_router::resolve_join_slots(data_cell_index_ptr const& index,
                                         layer_path const& layer_path,
                                         internal::join_node_slots const& node_slots) const
@@ -448,9 +452,9 @@ namespace phlex::detail {
         has_exact_match = true;
         if (flush.counting_layer != slot->layer()) {
           auto hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
-          for (auto const hash : hashes) {
+          if (not hashes.empty()) {
             end_token_entries.push_back(
-              {.counting_layer_hash = hash, .flush_port = flush.flush_port});
+              {.counting_layer_hashes = std::move(hashes), .flush_port = flush.flush_port});
           }
         }
         message_slots.push_back(slot);
