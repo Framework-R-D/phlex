@@ -35,15 +35,18 @@ namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::atomic<bool> py_tstate_finalized{false};
 
+  // Must hold the GIL before saving the thread-specific state; this little helper
+  // allows for that and can be used in a member-initializer.
+  inline PyThreadState* save_tstate_with_gil()
+  {
+    PyGILState_Ensure();
+    return PyEval_SaveThread(); // GIL released; thread state kept alive (+1)
+  }
+
   struct py_tstate {
     PyThreadState* ts;
-    py_tstate()
+    py_tstate() : ts{save_tstate_with_gil()}
     {
-      PyGILState_Ensure();
-      // Must hold the GIL before saving the state; could set it to nullptr in
-      // the member initializer, but that's just more noise.
-      // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-      ts = PyEval_SaveThread();
       // no GIL held, but thread state kept alive with +1 refcount
     }
     ~py_tstate() = default;
@@ -78,16 +81,18 @@ namespace {
     all_py_tstates.local();
   }
 
+  // Must alive the thread state before grabbing the GIL as that's the whole
+  // point of caching it; this little helper allows for that and can be used in
+  // a member-initializer.
+  inline PyGILState_STATE py_tstate_caching_ensure_gil()
+  {
+    ensure_local_py_tstate();
+    return PyGILState_Ensure();
+  }
+
 } // unnamed namespace
 
-phlex::experimental::py_gilraii::py_gilraii()
-{
-  ensure_local_py_tstate();
-  // Must alive the thread state before grabbing the GIL here as that's the whole
-  // point of caching it; setting it to nullptr first is just more noise.
-  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-  gil_state_ = PyGILState_Ensure();
-}
+phlex::experimental::py_gilraii::py_gilraii() : gil_state_{py_tstate_caching_ensure_gil()} {}
 
 phlex::experimental::py_gilraii::~py_gilraii() { PyGILState_Release(gil_state_); }
 
