@@ -6,6 +6,7 @@
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/node_builder.hpp"
@@ -107,7 +108,7 @@ namespace phlex::detail {
       }
     }
 
-    named_index_ports index_ports() final { return join_.index_ports(); }
+    join_registration index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<input_product_types> input_{input_arguments<input_product_types>()};

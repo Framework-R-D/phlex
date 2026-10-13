@@ -3,6 +3,7 @@
 
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 
 #include <gsl/assert>
@@ -128,27 +129,18 @@ namespace phlex::detail {
       return input_port<3>(result_repeater_);
     }
 
-    // Returns one named_index_port per slot the index router must wire up.
-    //
-    // The first entry is the *partition slot* — it routes the partition index to the
-    // accumulator's index_port and delivers the partition-level flush token to the
-    // accumulator's flush_port. Its routing layer is the partition layer (e.g. "job"),
-    // but its counting layer is currently the first input data layer.
-    //
-    // The remaining entries are the data-input slots, one per repeater.  For these the
-    // routing layer and counting layer are the same: the repeater both routes and counts
-    // at its own input layer.
-    std::vector<named_index_port> index_ports()
+    // The partition constrains the product-driven invocation domain. Its initialization
+    // connection remains separate from the accumulator's per-invocation index receiver.
+    // Ancestor data repeaters and the accumulator complete against the same invocations.
+    join_registration index_ports()
     {
-      std::vector<named_index_port> result;
-      result.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      result.emplace_back(partition_layer_,
-                          layers_[0],
-                          &result_repeater_.flush_port(),
-                          &result_repeater_.index_port());
+      join_registration result{.input_layers = layers_, .participants = {}};
+      result.participants.reserve(1 + repeaters_.size()); // +1 for the result repeater
+      result.participants.emplace_back(
+        partition_layer_, &result_repeater_.index_port(), &result_repeater_.flush_port());
       for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.emplace_back(
-          layers_[i], layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
+        result.participants.emplace_back(
+          layers_[i], &repeaters_[i]->index_port(), &repeaters_[i]->flush_port());
       }
       return result;
     }
