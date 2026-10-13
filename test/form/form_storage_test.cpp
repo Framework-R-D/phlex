@@ -256,8 +256,7 @@ TEST_CASE("storage_writer: technology is part of a container's identity", "[form
   auto const& type_info = typeid(data);
 
   auto create = [&writer, &settings](placement const& place) {
-    std::map<std::unique_ptr<placement>, std::type_info const*> containers;
-    containers.emplace(std::make_unique<placement>(place), &type_info);
+    std::vector<std::pair<placement, std::type_info const*>> const containers{{place, &type_info}};
     writer->create_containers(containers, settings);
   };
 

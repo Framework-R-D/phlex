@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
+#include <vector>
 
 using namespace form::detail::experimental;
 
@@ -61,38 +63,38 @@ namespace form::detail::experimental {
 }
 
 void storage_writer::create_containers(
-  std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
+  std::vector<std::pair<placement, std::type_info const*>> const& containers,
   form::experimental::config::tech_setting_config const& settings)
 {
   for (auto const& [plcmnt, type] : containers) {
-    auto cont = write_containers_.find(*plcmnt);
+    auto cont = write_containers_.find(plcmnt);
     if (cont == write_containers_.end()) {
       // Ensure the file exists
-      auto file = files_.find(plcmnt->file_name());
+      auto file = files_.find(plcmnt.file_name());
       if (file == files_.end()) {
-        file = files_
-                 .insert({plcmnt->file_name(),
-                          create_file(plcmnt->technology(), plcmnt->file_name(), 'o')})
-                 .first;
+        file =
+          files_
+            .insert({plcmnt.file_name(), create_file(plcmnt.technology(), plcmnt.file_name(), 'o')})
+            .first;
         for (auto const& [key, value] :
-             get_file_table(settings, plcmnt->technology(), plcmnt->file_name())) {
+             get_file_table(settings, plcmnt.technology(), plcmnt.file_name())) {
           file->second->set_attribute(key, value);
         }
       }
       // Create and bind container to file
-      auto container = create_write_container(plcmnt->technology(), plcmnt->container_name());
-      write_containers_.insert({*plcmnt, container});
+      auto container = create_write_container(plcmnt.technology(), plcmnt.container_name());
+      write_containers_.insert({plcmnt, container});
       // For associative container, create association layer
       auto associative_container =
         dynamic_pointer_cast<storage_associative_write_container>(container);
       if (associative_container) {
         // The association shares its product's file and technology; only the name differs.
         placement const parent_key{
-          plcmnt->file_name(), associative_container->top_name(), plcmnt->technology()};
+          plcmnt.file_name(), associative_container->top_name(), plcmnt.technology()};
         auto parent = write_containers_.find(parent_key);
         if (parent == write_containers_.end()) {
           auto parent_cont =
-            create_write_association(plcmnt->technology(), associative_container->top_name());
+            create_write_association(plcmnt.technology(), associative_container->top_name());
           write_containers_.insert({parent_key, parent_cont});
           parent_cont->set_file(file->second);
           parent_cont->setup_write();
@@ -103,7 +105,7 @@ void storage_writer::create_containers(
       }
 
       for (auto const& [key, value] :
-           get_container_table(settings, plcmnt->technology(), plcmnt->container_name())) {
+           get_container_table(settings, plcmnt.technology(), plcmnt.container_name())) {
         container->set_attribute(key, value);
       }
       container->set_file(file->second);
