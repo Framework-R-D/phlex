@@ -78,13 +78,17 @@ namespace phlex::experimental {
     PyGILState_STATE gil_state_;
 
   public:
-    py_gilraii() : gil_state_(PyGILState_Ensure()) {}
-    ~py_gilraii() { PyGILState_Release(gil_state_); }
+    py_gilraii();
+    ~py_gilraii();
     py_gilraii(py_gilraii const&) = delete;
     py_gilraii& operator=(py_gilraii const&) = delete;
     py_gilraii(py_gilraii&&) = delete;
     py_gilraii& operator=(py_gilraii&&) = delete;
   };
+
+  // GIL RAII cleanup; to be called post graph execution, but prior to Py_Finalize;
+  // commented out since there's currently no cleanup procedure
+  // void release_py_tstates();
 
 } // namespace phlex::experimental
 
