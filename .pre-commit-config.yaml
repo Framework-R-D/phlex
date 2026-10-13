@@ -50,7 +50,7 @@ repos:
           - pytest
           - PyYAML
         files: ^scripts/
-        types_or: [python]
+        types_or: [python, shell]
         pass_filenames: false
   - repo: https://github.com/BlankSpruce/gersemi-pre-commit
     rev: 0.28.0

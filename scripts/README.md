@@ -146,6 +146,32 @@ ninja -C build
 - This is informational - builds will still work
 - Install Ninja for faster builds: `apt install ninja-build`
 
+## Build and Test Verification
+
+### verify.sh
+
+Run this command in an initialized build environment with a configured build.
+It builds first, lists the selected CTests, and executes the same selection with
+`--no-tests=error`. A failed discovery, project selection, build, listing, or test
+stops verification and preserves the failing command's exit status. Build and test
+output is passed through without truncation.
+
+```bash
+# MPD: discover the build directory and select/build in the same shell.
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^identifier$'
+
+# Standalone: use an explicitly selected configured build directory.
+bash scripts/verify.sh --build-dir build --tests '^identifier$' --verbose
+
+# Omit --tests to build and run the entire suite.
+bash scripts/verify.sh --build-dir build
+```
+
+Use `--verbose` for detailed CTest evidence. A misspelled test pattern fails even
+though CTest's listing-only mode reports success for an empty selection. The MPD
+mode requires Spack on `PATH`; initialize its shell support before invoking the
+command.
+
 ## Coverage Testing
 
 ### coverage.sh
