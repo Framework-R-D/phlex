@@ -24,10 +24,10 @@
 #include <format>
 #include <map>
 #include <ranges>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::detail {
   namespace {
@@ -65,30 +65,23 @@ namespace phlex::detail {
       return result;
     }
 
-    // Collects (input layer, child layer) pairs and per-input-layer unfold counts from all
-    // registered unfold nodes.  One pair is emitted per (unfold node, input layer): a
-    // multi-input unfold contributes the same child layer under each of its input layers,
-    // which is over-approximate but harmless — only the most-derived input actually parents
-    // children at runtime, and the extra synthetic paths are never reached by
-    // counting_layer_hashes_under for any real fold.  The per-input-layer count lets
-    // flush_gates wait for a flush message from every unfold that consumes a given layer
-    // before evaluating done().
+    // Keep each unfold's inputs together: only their most-derived cell parents the children
+    // and receives the unfold flush. Finalization resolves that parent on each applicable branch.
     index_router::unfold_data unfold_layers(declared_unfolds const& unfolds)
     {
       index_router::unfold_data result;
-      for (auto const& n : unfolds | std::views::values) {
-        phlex::experimental::identifier const child_layer{n->child_layer()};
-        std::set<phlex::experimental::identifier> input_layers_for_unfold;
-        for (auto const& input : n->input()) {
-          // Existence of layer already validated
-          auto const& input_layer =
-            static_cast<phlex::experimental::identifier const&>(input.layer);
-          if (not input_layers_for_unfold.insert(input_layer).second) {
-            continue;
-          }
-          ++result.count_per_input_layer[input_layer];
-          result.layer_pairs.push_back({.input = input_layer, .output = child_layer});
-        }
+      result.reserve(unfolds.size());
+
+      using phlex::experimental::identifier;
+      for (auto const& [name, n] : unfolds) {
+        index_router::unfold_layer_spec spec{
+          .name = name,
+          .input_layers =
+            std::views::transform(
+              n->input(), [](auto const& input) -> identifier const& { return input.layer; }) |
+            std::ranges::to<std::vector>(),
+          .output_layer = identifier{n->child_layer()}};
+        result.push_back(std::move(spec));
       }
       return result;
     }
