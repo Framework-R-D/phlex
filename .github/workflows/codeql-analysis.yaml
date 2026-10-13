@@ -280,7 +280,7 @@ jobs:
           category: ${{ matrix.language }}
 
       - name: Upload SARIF results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: results
@@ -348,7 +348,7 @@ jobs:
 
       - name: Upload CodeQL alerts debug log
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: codeql-alerts-debug-log
           path: ${{ steps.set_log_path.outputs.path }}
@@ -369,7 +369,7 @@ jobs:
         if: >-
           github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_vs_base == 'true' ||
           steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: codeql-pr-data
           path: pr_comment_data/
