@@ -1000,6 +1000,7 @@ mode_cleanup_owned() {
 }
 
 mode_self_test() {
+  local PHLEX_RELAY_ALLOWED_RANGE="127.0.0.0/8"
   local default_env="${DEFAULT_PHLEX_RELAY_STATE_DIR}/relay-map.env"
   local default_env_hash_before=""
   local default_env_missing_before=0
