@@ -32,12 +32,18 @@ def host_service(system: str, home: Path) -> dict:
         socket = info[2].removeprefix("unix://")
         if not socket.startswith("/run/user/") or not socket.endswith("/podman/podman.sock"):
             raise ValueError(f"Unexpected rootless VM socket: {socket}")
-        image = image or "localhost/phlex-dev:2026-09-30"
-        architecture = subprocess.check_output(
-            ["podman", "image", "inspect", "--format", "{{.Architecture}}", image], text=True
+        image = image or "localhost/phlex-dev:latest"
+        # Podman resolves local manifest lists to their native-platform member.
+        image_platform = subprocess.check_output(
+            ["podman", "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", image],
+            text=True,
         ).strip()
-        if architecture != "arm64":
-            raise ValueError(f"{image} is not a local arm64 image; build phlex-dev natively first")
+        if image_platform != "linux/arm64":
+            raise ValueError(
+                f"{image} does not resolve to a local linux/arm64 image; "
+                "build natively or explicitly pull its linux/arm64 member first"
+            )
+        service["platform"] = "linux/arm64"
         service["network_mode"] = "pasta"
         if os.environ.get("PHLEX_ENABLE_NESTED_PODMAN") == "1":
             # Explicitly opt in to engine control and reduced SELinux isolation.

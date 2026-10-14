@@ -12,6 +12,13 @@
 # Usage: source scripts/setup-env.sh
 #        . scripts/setup-env.sh
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    echo "Error: This script should be sourced, not executed directly" >&2
+    echo "Usage: source scripts/setup-env.sh" >&2
+    echo "       . scripts/setup-env.sh" >&2
+    exit 1
+fi
+
 # Colors for output
 if [[ -t 1 ]]; then
     RED='\033[0;31m'
@@ -29,54 +36,37 @@ fi
 
 # Output functions
 log() {
-    echo -e "${BLUE}[Phlex Setup]${NC} $1"
+    printf '%b[Phlex Setup]%b %s\n' "${BLUE-}" "${NC-}" "$*"
 }
 
 success() {
-    echo -e "${GREEN}[Phlex Setup]${NC} $1"
+    printf '%b[Phlex Setup]%b %s\n' "${GREEN-}" "${NC-}" "$*"
 }
 
 error() {
-    echo -e "${RED}[Phlex Setup]${NC} $1" >&2
+    printf '%b[Phlex Setup]%b %s\n' "${RED-}" "${NC-}" "$*" >&2
 }
 
 warn() {
-    echo -e "${YELLOW}[Phlex Setup]${NC} $1"
+    printf '%b[Phlex Setup]%b %s\n' "${YELLOW-}" "${NC-}" "$*"
 }
-
-# Function to handle errors and return instead of exit
-handle_error() {
-    local line_no=$1
-    local error_code=$2
-    error "Error on line $line_no: Command exited with status $error_code"
-    error "Failed to set up Phlex environment"
-    trap - ERR
-    return $error_code
-}
-
-# Ensure script is sourced, not executed
-if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-    # Script is being sourced - set up error trap
-    trap 'handle_error ${LINENO} $?' ERR
-else
-    # Script is being executed directly
-    echo "Error: This script should be sourced, not executed directly" >&2
-    echo "Usage: source scripts/setup-env.sh" >&2
-    echo "       . scripts/setup-env.sh" >&2
-    exit 1
-fi
 
 log "Setting up Phlex build environment..."
 
 # Get the directory of this script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_SOURCE="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
+PROJECT_SOURCE="$(dirname "$SCRIPT_DIR")" || return 1
 
 # Detect workspace structure and build mode
 detect_build_mode() {
     # Check if we're in a multi-project structure
     # Indicators: parent directory has 'srcs' subdirectory containing our project
-    local potential_workspace="$(dirname "$(dirname "$PROJECT_SOURCE")")"
+    local potential_workspace
+    if [[ -z "${PROJECT_SOURCE:-}" ]]; then
+        error "PROJECT_SOURCE must be set before detecting build mode"
+        return 1
+    fi
+    potential_workspace="$(dirname "$(dirname "$PROJECT_SOURCE")")" || return 1
 
     if [[ -d "$potential_workspace/srcs" && -d "$potential_workspace/srcs/phlex" ]]; then
         # Multi-project mode
@@ -89,7 +79,7 @@ detect_build_mode() {
     else
         # Standalone mode
         BUILD_MODE="standalone"
-        WORKSPACE_ROOT="$(dirname "$PROJECT_SOURCE")"
+        WORKSPACE_ROOT="$(dirname "$PROJECT_SOURCE")" || return 1
         SOURCE_ROOT="$PROJECT_SOURCE"
         PHLEX_SOURCE_DIR="$PROJECT_SOURCE"
         PHLEX_BUILD_DIR="${PHLEX_BUILD_DIR:-$WORKSPACE_ROOT/build}"
@@ -105,7 +95,7 @@ detect_build_mode() {
 
 # Detect CI/container environment
 detect_ci_environment() {
-    if [[ -n "${CI}" || -n "${GITHUB_ACTIONS}" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
         log "Detected CI environment"
         return 0
     fi
@@ -121,31 +111,31 @@ detect_ci_environment() {
 
 # Setup Spack environment (optional - gracefully degrades)
 setup_spack_environment() {
+    local setup_path
+    local -a spack_setup_paths=()
+
     # If SPACK_ROOT already set, Spack is already configured
-    if [[ -n "${SPACK_ROOT}" ]]; then
+    if [[ -n "${SPACK_ROOT:-}" ]]; then
         log "Spack already configured (SPACK_ROOT=${SPACK_ROOT})"
         return 0
     fi
 
     # Try to find and source Spack setup script
-    local spack_setup_paths=(
-        "/spack/share/spack/setup-env.sh"                              # Container
-        "${PHLEX_SPACK_ENV}/../../share/spack/setup-env.sh"            # Custom env
-        "${HOME}/spack/share/spack/setup-env.sh"                       # User install
+    if [[ -n "${PHLEX_SPACK_ROOT:-}" ]]; then
+        spack_setup_paths+=("${PHLEX_SPACK_ROOT}/share/spack/setup-env.sh")
+    fi
+    spack_setup_paths+=("/spack/share/spack/setup-env.sh")
+    if [[ -n "${PHLEX_SPACK_ENV:-}" ]]; then
+        spack_setup_paths+=("${PHLEX_SPACK_ENV}/../../share/spack/setup-env.sh")
+    fi
+    if [[ -n "${HOME:-}" ]]; then
+        spack_setup_paths+=("${HOME}/spack/share/spack/setup-env.sh")
+    fi
+    spack_setup_paths+=(
         "/usr/local/spack/share/spack/setup-env.sh"                    # System install
         "/opt/spack/share/spack/setup-env.sh"                          # Alt system
         "/cvmfs/fermilab.opensciencegrid.org/products/spack/current/share/spack/setup-env.sh"  # FNAL OSG
     )
-
-    # Add user-specified path if provided
-    if [[ -n "${SPACK_ROOT}" ]]; then
-        # Spack already configured, re-source to ensure functions are loaded
-        if [[ -f "${SPACK_ROOT}/share/spack/setup-env.sh" ]]; then
-            spack_setup_paths=("${SPACK_ROOT}/share/spack/setup-env.sh" "${spack_setup_paths[@]}")
-        fi
-    elif [[ -n "${PHLEX_SPACK_ROOT}" ]]; then
-        spack_setup_paths=("${PHLEX_SPACK_ROOT}/share/spack/setup-env.sh" "${spack_setup_paths[@]}")
-    fi
 
     for setup_path in "${spack_setup_paths[@]}"; do
         if [[ -f "$setup_path" ]]; then
@@ -176,12 +166,12 @@ activate_spack_environment() {
     local env_status
     env_status="$(spack env status 2>/dev/null || echo "No active environment")"
     if [[ "$env_status" != *"No active"* ]]; then
-        log "Spack environment already active: $(spack env status)"
+        log "Spack environment already active: $env_status"
         return 0
     fi
 
     # Try to use Spack MPD if available (multi-project workflows)
-    if [[ "$BUILD_MODE" == "multi-project" ]] && spack commands 2>/dev/null | grep -q "^mpd$"; then
+    if [[ "${BUILD_MODE:-}" == "multi-project" ]] && spack commands 2>/dev/null | grep "^mpd$" >/dev/null; then
         log "Attempting to select project with spack mpd..."
         if spack mpd select . 2>/dev/null; then
             log "Successfully selected project with spack mpd"
@@ -191,7 +181,7 @@ activate_spack_environment() {
     fi
 
     # Try user-specified environment
-    if [[ -n "${PHLEX_SPACK_ENV}" ]]; then
+    if [[ -n "${PHLEX_SPACK_ENV:-}" ]]; then
         log "Activating Spack environment: ${PHLEX_SPACK_ENV}"
         if spack env activate "${PHLEX_SPACK_ENV}" 2>/dev/null; then
             success "Activated Spack environment: ${PHLEX_SPACK_ENV}"
@@ -202,8 +192,8 @@ activate_spack_environment() {
     fi
 
     # Try to activate local environment if it exists
-    local local_env="${WORKSPACE_ROOT}/local"
-    if [[ -d "$local_env" && -f "$local_env/spack.yaml" ]]; then
+    local local_env="${WORKSPACE_ROOT:-}/local"
+    if [[ -n "${WORKSPACE_ROOT:-}" && -d "$local_env" && -f "$local_env/spack.yaml" ]]; then
         log "Activating local Spack environment: ${local_env}"
         if spack env activate "${local_env}" 2>/dev/null; then
             success "Activated local Spack environment"
@@ -237,10 +227,20 @@ check_build_tools() {
 
         # Check CMake version
         local cmake_version
-        cmake_version=$(cmake --version | head -n1 | sed 's/cmake version //')
+        cmake_version=$(cmake --version) || {
+            error "Unable to determine CMake version"
+            return 1
+        }
+        cmake_version=${cmake_version%%$'\n'*}
+        cmake_version=${cmake_version#cmake version }
         local major minor
-        major=$(echo "${cmake_version}" | cut -d. -f1)
-        minor=$(echo "${cmake_version}" | cut -d. -f2)
+        if [[ "$cmake_version" =~ ^([0-9]+)\.([0-9]+) ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+        else
+            error "Unrecognized CMake version: $cmake_version"
+            return 1
+        fi
 
         if [[ ${major} -lt 3 ]] || [[ ${major} -eq 3 && ${minor} -lt 24 ]]; then
             warn "CMake version ${cmake_version} may be too old (minimum 3.24 recommended)"
@@ -314,7 +314,7 @@ check_build_tools() {
 # Main setup flow
 main_setup() {
     # Detect build mode and set paths
-    detect_build_mode
+    detect_build_mode || return 1
 
     # Ensure build directory exists
     if ! mkdir -p "${PHLEX_BUILD_DIR}" 2>/dev/null; then
@@ -323,10 +323,10 @@ main_setup() {
     fi
 
     # Try to setup Spack (optional - will warn if not found)
-    setup_spack_environment
+    setup_spack_environment || :
 
     # Try to activate Spack environment (optional)
-    activate_spack_environment
+    activate_spack_environment || :
 
     # Set CMake-specific variables for consistent builds
     export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -335,7 +335,6 @@ main_setup() {
     # Check for required tools (fails if critical tools missing)
     if ! check_build_tools; then
         error "Environment setup incomplete - missing critical build tools"
-        trap - ERR
         return 1
     fi
 
@@ -346,7 +345,7 @@ main_setup() {
     log "Workspace root: ${WORKSPACE_ROOT}"
     log "Source directory: ${PHLEX_SOURCE_DIR}"
     log "Build directory: ${PHLEX_BUILD_DIR}"
-    if [[ -n "${CMAKE_PREFIX_PATH}" ]]; then
+    if [[ -n "${CMAKE_PREFIX_PATH:-}" ]]; then
         log "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}"
     fi
     if command -v spack &> /dev/null; then
@@ -374,17 +373,15 @@ main_setup() {
         echo ""
     fi
 
-    # Clean up and return success
-    trap - ERR
     return 0
 }
 
-# Run main setup and capture result
-main_setup
-setup_result=$?
-
-# Clean up error trap
-trap - ERR
+# Handle failure explicitly without replacing the sourcing shell's ERR trap.
+if main_setup; then
+    setup_result=0
+else
+    setup_result=$?
+fi
 
 # Return the result
 return $setup_result

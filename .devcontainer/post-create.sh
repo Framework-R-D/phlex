@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  printf '%s\n' 'ERROR: post-create.sh must be executed, not sourced' >&2
+  return 1
+fi
+
 # Run inside the dev container after creation.
 
 set -euo pipefail

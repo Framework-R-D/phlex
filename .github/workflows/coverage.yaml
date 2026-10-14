@@ -389,10 +389,13 @@ jobs:
 
       - name: Determine coverage files for each architecture
         id: codecov_targets
+        env:
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
         run: |
           set -euo pipefail
           ls -al coverage-artifacts || true
           any_coverage=false
+          missing_coverage=false
 
           for arch in amd64 arm64; do
             report_dir="coverage-artifacts/coverage-generated-${arch}"
@@ -406,6 +409,10 @@ jobs:
             if [ "${#files[@]}" -eq 0 ]; then
               echo "${arch}_found=false" >> "$GITHUB_OUTPUT"
               echo "${arch}_files=" >> "$GITHUB_OUTPUT"
+              if [ "$COVERAGE_RESULT" = success ]; then
+                echo "::error::Successful ${arch} coverage job has no downloaded coverage report."
+                missing_coverage=true
+              fi
             else
               any_coverage=true
               file_csv=$(IFS=,; printf '%s' "${files[*]}")
@@ -432,6 +439,10 @@ jobs:
           done
           echo "has_html=${has_html}" >> "$GITHUB_OUTPUT"
           echo "html_path=${html_path}" >> "$GITHUB_OUTPUT"
+
+          if [ "$missing_coverage" = true ]; then
+            exit 1
+          fi
 
       - name: Upload amd64 coverage to Codecov
         if: ${{ always() && steps.codecov_targets.outputs.amd64_found == 'true' }}

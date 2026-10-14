@@ -125,4 +125,5 @@ RUN git config --global core.excludesfile '/root/.gitignore-global'
 # Keep runtime fixes current without rebuilding the expensive Spack base image.
 COPY ci/entrypoint.sh /entrypoint.sh
 COPY .devcontainer/kilo-env.sh /etc/profile.d/kilo-env.sh
-RUN chmod +x /etc/profile.d/kilo-env.sh
+COPY .devcontainer/kilo-env-self-test.sh /usr/local/lib/phlex/kilo-env-self-test.sh
+RUN chmod +x /etc/profile.d/kilo-env.sh /usr/local/lib/phlex/kilo-env-self-test.sh

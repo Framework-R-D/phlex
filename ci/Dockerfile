@@ -239,6 +239,36 @@ export PHLEX_GCC_VERSION="$PHLEX_GCC_VERSION"
 export PHLEX_LLVM_VERSION="$PHLEX_LLVM_VERSION"
 EOF
 chmod 644 /etc/profile.d/phlex-targets.sh
+
+cat > /opt/render-spack-template.sh <<'RENDER_SPACK_TEMPLATE'
+render_spack_template() {
+  if [ "$#" -ne 2 ]; then
+    echo "ERROR: render_spack_template requires template, output" >&2
+    return 2
+  fi
+
+  local template_path=$1
+  local output_path=$2
+
+  local variable_name
+  for variable_name in PHLEX_GCC_VERSION PHLEX_LLVM_TARGET PHLEX_LLVM_VERSION \
+    PHLEX_NATIVE_GCC_VERSION PHLEX_SPACK_TARGET; do
+    if [ -z "${!variable_name:-}" ]; then
+      echo "ERROR: $variable_name must be set before rendering" >&2
+      return 1
+    fi
+  done
+
+  sed -E \
+    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
+    "$template_path" > "$output_path"
+}
+RENDER_SPACK_TEMPLATE
+chmod 644 /opt/render-spack-template.sh
 ARCHITECTURE_CHECK
 
 ########################################################################
@@ -289,30 +319,7 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 . /spack/share/spack/setup-env.sh
 . /etc/profile.d/phlex-targets.sh
-
-render_spack_template() {
-  if [ "$#" -ne 2 ]; then
-    echo "ERROR: render_spack_template requires template, output" >&2
-    exit 1
-  fi
-
-  local template_path=$1
-  local output_path=$2
-
-  : "${PHLEX_GCC_VERSION:?PHLEX_GCC_VERSION must be set before rendering}"
-  : "${PHLEX_LLVM_TARGET:?PHLEX_LLVM_TARGET must be set before rendering}"
-  : "${PHLEX_LLVM_VERSION:?PHLEX_LLVM_VERSION must be set before rendering}"
-  : "${PHLEX_NATIVE_GCC_VERSION:?PHLEX_NATIVE_GCC_VERSION must be set before rendering}"
-  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
-
-  sed -E \
-    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
-    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
-    "$template_path" > "$output_path"
-}
+. /opt/render-spack-template.sh
 
 # Other config settings
 spack config --scope defaults add config:build_stage:/opt/spack-stage
@@ -444,30 +451,7 @@ set -euo pipefail
 
 . /spack/share/spack/setup-env.sh
 . /etc/profile.d/phlex-targets.sh
-
-render_spack_template() {
-  if [ "$#" -ne 2 ]; then
-    echo "ERROR: render_spack_template requires template, output" >&2
-    exit 1
-  fi
-
-  local template_path=$1
-  local output_path=$2
-
-  : "${PHLEX_GCC_VERSION:?PHLEX_GCC_VERSION must be set before rendering}"
-  : "${PHLEX_LLVM_TARGET:?PHLEX_LLVM_TARGET must be set before rendering}"
-  : "${PHLEX_LLVM_VERSION:?PHLEX_LLVM_VERSION must be set before rendering}"
-  : "${PHLEX_NATIVE_GCC_VERSION:?PHLEX_NATIVE_GCC_VERSION must be set before rendering}"
-  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
-
-  sed -E \
-    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
-    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
-    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
-    "$template_path" > "$output_path"
-}
+. /opt/render-spack-template.sh
 
 render_spack_template /tmp/spack.yaml.template /tmp/spack.yaml
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
@@ -810,7 +794,8 @@ RUN <<'INSTALL_ACT'
 set -euo pipefail
 
 # Install GitHub's act CLI for local workflow testing
-# Download architecture-specific binary: Linux_amd64 or Linux_arm64
+# Pin the release and its architecture-specific checksums together.
+ACT_VERSION=v0.2.89
 
 if [ "${INSTALL_ACT}" != "true" ]; then
   echo "act installation disabled via --build-arg INSTALL_ACT=false"
@@ -822,6 +807,7 @@ ARCHIVE=""
 case "$ARCH" in
   amd64)
     ARCHIVE="Linux_x86_64"
+    ACT_SHA256=0191d6f1f3b716b5c55820032605d05fc3c1cdbf581ebeff655019e5dd1524c0
     ;;
   arm64)
     if [ "${INSTALL_ACT_ARM64}" != "true" ]; then
@@ -829,6 +815,7 @@ case "$ARCH" in
       exit 0
     fi
     ARCHIVE="Linux_arm64"
+    ACT_SHA256=daa8679ba9615a74d2d0cec321dc593f21948a2a11bb65862b063d8b930f4bcb
     ;;
   *)
     echo "ERROR: Unsupported architecture '$ARCH' for act download" >&2
@@ -836,14 +823,11 @@ case "$ARCH" in
     ;;
 esac
 
-download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-  grep -Ee "\"browser_download_url\": .*/act_${ARCHIVE}\\." | \
-  cut -d '"' -f 4)
-if [ -z "$download_url" ]; then
-  echo "Failed to determine act download URL for architecture '$ARCH' (expected format: $ARCHIVE)" >&2
-  exit 1
-fi
-curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
+act_archive=$(mktemp)
+trap 'rm -f "$act_archive"' EXIT
+curl -fsSL -o "$act_archive" "https://github.com/nektos/act/releases/download/${ACT_VERSION}/act_${ARCHIVE}.tar.gz"
+echo "${ACT_SHA256}  ${act_archive}" | sha256sum -c -
+tar -C /usr/local/bin -zxf "$act_archive" act
 chmod +x /usr/local/bin/act
 INSTALL_ACT
 

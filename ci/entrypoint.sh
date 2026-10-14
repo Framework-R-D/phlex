@@ -6,12 +6,17 @@
 # -*- sh-shell: bash
 # -*- End:
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
+  exit 1
+fi
+
 # Disable Spack's user scope to prevent user-level config interference
 export SPACK_USER_CONFIG_PATH=/dev/null
 export SPACK_DISABLE_LOCAL_CONFIG=true
 
 if [ -f /etc/profile.d/phlex-targets.sh ]; then
-  . /etc/profile.d/phlex-targets.sh
+  . /etc/profile.d/phlex-targets.sh || return 1
 fi
 
 : "${PHLEX_SPACK_ENV:=/opt/spack-environments/phlex-ci}"
@@ -33,7 +38,7 @@ case "$PHLEX_SPACK_TARGET" in
   *)
     echo "ERROR: PHLEX_SPACK_TARGET must be 'x86_64_v3' or 'aarch64'" >&2
     echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
-    exit 1
+    return 1
     ;;
 esac
 
@@ -42,7 +47,7 @@ case "$PHLEX_SPACK_TARGET-$PHLEX_LLVM_TARGET" in
   *-auto|x86_64_v3-x86|aarch64-aarch64) ;;
   *)
     echo "ERROR: Host/target mismatch: PHLEX_SPACK_TARGET=$PHLEX_SPACK_TARGET with PHLEX_LLVM_TARGET=$PHLEX_LLVM_TARGET" >&2
-    exit 1
+    return 1
     ;;
 esac
 
@@ -51,12 +56,12 @@ case "$PHLEX_DEFAULT_COMPILER" in
   *)
     echo "ERROR: PHLEX_DEFAULT_COMPILER must be 'gcc' or 'clang'" >&2
     echo "       Got: '$PHLEX_DEFAULT_COMPILER'" >&2
-    exit 1
+    return 1
     ;;
 esac
 
-. /spack/share/spack/setup-env.sh
-spack env activate -d "$PHLEX_SPACK_ENV"
+. /spack/share/spack/setup-env.sh || return 1
+spack env activate -d "$PHLEX_SPACK_ENV" || return 1
 
 # Resolve the bootstrapped compiler outside the active environment, where it
 # may appear only as an external. Prefer the image's recorded versions; older
@@ -66,7 +71,7 @@ gcc_path=$(spack -E location -i \
   "%c,cxx=gcc${PHLEX_NATIVE_GCC_VERSION:+@${PHLEX_NATIVE_GCC_VERSION}}") || return 1
 
 if [ "$PHLEX_DEFAULT_COMPILER" = "gcc" ]; then
-  PATH="$gcc_path/bin:$PATH"
+  PATH="$gcc_path/bin:${PATH-}"
   export CC=gcc CXX=g++
 else
   # Spack's Clang config sets --gcc-install-dir, which makes --gcc-toolchain

@@ -61,12 +61,18 @@ def test_upgrade_repo_api_migrates_old_version_and_preserves_other_fields(
     upgrade = load_upgrade_script(monkeypatch)
     repo = make_repo(tmp_path, "custom")
     repo_yaml = tmp_path / "repo.yaml"
-    repo_yaml.write_text('repo:\n  namespace: custom\n  api: "v2.0"\n', encoding="utf-8")
+    repo_yaml.write_text(
+        'repo:\n  namespace: custom\n  api: "v2.0"\nmetadata:\n  owner: local\n',
+        encoding="utf-8",
+    )
 
     upgrade["upgrade_spack_repo_api"](repo)
 
     result = yaml.safe_load(repo_yaml.read_text(encoding="utf-8"))
-    assert result == {"repo": {"namespace": "custom", "api": "v2.2"}}
+    assert result == {
+        "repo": {"namespace": "custom", "api": "v2.2"},
+        "metadata": {"owner": "local"},
+    }
     assert "Upgrading custom from API v2.0 to v2.2" in capsys.readouterr().out
 
 
