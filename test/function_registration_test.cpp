@@ -109,3 +109,29 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 
   g.execute();
 }
+
+TEST_CASE("Register and execute a translator", "[programming model]")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("translator-test");
+
+  g.provide("provide_number", provide_number).output_product("input", "number", "job");
+  g.translate("translate_number", [](int number) { return number * 0.5; })
+    .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"})
+    .output_product_suffixes("translated_number");
+  g.observe("verify_translation",
+            [](handle<double> number) {
+              CHECK(*number == 1.5);
+              CHECK(number.creator().algorithm == "translate_number");
+              CHECK(number.suffix() == "translated_number");
+              CHECK(number.layer() == "job");
+              CHECK(number.stage() == "translator-test");
+            })
+    .input_family(product_selector{
+      .creator = "translate_number", .layer = "job", .suffix = "translated_number"});
+
+  g.execute();
+
+  CHECK(g.execution_count("provide_number") == 1u);
+  CHECK(g.execution_count("translate_number") == 1u);
+  CHECK(g.execution_count("verify_translation") == 1u);
+}

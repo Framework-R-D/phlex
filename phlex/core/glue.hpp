@@ -10,6 +10,7 @@
 #include "phlex/core/resource_api.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/core/transform_node.hpp"
+#include "phlex/core/translator_node.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/phlex_core_export.hpp"
 
@@ -150,12 +151,20 @@ namespace phlex::detail {
     // warning to take it by const reference is a false positive.
     template <typename FT>
     auto translate(std::string_view name,
-                   FT f,
+                   FT f, // NOLINE(performance-unnecessary-value-param)
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<translator_node>(
-          config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+      return make_registration<translator_node, declared_translator_ptr>(
+        config_,
+        name,
+        stage_,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     template <typename FT>

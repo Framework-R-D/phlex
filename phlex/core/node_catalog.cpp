@@ -66,13 +66,14 @@ namespace phlex::detail {
 
   producer_catalog node_catalog::producers() const
   {
-   auto as_producers = [](auto const& nodes) {
+    auto as_producers = [](auto const& nodes) {
       return nodes | std::views::values |
              std::views::transform([](auto const& node) -> producer* { return node.get(); });
     };
 
     std::vector<producer*> result;
     result.append_range(as_producers(transforms));
+    result.append_range(as_producers(translators));
     result.append_range(as_producers(folds));
     result.append_range(as_producers(unfolds));
     return producer_catalog{result};

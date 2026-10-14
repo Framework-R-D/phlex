@@ -78,6 +78,7 @@ install(
     resource_api.hpp
     source.hpp
     transform_node.hpp
+    translator_node.hpp
     unfold_node.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
