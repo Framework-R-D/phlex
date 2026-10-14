@@ -19,15 +19,19 @@ kilo_env_sha256() {
   path="$1"
   sum_line=""
 
-  if command -v shasum >/dev/null 2>&1; then
-    sum_line=$(shasum -a 256 "$path" 2>/dev/null) || return 1
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sum_line=$(sha256sum "$path" 2>/dev/null) || return 1
-  else
-    return 1
+  if command -v shasum >/dev/null 2>&1 && \
+    sum_line=$(shasum -a 256 "$path" 2>/dev/null); then
+    printf '%s\n' "${sum_line%% *}"
+    return 0
   fi
-  printf '%s\n' "${sum_line%% *}"
-  return 0
+
+  if command -v sha256sum >/dev/null 2>&1 && \
+    sum_line=$(sha256sum "$path" 2>/dev/null); then
+    printf '%s\n' "${sum_line%% *}"
+    return 0
+  fi
+
+  return 1
 }
 
 kilo_env_assert_equal() {
