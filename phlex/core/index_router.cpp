@@ -205,9 +205,6 @@ namespace phlex::detail {
                               std::map<std::string, join_registration> const& multilayer_join_ports)
   {
     using namespace phlex::experimental::literals;
-    // We must have at least one provider port, or there can be no data to process.
-    assert(!provider_input_ports.empty());
-
     establish_layer_hierarchy(layer_paths_from_driver, unfolds);
     wire_provider_index_sets(g, std::move(provider_input_ports));
     wire_fold_partition_index_sets(g, std::move(fold_partition_ports));
@@ -299,7 +296,7 @@ namespace phlex::detail {
         i + 1 == sorted_layer_paths_.size() or
         not sorted_layer_paths_[i].is_strict_prefix_of(sorted_layer_paths_[i + 1]);
       // Record every known layer, both lowest and non-lowest.  Pre-populating the lowest entries
-      // lets index_is_lowest_layer() return a definitive answer without its unknown-path fallback,
+      // lets index_is_lowest_layer() return a definitive answer for every declared path,
       // including for unfold outputs that themselves parent another unfold's children.
       is_lowest_layer_hashes_.emplace(layer_hash, is_lowest_layer);
     }
@@ -416,18 +413,15 @@ namespace phlex::detail {
 
   void index_router::drain(index_flushes const& flushes) { update_flush_counts(flushes); }
 
-  bool index_router::index_is_lowest_layer(data_cell_index_ptr const& index)
+  bool index_router::index_is_lowest_layer(data_cell_index_ptr const& index) const
   {
     auto it = is_lowest_layer_hashes_.find(index->layer_hash());
     if (it != is_lowest_layer_hashes_.end()) {
       return it->second;
     }
 
-    // Unknown layer hash: establish_layer_hierarchy() includes driver paths and unfold-produced
-    // descendants, so a hash absent from is_lowest_layer_hashes_ corresponds to a layer the router
-    // was never told about. Treating it as lowest skips the rollup/expected-count bookkeeping that
-    // requires path knowledge and matches the prior behavior for unfold output layers.
-    return is_lowest_layer_hashes_.emplace(index->layer_hash(), true).first->second;
+    throw std::runtime_error(fmt::format(
+      "Index layer path '{}' is not in the established layer hierarchy.", index->layer_path()));
   }
 
   internal::index_set_node_ptr index_router::index_set_node_for(data_cell_index_ptr const& index)

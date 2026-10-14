@@ -1,5 +1,4 @@
 #include "phlex/core/index_router.hpp"
-#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -19,6 +18,30 @@
 #include <utility>
 
 using namespace phlex;
+
+TEST_CASE("Index routing rejects undeclared layer paths", "[graph]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> indices{graph};
+  detail::index_router router{graph};
+  router.finalize(
+    graph,
+    {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/spill"}},
+    {},
+    {{"dummy", {.input_product = {.layer = "event"}, .port = &indices}}},
+    {},
+    {});
+
+  auto job = data_cell_index::job();
+  auto run = job->make_child("run", 0);
+  CHECK_NOTHROW(router.route(run->make_child("event", 0), {}));
+  auto unknown = job->make_child("spill", 0)->make_child("event", 0);
+  // A known terminal name does not make a different parent path eligible.
+  CHECK_THROWS_WITH(
+    router.route(unknown, {}),
+    "Index layer path '/job/spill/event' is not in the established layer hierarchy.");
+  graph.wait_for_all();
+}
 
 TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][issue955]")
 {
@@ -324,15 +347,17 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
 TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][unfold]")
 {
   using namespace phlex::experimental::literals;
+  using experimental::layer_path;
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> indices{graph};
   detail::index_router router{graph};
-  auto const driver_path = GENERATE("/job/run/spill", "/job/run/spill/event");
+  auto const driver_path =
+    GENERATE(layer_path{"/job/run/spill"}, layer_path{"/job/run/spill/event"});
   CAPTURE(driver_path);
 
   CHECK_THROWS_WITH(
     router.finalize(graph,
-                    {experimental::layer_path{driver_path}},
+                    {driver_path},
                     {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
                     {},
@@ -343,22 +368,25 @@ TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][un
 TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
 {
   using namespace phlex::experimental::literals;
+  using experimental::layer_path;
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> indices{graph};
   detail::index_router router{graph};
 
-  auto const generated_parent = GENERATE(false, true);
-  CAPTURE(generated_parent);
+  auto const driver_path = GENERATE(layer_path{"/job/run"}, layer_path{"/job"});
+  CAPTURE(driver_path);
   detail::index_router::unfold_data unfolds{
     {.name = "split_a", .input_layers = {"run"_id}, .output_layer = "spill"_id},
     {.name = "split_b", .input_layers = {"run"_id}, .output_layer = "spill"_id}};
-  if (generated_parent) {
+  if (driver_path == layer_path{"/job"}) {
+    // When the driver path is '/job', an unfold is needed to create the 'run' layer as
+    // 'split_a' and 'split_b' both depend on it.
     unfolds.push_back({.name = "split_run", .input_layers = {"job"_id}, .output_layer = "run"_id});
   }
 
   CHECK_THROWS_WITH(
     router.finalize(graph,
-                    {experimental::layer_path{generated_parent ? "/job" : "/job/run"}},
+                    {driver_path},
                     unfolds,
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
                     {},

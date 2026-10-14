@@ -114,10 +114,9 @@ namespace phlex::detail {
     data_cell_index_ptr route(data_cell_index_ptr const& index,
                               bool is_lowest_layer,
                               std::size_t message_id);
-    bool index_is_lowest_layer(data_cell_index_ptr const& index);
+    bool index_is_lowest_layer(data_cell_index_ptr const& index) const;
     // Hash-only lookup for child paths from flush messages, where no data_cell_index is available.
-    // Returns the cached classification for known paths; unknown hashes default to lowest,
-    // consistently with index_is_lowest_layer()'s fallback.
+    // Returns the cached classification for known paths; unknown hashes return true.
     bool is_lowest_layer_hash(std::size_t layer_hash) const;
 
     // finalize() helpers — each owns one initialization step.

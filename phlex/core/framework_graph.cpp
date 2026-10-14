@@ -249,12 +249,6 @@ namespace phlex::detail {
     auto [provider_input_ports, multilayer_join_index_ports] =
       make_computational_edges(nodes_, filters_, graph_, stage_);
 
-    if (provider_input_ports.empty()) {
-      assert(multilayer_join_index_ports.empty());
-      // No algorithms downstream of source.
-      return;
-    }
-
     // Index-router finalization makes edges between the index-set nodes and the provider nodes.
     index_router_.finalize(graph_,
                            fixed_hierarchy_.layer_paths(),
