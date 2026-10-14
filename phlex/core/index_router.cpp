@@ -21,8 +21,8 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ranges>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -36,9 +36,10 @@ namespace phlex::detail {
     // Build the complete set of paths implied by the driver's declarations by adding each path's
     // intermediate parents. Incomplete paths are rooted at /job; for example, declarations
     // {"/job/run/spill", "spill"} produce /job, /job/run, /job/run/spill, and /job/spill.
-    std::set<layer_path> driver_layer_paths(std::vector<layer_path> const& layer_paths_from_driver)
+    std::map<layer_path, std::optional<std::string>> driver_layer_paths(
+      std::vector<layer_path> const& layer_paths_from_driver)
     {
-      std::set<layer_path> paths{layer_path{"/job"}};
+      std::map<layer_path, std::optional<std::string>> paths{{layer_path{"/job"}, std::nullopt}};
       for (auto const& path : layer_paths_from_driver) {
         // Driver declarations may contain only leaves. Include their intermediate parents too.
         std::vector<identifier> prefix;
@@ -47,7 +48,7 @@ namespace phlex::detail {
         }
         for (auto const& component : path.components()) {
           prefix.push_back(component);
-          paths.emplace(prefix);
+          paths.try_emplace(layer_path{prefix}, std::nullopt);
         }
       }
       return paths;
@@ -213,67 +214,83 @@ namespace phlex::detail {
     build_multilayer_join_slots(g, multilayer_join_ports);
   }
 
-  // --------------------------------------------------------------------------------------------
-  // Resolve each unfold on compatible ancestor chains. Its deepest input is the only parent
-  // that receives its flush, so paths and expectations must be derived from the same application.
-  // Append the output layer to each matching parent path and iterate to a fixed point, allowing
-  // chained unfolds to resolve even when a dependent is registered before its producer.
-  // An acyclic chain adds at most one layer per unfold node; expansion beyond the initial deepest
-  // path plus the number of unfolds indicates a cycle and fails with the offending node names.
-  void index_router::establish_layer_hierarchy(
-    std::vector<layer_path> const& layer_paths_from_driver, unfold_data const& unfolds)
-  {
-    auto paths = driver_layer_paths(layer_paths_from_driver);
-    sorted_layer_paths_.assign_range(paths);
-    assert(!sorted_layer_paths_.empty());
+  namespace {
+    struct unfold_layer_paths {
+      std::vector<layer_path> sorted_paths;
+      std::map<std::size_t, std::size_t> number_unfolds_per_parent_path;
+    };
 
-    std::size_t const initial_deepest_path_depth =
-      std::ranges::max_element(sorted_layer_paths_, {}, &layer_path::depth)->depth();
-    std::size_t const max_allowed_depth = initial_deepest_path_depth + unfolds.size();
-    std::set<std::pair<std::string, std::size_t>> counted_unfold_parents;
+    // Resolve each unfold on compatible ancestor chains. Its deepest input is the only parent
+    // that receives its flush, so paths and expectations must be derived from the same application.
+    // Visit each discovered path once and append new children to the worklist, allowing chained
+    // unfolds to resolve even when a dependent is registered before its producer.
+    // An acyclic chain adds at most one layer per unfold node; expansion beyond the initial deepest
+    // path plus the number of unfolds indicates a cycle and fails with the offending node name.
+    unfold_layer_paths expand_unfold_layer_paths(
+      std::vector<layer_path> const& layer_paths_from_driver,
+      index_router::unfold_data const& unfolds)
+    {
+      unfold_layer_paths result;
+      auto paths = driver_layer_paths(layer_paths_from_driver);
+      auto layer_paths = paths | std::views::keys | std::ranges::to<std::vector>();
 
-    bool changed = true;
-    while (changed) {
-      changed = false;
-      std::set<std::string> offending_unfolds;
-      for (auto const& unfold : unfolds) {
-        // Snapshot the current size so paths appended for this unfold are not revisited until
-        // the next fixed-point iteration. In particular, self-referential unfolds stay bounded.
-        std::size_t const snapshot = sorted_layer_paths_.size();
-        for (std::size_t i = 0; i < snapshot; ++i) {
-          auto const& parent_path = sorted_layer_paths_[i];
+      assert(not layer_paths.empty());
+      std::size_t const initial_deepest_path_depth =
+        std::ranges::max_element(layer_paths, {}, &layer_path::depth)->depth();
+      std::size_t const max_allowed_depth = initial_deepest_path_depth + unfolds.size();
+
+      // N.B. layer_paths.size() is purposefully evaluated on each iteration, since new children
+      // are appended to the worklist.
+      for (std::size_t i = 0; i < layer_paths.size(); ++i) {
+        // Appending children can reallocate the worklist, so keep a copy of the parent.
+        auto const parent_path = layer_paths[i];
+        for (auto const& unfold : unfolds) {
           if (not matches_input_chain(parent_path, unfold.input_layers)) {
             continue;
           }
-          layer_path candidate{fmt::format("{}/{}", parent_path, unfold.output_layer)};
+          auto components = parent_path.components() | std::ranges::to<std::vector>();
+          components.push_back(unfold.output_layer);
+          layer_path candidate{std::move(components)};
           if (candidate.depth() > max_allowed_depth) {
-            offending_unfolds.insert(unfold.name);
-            continue;
+            throw std::runtime_error(fmt::format("Unfold layer hierarchy expansion exceeded max "
+                                                 "depth {} (initial deepest {} + {} unfold "
+                                                 "node(s)). Offending unfold: {}",
+                                                 max_allowed_depth,
+                                                 initial_deepest_path_depth,
+                                                 unfolds.size(),
+                                                 unfold.name));
           }
-          // Count each unfold once per parent across iterations, even when multiple unfolds
-          // produce the same child path: each still sends its own flush message.
-          if (counted_unfold_parents.emplace(unfold.name, parent_path.hash()).second) {
-            ++number_unfolds_per_parent_path_[parent_path.hash()];
+          auto const [producer, inserted] = paths.try_emplace(candidate, unfold.name);
+          if (not inserted) {
+            if (not producer->second) {
+              throw std::runtime_error(fmt::format(
+                "Unfold '{}' specifies output layer '{}' already declared by the driver.",
+                unfold.name,
+                candidate));
+            }
+            throw std::runtime_error(
+              fmt::format("Unfolds '{}' and '{}' specify the same output layer '{}'.",
+                          *producer->second,
+                          unfold.name,
+                          candidate));
           }
-          if (paths.insert(candidate).second) {
-            sorted_layer_paths_.push_back(std::move(candidate));
-            changed = true;
-          }
+          ++result.number_unfolds_per_parent_path[parent_path.hash()];
+          layer_paths.push_back(std::move(candidate));
         }
       }
-
-      if (not offending_unfolds.empty()) {
-        throw std::runtime_error(fmt::format(
-          "Unfold layer hierarchy expansion exceeded max depth {} (initial deepest {} + {} unfold "
-          "node(s)). Offending unfold(s):\n{}",
-          max_allowed_depth,
-          initial_deepest_path_depth,
-          unfolds.size(),
-          bulleted_list(offending_unfolds)));
-      }
+      result.sorted_paths.assign_range(paths | std::views::keys);
+      return result;
     }
+  } // namespace
 
-    std::ranges::sort(sorted_layer_paths_);
+  // --------------------------------------------------------------------------------------------
+  void index_router::establish_layer_hierarchy(
+    std::vector<layer_path> const& layer_paths_from_driver, unfold_data const& unfolds)
+  {
+    auto result = expand_unfold_layer_paths(layer_paths_from_driver, unfolds);
+    sorted_layer_paths_ = std::move(result.sorted_paths);
+    number_unfolds_per_parent_path_ = std::move(result.number_unfolds_per_parent_path);
+    assert(!sorted_layer_paths_.empty());
 
     // In sorted order, a path can only be a prefix of paths that follow it.
     for (std::size_t i = 0; i < sorted_layer_paths_.size(); ++i) {

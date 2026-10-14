@@ -299,7 +299,7 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
     unfolds = {{.name = "split_run", .input_layers = {"run"_id}, .output_layer = "run"_id}};
     expected_error =
       "Unfold layer hierarchy expansion exceeded max depth 3 (initial deepest 2 + 1 unfold "
-      "node(s)). Offending unfold(s):\n  - split_run";
+      "node(s)). Offending unfold: split_run";
   }
 
   SECTION("Two-unfold cycle")
@@ -308,7 +308,7 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
                {.name = "split_run", .input_layers = {"spill"_id}, .output_layer = "run"_id}};
     expected_error =
       "Unfold layer hierarchy expansion exceeded max depth 4 (initial deepest 2 + 2 unfold "
-      "node(s)). Offending unfold(s):\n  - split_spill";
+      "node(s)). Offending unfold: split_spill";
   }
 
   CHECK_THROWS_WITH(
@@ -319,4 +319,49 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
                     {},
                     {}),
     expected_error);
+}
+
+TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][unfold]")
+{
+  using namespace phlex::experimental::literals;
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> indices{graph};
+  detail::index_router router{graph};
+  auto const driver_path = GENERATE("/job/run/spill", "/job/run/spill/event");
+  CAPTURE(driver_path);
+
+  CHECK_THROWS_WITH(
+    router.finalize(graph,
+                    {experimental::layer_path{driver_path}},
+                    {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
+                    {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
+                    {},
+                    {}),
+    "Unfold 'split' specifies output layer '/job/run/spill' already declared by the driver.");
+}
+
+TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
+{
+  using namespace phlex::experimental::literals;
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> indices{graph};
+  detail::index_router router{graph};
+
+  auto const generated_parent = GENERATE(false, true);
+  CAPTURE(generated_parent);
+  detail::index_router::unfold_data unfolds{
+    {.name = "split_a", .input_layers = {"run"_id}, .output_layer = "spill"_id},
+    {.name = "split_b", .input_layers = {"run"_id}, .output_layer = "spill"_id}};
+  if (generated_parent) {
+    unfolds.push_back({.name = "split_run", .input_layers = {"job"_id}, .output_layer = "run"_id});
+  }
+
+  CHECK_THROWS_WITH(
+    router.finalize(graph,
+                    {experimental::layer_path{generated_parent ? "/job" : "/job/run"}},
+                    unfolds,
+                    {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
+                    {},
+                    {}),
+    "Unfolds 'split_a' and 'split_b' specify the same output layer '/job/run/spill'.");
 }

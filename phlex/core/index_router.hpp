@@ -84,6 +84,7 @@ namespace phlex::detail {
     explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes const& flushes);
 
+    // One entry per uniquely named unfold node, as guaranteed by framework registration.
     using unfold_data = std::vector<unfold_layer_spec>;
 
     // Establishes the layer hierarchy, registers unfold flush expectations, and wires the TBB
