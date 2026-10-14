@@ -13,6 +13,7 @@
 #include <functional>
 #include <set>
 #include <string_view>
+#include <type_traits>
 #include <unordered_set>
 
 using namespace phlex::experimental;
@@ -289,4 +290,20 @@ TEST_CASE("identifier_or_empty works as an ordered set key", "[identifier]")
 
   REQUIRE(ordered.size() == 3);
   CHECK(ordered.begin()->empty());
+}
+
+TEST_CASE("suffix_t is an alias of identifier_or_empty", "[identifier]")
+{
+  STATIC_CHECK(std::is_same_v<suffix_t, identifier_or_empty>);
+
+  suffix_t const empty{empty_string{}};
+  suffix_t const hits{"hits"_id};
+  identifier_or_empty const empty_alias{};
+  identifier_or_empty const hits_alias{"hits"_id};
+
+  CHECK(empty == empty_alias);
+  CHECK(hits == hits_alias);
+  CHECK(empty.empty());
+  CHECK(fmt::format("[{}]", empty) == "[]");
+  CHECK(fmt::format("{}", hits) == "hits");
 }

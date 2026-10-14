@@ -179,6 +179,12 @@ namespace phlex::experimental {
   inline std::string_view format_as(empty_string) { return {}; }
   inline std::string_view format_as(identifier_or_empty const& value) { return value.text(); }
   inline std::size_t hash_value(identifier_or_empty const& value) { return value.hash(); }
+
+  /// The domain type of a product suffix. It is an alias of `identifier_or_empty` and has the
+  /// same value states, equality, ordering, formatting, and hashing: `empty_string` is an
+  /// explicit empty suffix, and a named identifier is a valid suffix name. It is not an
+  /// omitted selection criterion; that is `std::nullopt` in a product selector.
+  using suffix_t = identifier_or_empty;
 }
 
 template <>
