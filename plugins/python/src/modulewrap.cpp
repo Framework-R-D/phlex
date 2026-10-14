@@ -78,6 +78,11 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t const& module)
   return reinterpret_cast<PyObject*>(pymod);
 }
 
+void phlex::experimental::invalidate_module(PyObject* module)
+{
+  reinterpret_cast<py_phlex_module*>(module)->ph_module = nullptr;
+}
+
 // Simple phlex source wrapper
 // clang-format off
 struct phlex::experimental::py_phlex_source {
@@ -92,6 +97,11 @@ PyObject* phlex::experimental::wrap_source(phlex_source_t const& source)
   pysrc->ph_source = &source;
 
   return reinterpret_cast<PyObject*>(pysrc);
+}
+
+void phlex::experimental::invalidate_source(PyObject* source)
+{
+  reinterpret_cast<py_phlex_source*>(source)->ph_source = nullptr;
 }
 
 namespace {
@@ -1260,6 +1270,11 @@ namespace {
 
   PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
   {
+    if (!mod->ph_module) {
+      PyErr_SetString(PyExc_RuntimeError, "the Phlex registration callback has completed");
+      return nullptr;
+    }
+
     // Register a python algorithm by adding the necessary intermediate converter
     // nodes going from C++ to PyObject* and back.
 
@@ -1332,6 +1347,11 @@ namespace {
   // NOLINTNEXTLINE(readability-function-size)
   PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds)
   {
+    if (!mod->ph_module) {
+      PyErr_SetString(PyExc_RuntimeError, "the Phlex registration callback has completed");
+      return nullptr;
+    }
+
     // Register a python observer by adding the necessary intermediate converter
     // nodes going from C++ to PyObject* and back.
 
@@ -1643,6 +1663,11 @@ namespace {
 
   PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds)
   {
+    if (!src->ph_source) {
+      PyErr_SetString(PyExc_RuntimeError, "the Phlex registration callback has completed");
+      return nullptr;
+    }
+
     auto registration = parse_provider_registration(args, kwds);
     if (!registration) {
       return nullptr;

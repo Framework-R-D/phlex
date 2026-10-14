@@ -63,14 +63,13 @@ namespace phlex::detail {
     }};
   }
 
-  template <typename Bound, typename Algorithm>
+  template <typename Algorithm>
   class algorithm_bits {
   public:
-    using bound_type = Bound;
     using algorithm_type = Algorithm;
-    using input_parameter_types = function_parameter_types<Algorithm>;
+    using input_parameter_types = function_parameter_types<algorithm_type>;
     static constexpr auto number_inputs = std::tuple_size_v<input_parameter_types>;
-    static constexpr auto number_outputs = number_output_objects<Algorithm>;
+    static constexpr auto number_outputs = number_output_objects<algorithm_type>;
 
     template <std::size_t Number>
     using input_parameters = boost::mp11::mp_take_c<input_parameter_types, Number>;
@@ -81,8 +80,8 @@ namespace phlex::detail {
     // no separate code paths are needed here.  Both parameters are by-value sinks
     // (moved into 'delegate'), so the clang-tidy const-reference warning is a false
     // positive.
-    template <typename T>
-    algorithm_bits(T object, Algorithm algorithm) : // NOLINT(performance-unnecessary-value-param)
+    template <typename T, typename Callable>
+    algorithm_bits(T object, Callable algorithm) : // NOLINT(performance-unnecessary-value-param)
       bound_{delegate(std::move(object), std::move(algorithm))}
     {
     }
@@ -90,13 +89,12 @@ namespace phlex::detail {
     auto release_algorithm() { return std::move(bound_); }
 
   private:
-    Bound bound_;
+    Algorithm bound_;
   };
 
   template <typename T, typename Algorithm>
   algorithm_bits(std::shared_ptr<T>, Algorithm)
-    -> algorithm_bits<decltype(delegate(std::shared_ptr<T>{}, std::declval<Algorithm>())),
-                      Algorithm>;
+    -> algorithm_bits<decltype(delegate(std::shared_ptr<T>{}, std::declval<Algorithm>()))>;
 
 }
 

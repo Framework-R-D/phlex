@@ -2,7 +2,7 @@
 
 #include "phlex/configuration.hpp"
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/core/graph_proxy.hpp"
+#include "phlex/core/registration_context.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/module.hpp"
@@ -49,9 +49,9 @@ namespace phlex::detail {
       boost::dll::shared_library lib;
       internal::source_creator_t* fn{};
 
-      void operator()(graph_registration_bundle bundle, configuration const& config) const
+      void operator()(internal::registration_carrier carrier, configuration const& config) const
       {
-        fn(bundle, config);
+        fn(carrier, config);
       }
     };
 
@@ -167,8 +167,7 @@ namespace phlex::detail {
     auto& creator = create_resources.emplace_back(resource_plugin{.lib = std::move(lib), .fn = fn});
 
     configuration const config{adjusted_config};
-    auto const proxy = resources_graph_proxy{g.registration_bundle(config)};
-    creator(proxy, config);
+    creator(g.resources_proxy(config), config);
   }
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
@@ -185,7 +184,7 @@ namespace phlex::detail {
     // adjusted_config["module_label"] = label;       // already set by adjust_config
 
     configuration const config{adjusted_config};
-    creator(g.registration_bundle(config), config);
+    creator(g.registration_carrier(config), config);
   }
 
   void load_driver(framework_graph& g, boost::json::object const& raw_config)

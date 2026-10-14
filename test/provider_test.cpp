@@ -93,6 +93,17 @@ namespace {
   };
 
   unsigned pass_on(vertex_collection const& vertices) { return vertices.data; }
+
+  struct bound_provider {
+    explicit bound_provider(std::size_t offset) : offset{offset} {}
+
+    vertex_collection provide(data_cell_index const& index) const
+    {
+      return vertex_collection::make(index.number() + offset);
+    }
+
+    std::size_t offset{1};
+  };
 }
 
 TEST_CASE("Explicit providers")
@@ -131,6 +142,29 @@ TEST_CASE("Explicit providers")
   CHECK(g.execution_count("my_name_here") == num_spills);
   CHECK(g.execution_count("verify_explicit_stage") == num_spills);
   CHECK(g.execution_count("verify_named_stage") == num_spills);
+}
+
+TEST_CASE("Bound provider member retains its object after glue destruction")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
+  {
+    auto glue = g.make<bound_provider>(42);
+    glue.provide("bound_provider", &bound_provider::provide, concurrency::unlimited)
+      .output_product("bound_provider", "vertices", "job");
+  }
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "bound_provider", .layer = "job", .suffix = "vertices"});
+  g.observe("verify_bound_provider",
+            [](vertex_collection const& vertices) { CHECK(vertices.data == 41); })
+    .input_family(
+      product_selector{.creator = "bound_provider", .layer = "job", .suffix = "vertices"});
+  g.execute();
+
+  CHECK(g.execution_count("bound_provider") == 1);
+  CHECK(g.execution_count("passer") == 1);
+  CHECK(g.execution_count("verify_bound_provider") == 1);
 }
 
 TEST_CASE("Specifying current stage does not match a provider from another stage")

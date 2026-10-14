@@ -13,6 +13,7 @@ cet_test_env(SPDLOG_LEVEL=debug)
 
 cet_test(accumulator USE_CATCH2_MAIN SOURCE accumulator_test.cpp LIBRARIES phlex::core_internal)
 cet_test(concepts SOURCE concepts_test.cpp LIBRARIES phlex::core_internal)
+cet_test(proxy_capabilities SOURCE proxy_capabilities_test.cpp LIBRARIES phlex::core_internal)
 cet_test(
   adjust_config
   USE_CATCH2_MAIN
