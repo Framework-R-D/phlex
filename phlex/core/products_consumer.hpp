@@ -37,7 +37,6 @@ namespace phlex::detail {
     tbb::flow::receiver<message>& port(product_selector const& input_product);
 
     virtual named_index_ports index_ports() = 0;
-    virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::size_t num_calls() const = 0;
 
   protected:
