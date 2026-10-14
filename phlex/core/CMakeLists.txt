@@ -51,6 +51,8 @@ install(
     declared_transform.hpp
     declared_unfold.hpp
     fold_join_node.hpp
+    fold_node.hpp
+    producer.hpp
     producer_catalog.hpp
     make_computational_edges.hpp
     filter.hpp
@@ -64,6 +66,8 @@ install(
     index_router.hpp
     node_builder.hpp
     node_catalog.hpp
+    observer_node.hpp
+    predicate_node.hpp
     product_selector.hpp
     products_consumer.hpp
     provider_node.hpp
@@ -71,6 +75,8 @@ install(
     registration_api.hpp
     resource_api.hpp
     source.hpp
+    transform_node.hpp
+    unfold_node.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
 )
