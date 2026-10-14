@@ -3,10 +3,13 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/observer_node.hpp"
+#include "phlex/core/predicate_node.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/core/source.hpp"
+#include "phlex/core/transform_node.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/phlex_core_export.hpp"
 

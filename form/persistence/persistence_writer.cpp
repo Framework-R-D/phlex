@@ -87,7 +87,9 @@ void persistence_writer::configure_tech_settings(
 void persistence_writer::create_containers(
   std::vector<std::pair<placement, std::type_info const*>> const& containers)
 {
-  std::map<std::unique_ptr<placement>, std::type_info const*> storage_containers;
+  // Preserve caller order, keeping each product adjacent to its index container.
+  std::vector<std::pair<placement, std::type_info const*>> storage_containers;
+  storage_containers.reserve(containers.size() * 2);
   for (auto const& [plcmnt, type] : containers) {
     // Reserve the "navigation_prefix" namespace for navigation containers.
     if (auto const row_space = row_space_of(plcmnt.container_name());
@@ -97,7 +99,7 @@ void persistence_writer::create_containers(
                                "', which is reserved for FORM navigation containers");
     }
 
-    storage_containers.insert(std::make_pair(std::make_unique<placement>(plcmnt), type));
+    storage_containers.emplace_back(plcmnt, type);
 
     // Persistence owns the index: every product's row space gets an index container.
     placement index_place = index_placement_for(plcmnt);
@@ -105,8 +107,7 @@ void persistence_writer::create_containers(
       std::make_tuple(plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology()),
       index_place);
     if (inserted) {
-      storage_containers.insert(
-        std::make_pair(std::make_unique<placement>(std::move(index_place)), &typeid(std::string)));
+      storage_containers.emplace_back(std::move(index_place), &typeid(std::string));
     }
   }
   store_writer_->create_containers(storage_containers, tech_settings_);
@@ -485,16 +486,16 @@ std::vector<placement> persistence_writer::create_table_columns(
   std::vector<std::string> const& columns,
   std::type_info const& type)
 {
+  // Preserve the requested column order when creating table columns.
+  std::vector<std::pair<placement, std::type_info const*>> to_create;
+  to_create.reserve(columns.size());
   std::vector<placement> places;
   places.reserve(columns.size());
   for (auto const& column : columns) {
     placement place{file_name, build_full_label(table_name, column), tech};
-    // Create one column at a time so create_containers preserves the input column order;
-    // its map is keyed by unique_ptr, so batching columns would order them by pointer value.
-    std::map<std::unique_ptr<placement>, std::type_info const*> one_column;
-    one_column.emplace(std::make_unique<placement>(place), &type);
-    store_writer_->create_containers(one_column, tech_settings_);
+    to_create.emplace_back(place, &type);
     places.push_back(std::move(place));
   }
+  store_writer_->create_containers(to_create, tech_settings_);
   return places;
 }

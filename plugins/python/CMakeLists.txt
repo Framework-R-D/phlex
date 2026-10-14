@@ -21,6 +21,7 @@ add_library(
   src/lifelinewrap.cpp
   src/errorwrap.cpp
   src/dyncall.cpp
+  src/wrap.cpp
 )
 
 target_link_libraries(

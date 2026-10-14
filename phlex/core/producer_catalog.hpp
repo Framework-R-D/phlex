@@ -2,8 +2,9 @@
 #define PHLEX_CORE_PRODUCER_CATALOG_HPP
 
 #include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 #include "phlex/phlex_core_export.hpp"
 
@@ -11,15 +12,16 @@
 
 #include <map>
 #include <ranges>
-#include <string>
+#include <span>
+#include <vector>
 
 namespace phlex::detail {
+  class producer;
   using product_suffix_t = phlex::experimental::identifier;
 
   class PHLEX_CORE_EXPORT producer_catalog {
   public:
-    template <typename... Args>
-    explicit producer_catalog(Args const&... producers);
+    explicit producer_catalog(std::span<producer* const> producers);
 
     struct named_output_port {
       phlex::experimental::algorithm_name node;
@@ -34,33 +36,8 @@ namespace phlex::detail {
     auto values() const { return producers_ | std::views::values; }
 
   private:
-    template <typename T>
-    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T const& nodes);
-
     std::multimap<product_suffix_t, named_output_port> producers_;
   };
-
-  // =============================================================================
-  // Implementation
-  template <typename T>
-  std::multimap<product_suffix_t, producer_catalog::named_output_port>
-  producer_catalog::producing_nodes(T const& nodes)
-  {
-    std::multimap<product_suffix_t, named_output_port> result;
-    for (auto const& [node_name, node] : nodes) {
-      for (auto const& product_spec : node->output()) {
-        result.emplace(product_spec.suffix(),
-                       named_output_port{node_name, &node->output_port(), product_spec.type()});
-      }
-    }
-    return result;
-  }
-
-  template <typename... Args>
-  producer_catalog::producer_catalog(Args const&... producers)
-  {
-    (producers_.merge(producing_nodes(producers)), ...);
-  }
 }
 
 #endif // PHLEX_CORE_PRODUCER_CATALOG_HPP
