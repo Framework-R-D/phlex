@@ -3,7 +3,8 @@
 # This script is sourced by /etc/profile.d/ so the variable is available to all processes.
 # Conforms to kilo-plan/v5: write-free Kilo configuration rewriting.
 
-KILO_ENV_FIXED_ROOT="/run/phlex-host-relays"
+KILO_ENV_PRODUCTION_ROOT="/run/phlex-host-relays"
+KILO_ENV_FIXED_ROOT="$KILO_ENV_PRODUCTION_ROOT"
 KILO_ENV_HOST_GATEWAY="host.docker.internal"
 KILO_ENV_SELF_TEST_MODE=0
 
@@ -75,7 +76,7 @@ kilo_env_find_config_path() {
   relay_root="$1"
 
   # Fixture roots contain their own config; production uses the read-only host mount.
-  if [ "$relay_root" = "$KILO_ENV_FIXED_ROOT" ]; then
+  if [ "$relay_root" = "$KILO_ENV_PRODUCTION_ROOT" ]; then
     relay_root="/root/.config/kilo"
   fi
 

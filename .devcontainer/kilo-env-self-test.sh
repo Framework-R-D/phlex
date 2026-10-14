@@ -26,8 +26,8 @@ kilo_env_sha256() {
   else
     return 1
   fi
-
   printf '%s\n' "${sum_line%% *}"
+  return 0
 }
 
 kilo_env_assert_equal() {
@@ -746,16 +746,39 @@ EOF
   fi
 
   local script_path child_output source_safety_output_ready=0
-  script_path="$KILO_ENV_SCRIPT_PATH"
+  local isolated_root="${scratch_root}/isolated-fixed-root"
+  local fixed_root_replacements=0
+  local line
+  script_path="${scratch_root}/kilo-env.sh"
 
-  if [ -e "${KILO_ENV_FIXED_ROOT}/relay-map.json" ] || [ -e "${KILO_ENV_FIXED_ROOT}/relay-map.env" ]; then
+  if ! mkdir -p "$isolated_root"; then
+    kilo_env_print_error "unable to create isolated source-safety relay root"
+    tests_failed=1
+  elif ! {
+    while IFS= read -r line || [ -n "$line" ]; do
+      if [[ "$line" == KILO_ENV_FIXED_ROOT=* ]]; then
+        printf 'KILO_ENV_FIXED_ROOT=%q\n' "$isolated_root"
+        fixed_root_replacements=$((fixed_root_replacements + 1))
+      else
+        printf '%s\n' "$line"
+      fi
+    done < "$KILO_ENV_SCRIPT_PATH"
+  } > "$script_path"; then
     kilo_env_print_error \
-      "source-safety test requires ${KILO_ENV_FIXED_ROOT} to contain neither relay-map.json nor relay-map.env"
+      "unable to prepare isolated source-safety script"
+    tests_failed=1
+  elif [ "$fixed_root_replacements" -ne 1 ]; then
+    kilo_env_print_error "source-safety script did not have exactly one fixed-root assignment"
+    tests_failed=1
+  elif [ -e "${isolated_root}/relay-map.json" ] || [ -e "${isolated_root}/relay-map.env" ]; then
+    kilo_env_print_error \
+      "source-safety test requires ${isolated_root} to contain neither relay-map.json nor relay-map.env"
     tests_failed=1
   elif ! child_output=$(
       PHLEX_RELAY_FIXTURE_DIR="$fixture_root" \
         bash --noprofile --norc -c '
 script_path=$1
+isolated_root=$2
 set -euf -o pipefail
 before_flags=$-
 before_opts=$(set +o)
@@ -767,9 +790,24 @@ export KILO_CONFIG_PATH=stale
 status=$?
 after_flags=$-
 after_opts=$(set +o)
-before_opts_sha=$(printf %s "$before_opts" | shasum -a 256)
+sha256_text() {
+  local input="$1"
+  local sum_line
+  if command -v shasum >/dev/null 2>&1 && \
+    sum_line=$(printf %s "$input" | shasum -a 256 2>/dev/null); then
+    printf "%s\n" "$sum_line"
+    return 0
+  fi
+  if command -v sha256sum >/dev/null 2>&1 && \
+    sum_line=$(printf %s "$input" | sha256sum 2>/dev/null); then
+    printf "%s\n" "$sum_line"
+    return 0
+  fi
+  return 1
+}
+before_opts_sha=$(sha256_text "$before_opts") || exit 1
 before_opts_sha=${before_opts_sha%% *}
-after_opts_sha=$(printf %s "$after_opts" | shasum -a 256)
+after_opts_sha=$(sha256_text "$after_opts") || exit 1
 after_opts_sha=${after_opts_sha%% *}
 printf "%s\n" \
   "status=$status" \
@@ -784,7 +822,7 @@ printf "%s\n" \
   "relay_file=${PHLEX_HOST_RELAY_FILE-unset}" \
   "relays_env=${PHLEX_HOST_RELAYS_ENV-unset}" \
   "gateway=${PHLEX_HOST_GATEWAY-unset}"
-' bash "$script_path"
+' bash "$script_path" "$isolated_root"
   ); then
     printf 'FAIL: production source-safety child shell exited unexpectedly\n' >&2
     tests_failed=1
@@ -825,13 +863,13 @@ printf "%s\n" \
       tests_failed=1
     fi
     if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relay_file")" \
-      "${KILO_ENV_FIXED_ROOT}/relay-map.json" \
-      "production sourcing keeps the fixed relay-map.json path"; then
+      "${isolated_root}/relay-map.json" \
+      "source-safety copy uses the isolated relay-map.json path"; then
       tests_failed=1
     fi
     if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "relays_env")" \
-      "${KILO_ENV_FIXED_ROOT}/relay-map.env" \
-      "production sourcing keeps the fixed relay-map.env path"; then
+      "${isolated_root}/relay-map.env" \
+      "source-safety copy uses the isolated relay-map.env path"; then
       tests_failed=1
     fi
     if ! kilo_env_assert_equal "$(kilo_env_extract_output_value "$child_output" "gateway")" \

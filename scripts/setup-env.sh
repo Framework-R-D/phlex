@@ -114,10 +114,13 @@ setup_spack_environment() {
     local setup_path
     local -a spack_setup_paths=()
 
-    # If SPACK_ROOT already set, Spack is already configured
+    # SPACK_ROOT can be exported before its shell setup script is loaded.
     if [[ -n "${SPACK_ROOT:-}" ]]; then
-        log "Spack already configured (SPACK_ROOT=${SPACK_ROOT})"
-        return 0
+        if command -v spack &> /dev/null; then
+            log "Spack already configured (SPACK_ROOT=${SPACK_ROOT})"
+            return 0
+        fi
+        spack_setup_paths+=("${SPACK_ROOT}/share/spack/setup-env.sh")
     fi
 
     # Try to find and source Spack setup script

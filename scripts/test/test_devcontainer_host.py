@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import runpy
+import shutil
 import subprocess
 from pathlib import Path
 from unittest.mock import patch
@@ -634,13 +635,21 @@ def test_kilo_env_exit_paths_preserve_callers(tmp_path, sourced, self_test):
     script = DEVCONTAINER / "kilo-env.sh"
     args = ["--self-test"] if self_test else []
     if sourced:
+        command_script = "; ".join(
+            (
+                'trap ":" EXIT HUP INT TERM ERR',
+                "before=$(trap -p)",
+                'source "$1" "${@:2}"',
+                "status=$?",
+                '[[ "$(trap -p)" = "$before" ]] || exit 99',
+                'printf "survived\\n"',
+                'exit "$status"',
+            )
+        )
         command = [
             "bash",
             "-c",
-            'trap ":" EXIT HUP INT TERM ERR; before=$(trap -p); '
-            'source "$1" "${@:2}"; status=$?; '
-            '[[ "$(trap -p)" = "$before" ]] || exit 99; '
-            'printf "survived\\n"; exit "$status"',
+            command_script,
             "bash",
             str(script),
             *args,
@@ -761,6 +770,38 @@ printf 'survived\\n'
     assert "survived" in result.stdout
 
 
+def test_setup_spack_environment_sources_spack_root_when_command_is_missing(tmp_path):
+    """An exported SPACK_ROOT still loads Spack's shell setup when its command is absent."""
+    setup_script = tmp_path / "share/spack/setup-env.sh"
+    setup_script.parent.mkdir(parents=True)
+    setup_script.write_text('spack() { printf "fixture-spack\\n"; }\n')
+
+    setup_env = (DEVCONTAINER.parent / "scripts/setup-env.sh").read_text()
+    definitions = setup_env.split("# Main setup flow", 1)[0]
+    fixture = tmp_path / "setup-env-functions.sh"
+    fixture.write_text(definitions)
+    command_script = "\n".join(
+        (
+            'source "$1"',
+            '[[ -n "${SPACK_ROOT:-}" ]]',
+            "if command -v spack >/dev/null 2>&1; then exit 99; fi",
+            "setup_spack_environment",
+            '[[ "$(spack)" = fixture-spack ]]',
+        )
+    )
+    env = {
+        key: value for key, value in os.environ.items() if not key.startswith(("PHLEX_", "SPACK_"))
+    }
+    env.update(SPACK_ROOT=str(tmp_path), PATH="/usr/bin:/bin")
+    result = subprocess.run(
+        ["bash", "-c", command_script, "bash", str(fixture)],
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 @pytest.mark.parametrize("options", ["-e", "-u", "-eu"])
 def test_kilo_env_plain_source_and_direct_functions_under_strict_options(tmp_path, options):
     """Real Kilo production helpers remain usable with strict options and missing arguments."""
@@ -820,7 +861,8 @@ printf 'survived\\n'
 
 
 @pytest.mark.parametrize("sourced", [True, False])
-def test_kilo_env_full_self_test_under_strict_options(tmp_path, sourced):
+@pytest.mark.parametrize("force_sha256sum_fallback", [False, True])
+def test_kilo_env_full_self_test_under_strict_options(tmp_path, sourced, force_sha256sum_fallback):
     """The complete Kilo fixture suite and its cleanup work with errexit/nounset/pipefail."""
     import hashlib
 
@@ -839,6 +881,15 @@ def test_kilo_env_full_self_test_under_strict_options(tmp_path, sourced):
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     env = {**os.environ, "PHLEX_RELAY_FIXTURE_DIR": str(fixture), "TMPDIR": str(scratch)}
+    if force_sha256sum_fallback:
+        if shutil.which("sha256sum") is None:
+            pytest.skip("sha256sum is unavailable for fallback testing")
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        shasum = bin_dir / "shasum"
+        shasum.write_text("#!/bin/sh\nexit 1\n")
+        shasum.chmod(0o700)
+        env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
     command = (
         [
             "bash",
@@ -891,6 +942,14 @@ printf 'survived\\n'
 
 def test_production_kilo_sourcing_does_not_load_fixture_suite(tmp_path):
     """Normal shell startup defines runtime helpers but does not parse or load the test suite."""
+    command_script = "; ".join(
+        (
+            'source "$1"',
+            "declare -F kilo_env_apply_root >/dev/null",
+            "if declare -F kilo_env_assert_equal >/dev/null; then exit 99; fi",
+            "if declare -F kilo_env_run_self_tests_loaded >/dev/null; then exit 99; fi",
+        )
+    )
     result = subprocess.run(
         [
             "bash",
@@ -898,9 +957,7 @@ def test_production_kilo_sourcing_does_not_load_fixture_suite(tmp_path):
             "-o",
             "pipefail",
             "-c",
-            'source "$1"; declare -F kilo_env_apply_root >/dev/null; '
-            "if declare -F kilo_env_assert_equal >/dev/null; then exit 99; fi; "
-            "if declare -F kilo_env_run_self_tests_loaded >/dev/null; then exit 99; fi",
+            command_script,
             "bash",
             str(DEVCONTAINER / "kilo-env.sh"),
         ],
