@@ -42,6 +42,7 @@ component_management:
       paths:
         - scripts/**
         - ci/**
+        - .devcontainer/configure-host.py
 
 flags:
   amd64:

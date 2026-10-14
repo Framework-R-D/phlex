@@ -33,20 +33,20 @@ add_test(
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-# Coverage target for the scripts/ utility modules.  Mirrors the approach used
-# by test/python/CMakeLists.txt for the coverage-python target.
+# Coverage target for Python utilities in scripts/, ci/, and .devcontainer/.
 if(HAS_SCRIPTS_PYTEST_COV AND ENABLE_COVERAGE)
   add_custom_target(
     coverage-scripts
     COMMAND
       ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
-      --cov=${PROJECT_SOURCE_DIR}/scripts --omit=${CMAKE_CURRENT_SOURCE_DIR}/*
+      --cov=${PROJECT_SOURCE_DIR}/scripts --cov=${PROJECT_SOURCE_DIR}/ci
+      --cov=${PROJECT_SOURCE_DIR}/.devcontainer --omit=${CMAKE_CURRENT_SOURCE_DIR}/*
       --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-scripts.xml
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMENT "Running scripts/ Python coverage report"
+    COMMENT "Running scripts, CI, and devcontainer Python coverage report"
     VERBATIM
   )
-  message(STATUS "Added 'coverage-scripts' target for scripts/ utility modules.")
+  message(STATUS "Added 'coverage-scripts' target for repository Python utilities.")
 elseif(ENABLE_COVERAGE AND NOT HAS_SCRIPTS_PYTEST_COV)
   message(WARNING "ENABLE_COVERAGE is ON but pytest-cov not found; scripts coverage disabled.")
 endif()

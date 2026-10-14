@@ -12,7 +12,9 @@ from unittest.mock import patch
 import pytest
 
 DEVCONTAINER = Path(__file__).resolve().parents[2] / ".devcontainer"
-HOST_SERVICE = runpy.run_path(str(DEVCONTAINER / "configure-host.py"))["host_service"]
+CONFIGURE_HOST = runpy.run_path(str(DEVCONTAINER / "configure-host.py"))
+HOST_SERVICE = CONFIGURE_HOST["host_service"]
+HOST_MAIN = CONFIGURE_HOST["main"]
 
 
 @pytest.fixture(autouse=True)
@@ -143,6 +145,21 @@ def test_linux_keeps_base_defaults(tmp_path):
     command.assert_not_called()
 
 
+def test_linux_mounts_existing_podman_proxy(tmp_path):
+    """An available VM proxy socket is mounted and exported for container clients."""
+    proxy_socket = tmp_path / ".podman-proxy/podman.sock"
+    proxy_socket.parent.mkdir(parents=True)
+    proxy_socket.touch()
+
+    service = HOST_SERVICE("Linux", tmp_path)
+
+    assert service["volumes"] == [f"{proxy_socket}:/tmp/podman.sock:Z"]
+    assert service["environment"] == {
+        "DOCKER_HOST": "unix:///tmp/podman.sock",
+        "CONTAINER_HOST": "unix:///tmp/podman.sock",
+    }
+
+
 def test_explicit_image_and_auth_destination(tmp_path, monkeypatch):
     """Explicit images work and host auth never masks the writable private auth file."""
     monkeypatch.setenv("PHLEX_DEV_IMAGE", "localhost/phlex-dev:custom")
@@ -153,6 +170,54 @@ def test_explicit_image_and_auth_destination(tmp_path, monkeypatch):
     assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == "localhost/phlex-dev:custom"
     assert service["volumes"] == [f"{auth}:/run/phlex-host-auth.json:ro,Z"]
     assert auth.read_text() == "{}\n"
+
+
+def _patch_host_main(monkeypatch, target, home):
+    main_globals = HOST_MAIN.__globals__
+    monkeypatch.setitem(main_globals, "__file__", str(target.with_name("configure-host.py")))
+    monkeypatch.setattr(main_globals["platform"], "system", lambda: "Linux")
+    monkeypatch.setattr(main_globals["Path"], "home", staticmethod(lambda: home))
+
+
+def test_main_atomically_writes_compose_override(tmp_path, monkeypatch):
+    """The generated override replaces stale content and removes its same-dir temp file."""
+    target = tmp_path / "checkout with spaces" / "docker-compose.host.yml"
+    target.parent.mkdir()
+    target.write_text("stale override\n")
+    home = tmp_path / "home with spaces"
+    auth = home / ".local/share/kilo/auth.json"
+    auth.parent.mkdir(parents=True)
+    auth.write_text("{}\n")
+    _patch_host_main(monkeypatch, target, home)
+
+    with patch.object(CONFIGURE_HOST["os"], "replace", wraps=os.replace) as replace:
+        HOST_MAIN()
+
+    replace.assert_called_once()
+    temporary = Path(replace.call_args.args[0])
+    assert temporary.parent == target.parent
+    assert replace.call_args.args[1] == target
+    assert not temporary.exists()
+    assert target.read_text().endswith("\n")
+    service = json.loads(target.read_text())["services"]["phlex-dev"]
+    assert service["volumes"] == [f"{auth}:/run/phlex-host-auth.json:ro,Z"]
+
+
+def test_main_preserves_override_and_cleans_temp_on_replace_failure(tmp_path, monkeypatch):
+    """A failed atomic replacement leaves the prior override intact and cleans up."""
+    target = tmp_path / "docker-compose.host.yml"
+    target.write_text("previous override\n")
+    _patch_host_main(monkeypatch, target, tmp_path / "home")
+
+    def fail_replace(source, destination):
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(CONFIGURE_HOST["os"], "replace", fail_replace)
+    with pytest.raises(OSError, match="simulated replace failure"):
+        HOST_MAIN()
+
+    assert target.read_text() == "previous override\n"
+    assert list(target.parent.glob(".compose-host-*")) == []
 
 
 def test_auth_seed_preserves_other_providers(tmp_path, monkeypatch):
