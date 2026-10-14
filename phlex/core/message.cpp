@@ -4,11 +4,13 @@
 #include "phlex/model/product_store.hpp"
 
 #include <fmt/format.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#include <span>
 #include <stdexcept>
 #include <tuple>
 
@@ -37,5 +39,14 @@ namespace phlex::detail {
         fmt::format("Algorithm does not accept product '{}'.", input_product));
     }
     return std::distance(b, it);
+  }
+
+  tbb::flow::receiver<message>& receiver_for(
+    std::span<tbb::flow::receiver<message>* const> receivers, std::size_t index)
+  {
+    if (index >= receivers.size()) {
+      throw std::runtime_error("Should never get here");
+    }
+    return *receivers[index];
   }
 }

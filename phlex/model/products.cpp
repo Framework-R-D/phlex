@@ -10,8 +10,10 @@
 #include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using phlex::experimental::product_base;
+using phlex::experimental::product_ptr;
 using phlex::experimental::product_specification;
 
 namespace phlex::detail {
@@ -24,6 +26,11 @@ namespace phlex::detail {
   products::const_iterator products::end() const noexcept { return products_.end(); }
   products::size_type products::size() const noexcept { return products_.size(); }
   bool products::empty() const noexcept { return products_.empty(); }
+
+  void products::insert(product_specification const& spec, product_ptr product)
+  {
+    products_.emplace_back(spec, std::move(product));
+  }
 
   gsl::not_null<product_base const*> products::find_product(product_specification const& spec) const
   {

@@ -15,6 +15,7 @@ cet_make_library(
   product_store.cpp
   products.cpp
   product_specification.cpp
+  type_id.cpp
   LIBRARIES
   PUBLIC
   Boost::boost

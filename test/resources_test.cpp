@@ -44,6 +44,16 @@ namespace {
 
   struct default_unlimited_resource {};
 
+  struct counted_unlimited_resource {
+    explicit counted_unlimited_resource(int& constructions) { ++constructions; }
+  };
+
+  struct counted_serialized_resource {
+    using token_type = counted_serialized_resource const*;
+
+    explicit counted_serialized_resource(int& constructions) { ++constructions; }
+  };
+
   struct invalid_serialized_resource {
     using token_type = int*;
   };
@@ -298,5 +308,25 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK_THROWS_WITH(catalog.access_for<unlimited_resource_type>(),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
+  }
+
+  SECTION("duplicate unlimited registration does not construct another resource")
+  {
+    int constructions = 0;
+    catalog.add_unlimited<counted_unlimited_resource>(constructions);
+    CHECK(constructions == 1);
+    CHECK_THROWS(catalog.add_unlimited<counted_unlimited_resource>(constructions));
+    CHECK(constructions == 1);
+    CHECK_NOTHROW(catalog.access_for<counted_unlimited_resource>());
+  }
+
+  SECTION("duplicate serialized registration does not construct another resource")
+  {
+    int constructions = 0;
+    catalog.add_serialized<counted_serialized_resource>(constructions);
+    CHECK(constructions == 1);
+    CHECK_THROWS(catalog.add_serialized<counted_serialized_resource>(constructions));
+    CHECK(constructions == 1);
+    CHECK_NOTHROW(catalog.limiter_for<counted_serialized_resource>());
   }
 }

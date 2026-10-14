@@ -38,7 +38,7 @@ namespace phlex::detail {
 
   template <typename AlgorithmBits, typename... Resources>
   class observer_node : public declared_observer {
-    using function_t = AlgorithmBits::bound_type;
+    using function_t = AlgorithmBits::algorithm_type;
     static constexpr auto num_resources = sizeof...(Resources);
     static constexpr auto num_products = AlgorithmBits::number_inputs - num_resources;
     using input_product_types = AlgorithmBits::template input_parameters<num_products>;

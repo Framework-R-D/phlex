@@ -1,4 +1,5 @@
 #include "phlex/configuration.hpp"
+#include "phlex/core/declared_output.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -7,9 +8,13 @@
 
 #include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <oneapi/tbb/flow_graph.h>
 
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 TEST_CASE("algorithm_name tests", "[model]")
@@ -94,4 +99,67 @@ TEST_CASE("add_to_error_messages tests", "[core]")
 
   REQUIRE(errors.size() == 1);
   CHECK(errors[0].contains("duplicate_node"));
+}
+
+TEST_CASE("A throwing registrar creator is not retried by the destructor", "[core]")
+{
+  using namespace phlex::detail;
+
+  declared_outputs outputs;
+  std::vector<std::string> errors;
+  int creations = 0;
+  {
+    registrar<declared_output_ptr> reg{outputs, errors};
+    reg.set_creator([&](auto const&, auto const&) -> declared_output_ptr {
+      ++creations;
+      throw std::runtime_error{"creator failed"};
+    });
+    CHECK_THROWS_WITH(reg.set_output_product_suffixes({}), "creator failed");
+  }
+  CHECK(creations == 1);
+  CHECK(outputs.get("output") == nullptr);
+  CHECK(errors.empty());
+}
+
+TEST_CASE("Moving a registrar transfers node creation", "[core]")
+{
+  using namespace phlex::detail;
+
+  tbb::flow::graph graph;
+  declared_outputs outputs;
+  std::vector<std::string> errors;
+  int creations = 0;
+  auto creator = [&](auto const&, auto const&) -> declared_output_ptr {
+    ++creations;
+    return std::make_unique<declared_output>(phlex::experimental::algorithm_name::create("output"),
+                                             1,
+                                             std::vector<std::string>{},
+                                             graph,
+                                             [](auto const&) {});
+  };
+
+  SECTION("Move construction")
+  {
+    {
+      registrar<declared_output_ptr> original{outputs, errors};
+      original.set_creator(creator);
+      auto moved = std::move(original);
+    }
+    CHECK(creations == 1);
+    CHECK(outputs.get("output") != nullptr);
+  }
+
+  SECTION("Move assignment")
+  {
+    {
+      registrar<declared_output_ptr> original{outputs, errors};
+      original.set_creator(creator);
+      registrar<declared_output_ptr> moved{outputs, errors};
+      moved = std::move(original);
+    }
+    CHECK(creations == 1);
+    CHECK(outputs.get("output") != nullptr);
+  }
+
+  CHECK(errors.empty());
 }

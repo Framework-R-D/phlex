@@ -23,9 +23,7 @@ namespace phlex::detail {
 
     virtual provider_bundles create_providers(product_selector const&) = 0;
 
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    virtual index_generator indices() { co_return; }
+    virtual index_generator indices();
   };
 
   using source_ptr = std::unique_ptr<source>;
