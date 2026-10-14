@@ -97,6 +97,7 @@ TEST_CASE("Type ID output type deduction", "[type_id]")
 
 TEST_CASE("Type ID string formatting", "[type_id]")
 {
+  CHECK(fmt::format("{}", type_id{}) == "INVALID / EMPTY");
   CHECK(fmt::format("{}", make_type_id<void>()) == "void");
   CHECK(fmt::format("{}", make_type_id<bool>()) == "bool");
   CHECK(fmt::format("{}", make_type_id<char>()) == "char");

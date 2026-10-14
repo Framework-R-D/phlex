@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <fmt/format.h>
 
 #include <string>
 
@@ -14,6 +15,12 @@ TEST_CASE("Empty creator name", "[data model]")
   CHECK_THROWS_WITH(
     (product_selector{.creator = "", .layer = "layer"}),
     Catch::Matchers::ContainsSubstring("Cannot specify product with empty creator name."));
+}
+
+TEST_CASE("Creator name formatting", "[data model]")
+{
+  CHECK(fmt::format("{}", detail::creator_name{}) == "[ANY]");
+  CHECK(fmt::format("{}", detail::creator_name{"creator"}) == "creator");
 }
 
 TEST_CASE("Empty layer name", "[data model]")
