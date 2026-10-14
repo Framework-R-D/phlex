@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 import os
-import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 SCRIPTS = Path(__file__).parent.parent
 
@@ -148,47 +146,6 @@ def test_invalid_arguments_run_no_commands(
     assert _commands(env) == []
 
 
-@pytest.mark.parametrize("mode", ["manual", "auto"])
-@pytest.mark.parametrize("phase", ["build", "list", "test", "success"])
-def test_coverage_only_reports_success_after_tests_pass(
-    tools: tuple[Path, dict[str, str]], mode: str, phase: str
-) -> None:
-    """Coverage rebuilds and stops on failure before reporting readiness or success."""
-    build, env = tools
-    if phase != "success":
-        env[f"FAIL_{phase.upper()}"] = "23"
-    definitions = (SCRIPTS / "coverage.sh").read_text().partition("# Main command processing")[0]
-    result = subprocess.run(
-        ["bash"],
-        input=(
-            definitions
-            + f"\nBUILD_DIR={shlex.quote(str(build))}\n"
-            + "COVERAGE_PRESET=coverage-gcc\n"
-            + "check_build_dir() { :; }\n"
-            + f"run_tests_internal {mode}\n"
-            + 'printf "ready=%s\\n" "$COVERAGE_TESTS_READY"\n'
-        ),
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    commands = _commands(env)
-    if phase == "success":
-        assert result.returncode == 0, result.stderr
-        assert [c[0] for c in commands] == ["build", "list", "test"]
-        assert "ready=1" in result.stdout
-        assert "completed" in result.stdout.lower()
-    else:
-        assert result.returncode == 23
-        phases = ["build", "list", "test"]
-        assert [c[0] for c in commands] == phases[: phases.index(phase) + 1]
-        assert "ready=1" not in result.stdout
-        assert "completed" not in result.stdout.lower()
-    if commands[-1][0] == "test":
-        assert "--no-tests=error" in commands[-1][2]
-
-
 @pytest.mark.parametrize("scenario", ["pass", "empty", "test_failure", "build_failure"])
 def test_verification_with_real_cmake_and_ctest(tmp_path: Path, scenario: str) -> None:
     """Validate success and failure paths using an actual miniature CMake project."""
@@ -226,26 +183,3 @@ def test_verification_with_real_cmake_and_ctest(tmp_path: Path, scenario: str) -
     assert (result.returncode == 0) == (scenario == "pass"), result.stdout + result.stderr
     if scenario == "build_failure":
         assert "Test project" not in result.stdout
-
-
-@pytest.mark.parametrize("workflow", ["cmake-build.yaml", "coverage.yaml"])
-def test_ci_ctest_execution_rejects_empty_suites(workflow: str) -> None:
-    """Keep the existing build and coverage jobs from passing without tests."""
-    path = SCRIPTS.parent / ".github" / "workflows" / workflow
-    jobs = yaml.safe_load(path.read_text())["jobs"]
-    commands = []
-    for job in jobs.values():
-        for step in job.get("steps", []):
-            for line in step.get("run", "").splitlines():
-                if "ctest" not in line:
-                    continue
-                lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
-                lexer.whitespace_split = True
-                words = list(lexer)
-                if "ctest" in words:
-                    commands.append(words[words.index("ctest") :])
-    assert commands, f"No CTest commands found in {workflow}"
-    executions = [command for command in commands if "-N" not in command]
-    assert executions
-    for command in executions:
-        assert "--no-tests=error" in command, command

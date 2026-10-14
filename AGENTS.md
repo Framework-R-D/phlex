@@ -93,19 +93,28 @@ PREKCOMMAND=$(command -v prek || command -v pre-commit || echo "")
 
 ## Build and Test
 
+For local verification, use [scripts/verify.sh](scripts/README.md#build-and-test-verification)
+by default. It builds first, lists the tests, and runs the same selection. It stops
+on failure and rejects an empty test selection. Use a normal configured build;
+local verification does not require coverage collection or a CI run.
+
 ```bash
 # Configure (always pass -B explicitly; presets don't set binaryDir)
 cmake --preset default -B build      # standard build, FORM enabled
 cmake --preset coverage-gcc -B build-coverage-gcc
 cmake --preset clang-tidy -B build-clang-tidy
 
-# Build
-ninja -C build                       # or: cmake --build build -j $(nproc)
+# Local verification: MPD workspace (run from the workspace root)
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit$' --verbose
 
-# Test
-ctest --test-dir build -j $(nproc) --output-on-failure
-ctest --test-dir build -j $(nproc) --test-timeout 90   # recommended guard
-ctest --test-dir build -R "regex"                       # specific tests
+# Local verification: standalone repository
+bash scripts/verify.sh --build-dir build
+bash scripts/verify.sh --build-dir build --tests '^identifier$' --verbose
+
+# Test only: deliberate rerun when the build is already current
+ctest --test-dir build -R '^identifier$' -N && \
+  ctest --test-dir build -R '^identifier$' --output-on-failure --no-tests=error --timeout 90
 
 # Coverage
 ./scripts/coverage.sh all            # full workflow
@@ -116,6 +125,10 @@ cmake --build build-coverage-gcc --target coverage-html
 $PREKCOMMAND run --all-files         # before opening a PR
 $PREKCOMMAND run                     # changed files only
 ```
+
+For MPD test-only runs, follow the same-shell project selection and test commands
+in [scripts/README.md](scripts/README.md#build-and-test-verification). Test-only
+runs do not establish that the build is current.
 
 CMake build options: `PHLEX_USE_FORM`, `ENABLE_TSAN`, `ENABLE_ASAN`,
 `ENABLE_COVERAGE`, `ENABLE_CLANG_TIDY`, `ENABLE_PERFETTO`.
