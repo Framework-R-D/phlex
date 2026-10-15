@@ -19,3 +19,13 @@ void storage_file::set_attribute(std::string const& /*name*/, std::string const&
   throw std::runtime_error(
     "storage_file::set_attribute does not accept any attributes for a file named " + name_);
 }
+
+void storage_file::write_descriptor(std::vector<std::pair<std::string, std::string>> const& entries)
+{
+  descriptor_ = entries;
+}
+
+std::vector<std::pair<std::string, std::string>> const& storage_file::descriptor() const
+{
+  return descriptor_;
+}

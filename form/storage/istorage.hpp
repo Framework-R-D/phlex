@@ -54,6 +54,10 @@ namespace form::detail::experimental {
                                          void const* data,
                                          std::type_info const& type) = 0;
     virtual void commit_containers(placement const& plcmnt) = 0;
+
+    virtual void write_descriptor(
+      std::string const& file_name,
+      std::vector<std::pair<std::string, std::string>> const& entries) = 0;
   };
 
   class i_storage_file {
@@ -65,6 +69,9 @@ namespace form::detail::experimental {
     virtual char mode() = 0;
 
     virtual void set_attribute(std::string const& name, std::string const& value) = 0;
+
+    virtual void write_descriptor(
+      std::vector<std::pair<std::string, std::string>> const& entries) = 0;
   };
 
   class i_storage_write_container {

@@ -8,6 +8,7 @@
 #include "core/product_identity.hpp"
 #include "core/technology.hpp"
 #include "core/token.hpp"
+#include "descriptor.hpp"
 #include "navigation_naming.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "storage/istorage.hpp"
@@ -92,12 +93,19 @@ void persistence_writer::create_containers(
   storage_containers.reserve(containers.size() * 2);
   for (auto const& [plcmnt, type] : containers) {
     // Reserve the "navigation_prefix" namespace for navigation containers.
-    if (auto const row_space = row_space_of(plcmnt.container_name());
-        row_space.starts_with(navigation_prefix)) {
+    auto const row_space = row_space_of(plcmnt.container_name());
+    if (row_space.starts_with(navigation_prefix)) {
       throw std::runtime_error("persistence_writer::create_containers row space '" + row_space +
                                "' begins with '" + std::string{navigation_prefix} +
                                "', which is reserved for FORM navigation containers");
     }
+    if (row_space.starts_with(form_block_prefix)) {
+      throw std::runtime_error("persistence_writer::create_containers row space '" + row_space +
+                               "' begins with '" + std::string{form_block_prefix} +
+                               "', which is reserved for FORM's own file-level containers");
+    }
+
+    planned_technologies_[plcmnt.file_name()].insert(plcmnt.technology());
 
     storage_containers.emplace_back(plcmnt, type);
 
@@ -332,6 +340,7 @@ void persistence_writer::finalize()
   }
   finalized_ = true;
 
+  write_descriptors();
   write_navigation_tables();
   write_product_dictionaries();
 }
@@ -434,6 +443,64 @@ void persistence_writer::write_navigation_tables()
       // Every column of the row is filled, so committing any one of them advances the table.
       store_writer_->commit_containers(places.front());
     }
+  }
+}
+
+void persistence_writer::write_descriptors()
+{
+  // Collect technologies represented by non-empty product dictionaries.
+  std::map<std::string, std::set<technology::id>> written;
+  for (auto const& [place, entries] : dictionaries_) {
+    if (!entries.empty()) {
+      auto const& [file_name, tech] = place;
+      written[file_name].insert(tech);
+    }
+  }
+
+  for (auto const& [file_name, technologies] : written) {
+    if (!planned_technologies_.contains(file_name)) {
+      throw std::runtime_error("persistence_writer: file '" + file_name +
+                               "' holds products but was never planned; it would be written "
+                               "without a descriptor");
+    }
+  }
+
+  for (auto const& [file_name, technologies] : planned_technologies_) {
+    auto const major = technologies.begin()->major;
+    for (auto const& tech : technologies) {
+      if (tech.major != major) {
+        throw std::runtime_error("persistence_writer: file '" + file_name +
+                                 "' mixes major technologies; its layout cannot be described");
+      }
+    }
+
+    // Ensure every technology represented by products was planned.
+    auto const actual = written.find(file_name);
+    if (actual != written.end()) {
+      for (auto const& tech : actual->second) {
+        if (!technologies.contains(tech)) {
+          throw std::runtime_error("persistence_writer: file '" + file_name + "' holds '" +
+                                   technology_name(tech) +
+                                   "' products that were never planned; its descriptor would be "
+                                   "inconsistent with its contents");
+        }
+      }
+    }
+
+    // Ordered by (major, minor), so the listing is stable.
+    std::string technology_names;
+    for (auto const& tech : technologies) {
+      if (!technology_names.empty()) {
+        technology_names += ',';
+      }
+      technology_names += technology_name(tech);
+    }
+
+    std::vector<std::pair<std::string, std::string>> const entries{
+      {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+      {std::string{descriptor_technologies_key}, technology_names}};
+
+    store_writer_->write_descriptor(file_name, entries);
   }
 }
 

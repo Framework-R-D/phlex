@@ -9,6 +9,7 @@
 #include "form/form_source_type_registry.hpp"
 #include "form/form_writer.hpp"
 #include "form/product_with_name.hpp"
+#include "persistence/descriptor.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "persistence/navigation_naming.hpp"
@@ -99,6 +100,7 @@ namespace {
       std::vector<std::vector<std::string>> rows;
     };
 
+    std::map<std::string, std::vector<std::pair<std::string, std::string>>> descriptors;
     std::map<std::string, table> tables;
     std::vector<std::string> filled_containers;
     std::string throw_on_fill;
@@ -131,6 +133,12 @@ namespace {
       }
       // Each container has its own row counter.
       return rows_[plcmnt.container_name()]++;
+    }
+
+    void write_descriptor(std::string const& file_name,
+                          std::vector<std::pair<std::string, std::string>> const& entries) override
+    {
+      descriptors[file_name] = entries;
     }
 
     void commit_containers(placement const& plcmnt) override
@@ -464,6 +472,34 @@ TEST_CASE("storage_writer basic operations", "[form]")
   int data = 42;
   storage->fill_container(p2, &data, typeid(int));
   storage->commit_containers(p2);
+}
+
+TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
+{
+  auto storage = create_storage_writer();
+  form::experimental::config::tech_setting_config const settings;
+
+  std::vector<std::pair<placement, std::type_info const*>> const containers{
+    {placement{"file.root", "cont", form::technology::id{}}, &typeid(int)}};
+  storage->create_containers(containers, settings);
+
+  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "1.0"}};
+  CHECK_NOTHROW(storage->write_descriptor("file.root", entries));
+
+  // A file that was never created cannot be described; say so rather than drop the descriptor.
+  CHECK_THROWS_AS(storage->write_descriptor("never_created.root", entries), std::runtime_error);
+}
+
+TEST_CASE("storage_file: the generic backend keeps the descriptor it is given", "[form]")
+{
+  storage_file file{"generic.dat", 'o'};
+  CHECK(file.descriptor().empty());
+
+  std::vector<std::pair<std::string, std::string>> const entries{
+    {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+    {std::string{descriptor_technologies_key}, "generic"}};
+  file.write_descriptor(entries);
+  CHECK(file.descriptor() == entries);
 }
 
 TEST_CASE("persistence_reader basic operations", "[form]")
@@ -1292,6 +1328,87 @@ TEST_CASE("navigation: the reserved container prefix is rejected", "[form]")
   // Reserve the "nav_" prefix for navigation containers.
   std::vector<std::pair<placement, std::type_info const*>> const containers{
     {placement{"nav_test.root", "nav_generic_cells_event/hits", form::technology::id{}},
+     &typeid(int)}};
+  CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
+}
+
+TEST_CASE("descriptor: names the layout version and the technologies present", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  auto* store = spy.get();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  write_record(writer, "tracker", {"hits"}, event_cell(1));
+  writer.finalize();
+
+  using entries_t = std::vector<std::pair<std::string, std::string>>;
+  CHECK(store->descriptors.at("nav_test.root") ==
+        entries_t{{std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+                  {std::string{descriptor_technologies_key}, "generic"}});
+}
+
+TEST_CASE("descriptor: one per file, listing every technology in it", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  auto* store = spy.get();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  write_record(writer, "tracker", {"hits"}, event_cell(1), form::technology::root_ttree);
+  write_record(writer, "shower", {"showers"}, event_cell(1), form::technology::root_rntuple);
+  writer.finalize();
+
+  REQUIRE(store->descriptors.size() == 1);
+  CHECK(store->descriptors.at("nav_test.root").at(1) ==
+        std::pair<std::string, std::string>{std::string{descriptor_technologies_key},
+                                            "root_ttree,root_rntuple"});
+}
+
+TEST_CASE("descriptor: refuses a technology that products used but the plan never named", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  int payload = 0;
+  auto const place = product_place("tracker", "hits", form::technology::root_ttree);
+  writer.register_write(product_of("tracker", "hits", test_stage), place, &payload, typeid(int));
+  writer.commit_place(place, event_cell(1));
+
+  CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+}
+
+TEST_CASE("descriptor: refuses a technology the plan never named for a file", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  write_record(writer, "tracker", {"hits"}, event_cell(1), form::technology::root_ttree);
+
+  int payload = 0;
+  auto const unplanned = product_place("shower", "showers", form::technology::root_rntuple);
+  writer.register_write(
+    product_of("shower", "showers", test_stage), unplanned, &payload, typeid(int));
+  writer.commit_place(unplanned, event_cell(2));
+
+  CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+}
+
+TEST_CASE("descriptor: refuses a file that mixes major technologies", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  write_record(writer, "tracker", {"hits"}, event_cell(1), form::technology::root_ttree);
+  write_record(writer, "shower", {"showers"}, event_cell(1), form::technology::hdf5);
+  CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+}
+
+TEST_CASE("descriptor: its name is reserved against product row spaces", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  std::vector<std::pair<placement, std::type_info const*>> const containers{
+    {placement{"d.root", std::string{descriptor_object_name} + "/hits", form::technology::id{}},
      &typeid(int)}};
   CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
 }

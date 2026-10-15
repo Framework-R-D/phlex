@@ -523,6 +523,35 @@ TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error"
   raw_tfile->SetWritable(true);
 }
 
+TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "[form]")
+{
+  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "1.0"}};
+
+  SECTION("no file attached")
+  {
+    root_tfile_imp file{"/nonexistent-directory-for-form-tests/x.root", 'o'};
+    CHECK_THROWS_AS(file.write_descriptor(entries), std::runtime_error);
+  }
+
+  SECTION("file is not writable")
+  {
+    root_tfile_imp file{"form_descriptor_readonly.root", 'o'};
+    auto raw = file.get_tfile();
+    REQUIRE(raw != nullptr);
+
+    raw->SetWritable(false);
+    CHECK_THROWS_AS(file.write_descriptor(entries), std::runtime_error);
+
+    raw->SetWritable(true);
+  }
+
+  SECTION("a writable file records the descriptor")
+  {
+    root_tfile_imp file{"form_descriptor_ok.root", 'o'};
+    CHECK_NOTHROW(file.write_descriptor(entries));
+  }
+}
+
 TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")
 {
   using namespace form::experimental::config;
