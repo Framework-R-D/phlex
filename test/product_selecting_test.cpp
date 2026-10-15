@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <string>
+#include <tuple>
 #include <utility>
 
 using namespace phlex;
@@ -235,7 +236,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   SECTION("Ambiguous product selector with different suffixes is rejected")
   {
-    g.transform("both_temperatures", [](double const& t) { return std::pair{t, t}; })
+    g.transform("both_temperatures", [](double const& t) { return std::tuple{t, t}; })
       .input_family(product_selector{.creator = "input", .suffix = "temperature"})
       .output_product_suffixes("temperature_c", "temperature_f");
     g.observe("ambiguous_suffix", [](double const&) {})
