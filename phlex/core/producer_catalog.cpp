@@ -13,6 +13,7 @@
 
 #include <map>
 #include <ranges>
+#include <set>
 #include <span>
 #include <stdexcept>
 #include <string>
