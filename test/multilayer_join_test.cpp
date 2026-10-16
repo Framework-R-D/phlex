@@ -85,8 +85,14 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   graph.wait_for_all();
   CHECK_FALSE(sink.try_get(output));
 
-  auto index_ports = join.index_ports();
+  auto registration = join.index_ports();
+  CHECK(registration.input_layers == std::vector<identifier>{"left_layer", "right_layer"});
+  auto const& index_ports = registration.participants;
   REQUIRE(index_ports.size() == 2u);
+  CHECK(index_ports[0].input_ordinal == 0u);
+  CHECK(index_ports[1].input_ordinal == 1u);
+  CHECK_FALSE(index_ports[0].accept_cells);
+  CHECK_FALSE(index_ports[1].accept_cells);
   REQUIRE(index_ports[0].index_port->try_put(
     {.index = left_store->index(), .msg_id = message_id, .cache = true}));
   graph.wait_for_all();
@@ -97,7 +103,6 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   graph.wait_for_all();
 
   REQUIRE(sink.try_get(output));
-  CHECK_FALSE(sink.try_get(output));
 
   CHECK(std::get<0>(output).id == message_id);
   CHECK(std::get<1>(output).id == message_id);
@@ -108,7 +113,7 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
 
   // Do what is necessary to have the tokens flushed, so that the test does not generate
   // warnings.
-  REQUIRE(index_ports[0].token_port->try_put({.index = left_store->index(), .count = 1}));
-  REQUIRE(index_ports[1].token_port->try_put({.index = right_store->index(), .count = 1}));
+  REQUIRE(index_ports[0].completion_port->try_put({.index = left_store->index(), .count = 1}));
+  REQUIRE(index_ports[1].completion_port->try_put({.index = right_store->index(), .count = 1}));
   graph.wait_for_all();
 }

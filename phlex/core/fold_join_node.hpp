@@ -3,11 +3,13 @@
 
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 
 #include <gsl/assert>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -115,10 +117,6 @@ namespace phlex::detail {
       set_ports(std::make_index_sequence<NProducts>{});
     }
 
-    tbb::flow::receiver<index_message>& partition_port()
-    {
-      return result_repeater_.partition_port();
-    }
     tbb::flow::sender<message>& output_port()
     {
       return tbb::flow::output_port<0>(result_repeater_);
@@ -128,27 +126,22 @@ namespace phlex::detail {
       return input_port<3>(result_repeater_);
     }
 
-    // Returns one named_index_port per slot the index router must wire up.
-    //
-    // The first entry is the *partition slot* — it routes the partition index to the
-    // accumulator's index_port and delivers the partition-level flush token to the
-    // accumulator's flush_port. Its routing layer is the partition layer (e.g. "job"),
-    // but its counting layer is currently the first input data layer.
-    //
-    // The remaining entries are the data-input slots, one per repeater.  For these the
-    // routing layer and counting layer are the same: the repeater both routes and counts
-    // at its own input layer.
-    std::vector<named_index_port> index_ports()
+    // The partition constrains the product-driven invocation domain. Its initialization
+    // connection remains separate from the accumulator's per-invocation index receiver.
+    // Ancestor data repeaters and the accumulator complete against the same invocations.
+    join_registration index_ports()
     {
-      std::vector<named_index_port> result;
-      result.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      result.emplace_back(partition_layer_,
-                          layers_[0],
-                          &result_repeater_.flush_port(),
-                          &result_repeater_.index_port());
+      join_registration result{.input_layers = layers_, .participants = {}};
+      result.participants.reserve(1 + repeaters_.size()); // +1 for the result repeater
+      result.participants.push_back({.layer = partition_layer_,
+                                     .index_port = &result_repeater_.index_port(),
+                                     .completion_port = &result_repeater_.flush_port(),
+                                     .partition_port = &result_repeater_.partition_port()});
       for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.emplace_back(
-          layers_[i], layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
+        result.participants.push_back({.layer = layers_[i],
+                                       .index_port = &repeaters_[i]->index_port(),
+                                       .completion_port = &repeaters_[i]->flush_port(),
+                                       .input_ordinal = i});
       }
       return result;
     }

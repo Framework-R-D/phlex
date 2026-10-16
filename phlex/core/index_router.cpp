@@ -1,5 +1,6 @@
 #include "phlex/core/index_router.hpp"
 
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
@@ -24,6 +25,8 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -67,46 +70,63 @@ namespace phlex::detail {
       return std::ranges::all_of(input_layers,
                                  [&path](auto const& input) { return path.contains(input); });
     }
+
+    // Routing projects an invocation to its nearest strict ancestor with the participant's layer
+    // name, so a deeper occurrence shadows any shallower one.
+    layer_path nearest_ancestor_ending_with(layer_path const& path, identifier const& layer)
+    {
+      auto const components = path.components();
+      for (auto n = components.size() - 1; n-- > 0;) {
+        if (components[n] == layer) {
+          return layer_path{components.first(n + 1) | std::ranges::to<std::vector>()};
+        }
+      }
+      assert(false);
+      std::unreachable();
+    }
   }
 
   //========================================================================================
   // multilayer_slot implementation
   //
-  // A multilayer_slot is a static, pre-registered routing component created once per
-  // `named_index_port` in `finalize()`.  Each slot is responsible *only for message routing*: it
-  // decides whether a routed index covers this slot (via `matches_exactly` / `is_parent_of`) and
-  // forwards index messages to a single downstream `input_port` at the appropriate layer.
-  //
-  // The flush-side metadata for the same `named_index_port` — namely the `counting_layer` name
-  // used to look up `committed_counts_` entries at flush time, and the downstream `flush_port`
-  // that receives `indexed_end_token`s — lives in a paired `flush_spec` (see below).  The two are
-  // stored side-by-side in `join_node_slots` so that `multilayer_slots_for` can pair them up
-  // while resolving end-token entries for a routed partition index.
+  // A static participant slot projects invocation indices to its storage layer and carries
+  // the receiver that completes cached products or accumulators against the join's domain.
   namespace internal {
     class multilayer_slot {
     public:
-      multilayer_slot(tbb::flow::graph& g,
-                      identifier layer,
-                      tbb::flow::receiver<index_message>* input_port);
+      multilayer_slot(tbb::flow::graph& g, join_participant const& participant, bool cached);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
 
-      bool matches_exactly(layer_path const& path) const;
-      bool is_parent_of(data_cell_index_ptr const& index) const;
+      bool cached() const { return cached_; }
+      tbb::flow::receiver<indexed_end_token>* completion_port() const { return completion_port_; }
+      tbb::flow::receiver<index_message>* partition_port() const { return partition_port_; }
 
-      identifier const& layer() const { return layer_; }
+      // Only called while building the join, before any index is routed.
+      void add_storage_path(std::size_t storage_hash, std::size_t invocation_hash);
+      // Null unless the path is one of this slot's storage paths.
+      std::vector<std::size_t> const* counting_layer_hashes_at(layer_path const& path) const;
 
     private:
       identifier layer_;
       index_set_node broadcaster_;
+      tbb::flow::receiver<indexed_end_token>* completion_port_;
+      tbb::flow::receiver<index_message>* partition_port_;
+      bool cached_;
+      // Storage-path hash to the hashes of the invocation paths completed against it.
+      std::unordered_map<std::size_t, std::vector<std::size_t>> storage_paths_;
     };
 
     multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                     identifier layer,
-                                     tbb::flow::receiver<index_message>* input_port) :
-      layer_{std::move(layer)}, broadcaster_{g}
+                                     join_participant const& participant,
+                                     bool cached) :
+      layer_{participant.layer},
+      broadcaster_{g},
+      completion_port_{participant.completion_port},
+      partition_port_{participant.partition_port},
+      cached_{cached}
     {
-      make_edge(broadcaster_, *input_port);
+      make_edge(broadcaster_, *participant.index_port);
     }
 
     void multilayer_slot::put_message(data_cell_index_ptr const& index, std::size_t message_id)
@@ -119,16 +139,52 @@ namespace phlex::detail {
       broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
-    bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
+    void multilayer_slot::add_storage_path(std::size_t const storage_hash,
+                                           std::size_t const invocation_hash)
     {
-      return layer_path.ends_with(layer_);
+      storage_paths_[storage_hash].push_back(invocation_hash);
     }
 
-    bool multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
+    std::vector<std::size_t> const* multilayer_slot::counting_layer_hashes_at(
+      layer_path const& path) const
     {
-      return index->parent(layer_) != nullptr;
+      auto const it = storage_paths_.find(path.hash());
+      return it != storage_paths_.end() ? &it->second : nullptr;
     }
-  }
+  } // namespace internal
+
+  namespace {
+    struct join_slot_resolution {
+      internal::multilayer_slots message_slots;
+      internal::end_token_entries end_token_entries;
+    };
+
+    // Route all participants only for an eligible invocation. At a cached participant's storage
+    // path, combine the same domain's strict descendant counts into one completion token. A
+    // deepest product passes through and receives no token; empty storage cells still get zero.
+    join_slot_resolution resolve_join_slots(layer_path const& layer_path,
+                                            internal::join_node_slots const& node_slots)
+    {
+      auto const& slots = node_slots.slots;
+      internal::multilayer_slots message_slots;
+      internal::end_token_entries end_token_entries;
+
+      if (std::ranges::contains(node_slots.invocation_paths, layer_path)) {
+        message_slots = slots;
+        return {.message_slots = std::move(message_slots), .end_token_entries = {}};
+      }
+
+      for (auto const& slot : slots) {
+        if (auto const* hashes = slot->counting_layer_hashes_at(layer_path)) {
+          end_token_entries.push_back({.counting_layer_hashes = *hashes,
+                                       .flush_port = slot->completion_port(),
+                                       .partition_port = slot->partition_port()});
+        }
+      }
+      return {.message_slots = std::move(message_slots),
+              .end_token_entries = std::move(end_token_entries)};
+    }
+  } // namespace
 
   //========================================================================================
   // index_router implementation
@@ -154,8 +210,7 @@ namespace phlex::detail {
                               std::vector<layer_path> const& layer_paths_from_driver,
                               unfold_data const& unfolds,
                               provider_input_ports_t provider_input_ports,
-                              fold_partition_ports_t fold_partition_ports,
-                              std::map<std::string, named_index_ports> const& multilayer_join_ports)
+                              std::map<std::string, join_registration> const& multilayer_join_ports)
   {
     using namespace phlex::experimental::literals;
     if (layer_paths_from_driver.empty()) {
@@ -163,7 +218,6 @@ namespace phlex::detail {
     }
     establish_layer_hierarchy(layer_paths_from_driver, unfolds);
     wire_provider_index_sets(g, std::move(provider_input_ports));
-    wire_fold_partition_index_sets(g, std::move(fold_partition_ports));
     build_multilayer_join_slots(g, multilayer_join_ports);
   }
 
@@ -268,39 +322,67 @@ namespace phlex::detail {
     }
   }
 
-  void index_router::wire_fold_partition_index_sets(tbb::flow::graph& g,
-                                                    fold_partition_ports_t fold_partition_ports)
-  {
-    for (auto& [layer, port] : fold_partition_ports | std::views::values) {
-      auto [it, _] = index_set_nodes_.emplace(layer, std::make_shared<internal::index_set_node>(g));
-      make_edge(*it->second, *port);
-    }
-  }
-
   // --------------------------------------------------------------------------------------------
-  // Resolve unset counting layers to the node's deepest slot layer.
+  // Product inputs drive invocations only on paths satisfying every participant's ancestry.
+  // Resolve the domain once so routing and completion cannot select different branches.
   void index_router::build_multilayer_join_slots(
-    tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports)
+    tbb::flow::graph& g, std::map<std::string, join_registration> const& multilayer_join_ports)
   {
-    for (auto const& [node_name, join_ports] : multilayer_join_ports) {
+    for (auto const& [node_name, registration] : multilayer_join_ports) {
+      assert(not registration.participants.empty());
+      assert(not registration.input_layers.empty());
+
       spdlog::trace("Making multilayer slots for {}", node_name);
 
-      std::vector<identifier> slot_layers;
-      slot_layers.reserve(join_ports.size());
-      for (auto const& port : join_ports) {
-        slot_layers.push_back(port.layer);
-      }
-      identifier const node_deepest_layer = deepest_layer_name(slot_layers);
-
       internal::join_node_slots node_slots;
-      node_slots.slots.reserve(join_ports.size());
-      node_slots.flush_specs.reserve(join_ports.size());
-      for (auto const& [layer, counting_layer, flush_port, input_port] : join_ports) {
-        identifier const effective_counting_layer = counting_layer.value_or(node_deepest_layer);
-        node_slots.slots.push_back(
-          std::make_shared<internal::multilayer_slot>(g, layer, input_port));
-        node_slots.flush_specs.push_back(
-          {.counting_layer = effective_counting_layer, .flush_port = flush_port});
+      for (auto const& path : sorted_layer_paths_) {
+        if (matches_input_chain(path, registration.input_layers) and
+            std::ranges::all_of(registration.participants, [&path](auto const& participant) {
+              return path.contains(participant.layer);
+            })) {
+          node_slots.invocation_paths.push_back(path);
+        }
+      }
+      node_slots.slots.reserve(registration.participants.size());
+      for (auto const& participant : registration.participants) {
+        bool const pass_through =
+          std::ranges::any_of(node_slots.invocation_paths,
+                              [&](auto const& p) { return p.ends_with(participant.layer); });
+        bool const cached = std::ranges::any_of(node_slots.invocation_paths, [&](auto const& p) {
+          return not p.ends_with(participant.layer);
+        });
+        // A repeater's caching mode is fixed, even when the same layer name occurs on
+        // multiple branches. Do not register a domain requiring both modes for one slot.
+        if (pass_through and cached) {
+          throw std::runtime_error(
+            fmt::format("Join '{}' participant '{}' requires mixed caching and pass-through modes.",
+                        node_name,
+                        participant.layer));
+        }
+        auto slot = std::make_shared<internal::multilayer_slot>(g, participant, cached);
+        // A fold's accumulator is always initialized at a strict ancestor of its invocations.
+        assert(cached or not participant.partition_port);
+        std::unordered_set<std::size_t> accepted_hashes;
+        for (auto const& path : node_slots.invocation_paths) {
+          if (not cached) {
+            accepted_hashes.insert(path.hash());
+            continue;
+          }
+          auto const storage_hash = nearest_ancestor_ending_with(path, participant.layer).hash();
+          // A cached storage path is a strict prefix of an invocation path, so it has a gate.
+          assert(not is_lowest_layer_hash(storage_hash));
+          slot->add_storage_path(storage_hash, path.hash());
+          accepted_hashes.insert(storage_hash);
+        }
+        // Reject foreign products before they reach a repeater, including pass-through slots
+        // whose mode remains unset until their first eligible index arrives.
+        if (participant.accept_cells and
+            std::ranges::any_of(sorted_layer_paths_, [&](auto const& p) {
+              return p.ends_with(participant.layer) and not accepted_hashes.contains(p.hash());
+            })) {
+          participant.accept_cells(std::move(accepted_hashes));
+        }
+        node_slots.slots.push_back(std::move(slot));
       }
       multilayer_join_slots_.emplace(identifier{node_name}, std::move(node_slots));
     }
@@ -322,13 +404,18 @@ namespace phlex::detail {
     }
 
     auto [message_slots, end_token_entries] = multilayer_slots_for(index);
+    for (auto const& entry : *end_token_entries) {
+      if (entry.partition_port) {
+        entry.partition_port->try_put({.index = index, .msg_id = message_id});
+      }
+    }
     for (auto const& slot : *message_slots) {
       slot->put_message(index, message_id);
     }
 
-    // Lowest-layer indices have no flush gate and contribute to their parent's readiness solely
-    // through the expected-count message that announced them — nothing to do here for them.
+    // Lowest-layer indices have no flush gate.
     if (is_lowest_layer) {
+      assert(end_token_entries->empty());
       return index;
     }
 
@@ -425,7 +512,7 @@ namespace phlex::detail {
 
     for (auto const& node_slots : multilayer_join_slots_ | std::views::values) {
       auto [resolved_message_slots, resolved_end_token_entries] =
-        resolve_join_slots(index, layer_path, node_slots);
+        resolve_join_slots(layer_path, node_slots);
       message_slots.append_range(std::views::as_rvalue(resolved_message_slots));
       end_token_entries.append_range(std::views::as_rvalue(resolved_end_token_entries));
     }
@@ -435,98 +522,6 @@ namespace phlex::detail {
       .end_token_entries =
         std::make_shared<internal::end_token_entries const>(std::move(end_token_entries))};
     return {acc->second.message_slots, acc->second.end_token_entries};
-  }
-
-  // Resolve the message slots and end-token entries contributed by one multi-layer join node for a
-  // routed index.
-  //
-  // Message entries: All slots from a node are appended if at least one slot exactly matches the
-  // current layer and every slot either exactly matches or is a parent of the routed index.
-  //
-  // End-token entries combine descendants ending in the slot's counting layer.
-  auto index_router::resolve_join_slots(data_cell_index_ptr const& index,
-                                        layer_path const& layer_path,
-                                        internal::join_node_slots const& node_slots) const
-    -> join_slot_resolution
-  {
-    auto const& slots = node_slots.slots;
-    auto const& flush_specs = node_slots.flush_specs;
-    assert(slots.size() == flush_specs.size());
-
-    internal::multilayer_slots message_slots;
-    message_slots.reserve(slots.size());
-    internal::end_token_entries end_token_entries;
-
-    bool has_exact_match = false;
-    std::size_t matched_count = 0;
-    for (std::size_t i = 0; i != slots.size(); ++i) {
-      auto const& slot = slots[i];
-      auto const& flush = flush_specs[i];
-      if (slot->matches_exactly(layer_path)) {
-        has_exact_match = true;
-        if (flush.counting_layer != slot->layer()) {
-          auto hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
-          if (not hashes.empty()) {
-            end_token_entries.push_back(
-              {.counting_layer_hashes = std::move(hashes), .flush_port = flush.flush_port});
-          }
-        }
-        message_slots.push_back(slot);
-        ++matched_count;
-      } else if (slot->is_parent_of(index)) {
-        message_slots.push_back(slot);
-        ++matched_count;
-      }
-    }
-
-    // Add all matching slots only when the node has an exact slot and every slot matches.
-    if (not has_exact_match or matched_count != slots.size()) {
-      message_slots.clear();
-    }
-    return {.message_slots = std::move(message_slots),
-            .end_token_entries = std::move(end_token_entries)};
-  }
-
-  std::vector<std::size_t> index_router::counting_layer_hashes_under(
-    layer_path const& partition_layer_path, identifier const& counting_layer_name) const
-  {
-    std::vector<std::size_t> result;
-    for (auto const& candidate : sorted_layer_paths_) {
-      // candidate must be a strict descendant of the partition layer path
-      if (not partition_layer_path.is_strict_prefix_of(candidate)) {
-        continue;
-      }
-      if (not candidate.ends_with(counting_layer_name)) {
-        continue;
-      }
-      result.push_back(candidate.hash());
-    }
-    return result;
-  }
-
-  identifier index_router::deepest_layer_name(std::vector<identifier> const& layer_names) const
-  {
-    auto depth_of = [this](identifier const& name) -> std::size_t {
-      std::size_t best = 0;
-      for (auto const& path : sorted_layer_paths_) {
-        if (path.ends_with(name)) {
-          best = std::max(path.depth(), best);
-        }
-      }
-      return best;
-    };
-
-    assert(not layer_names.empty());
-    auto const* result = &layer_names.front();
-    std::size_t best_depth = depth_of(*result);
-    for (auto const& name : layer_names | std::views::drop(1)) {
-      auto const d = depth_of(name);
-      if (d > best_depth or (d == best_depth and name < *result)) {
-        result = &name;
-        best_depth = d;
-      }
-    }
-    return *result;
   }
 
   void index_router::update_flush_counts(index_flushes const& flushes)

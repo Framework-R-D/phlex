@@ -15,6 +15,7 @@
 
 #include "phlex/core/filter.hpp"
 #include "phlex/core/index_router.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/phlex_core_export.hpp"
 
@@ -28,7 +29,7 @@
 namespace phlex::detail {
 
   PHLEX_CORE_EXPORT
-  std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+  std::tuple<index_router::provider_input_ports_t, std::map<std::string, join_registration>>
   make_computational_edges(node_catalog& nodes,
                            std::map<std::string, filter>& filters,
                            tbb::flow::graph& g,
