@@ -261,7 +261,8 @@ namespace phlex::detail {
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = 1; // For now
 
-    static_assert(num_inputs > 1, "input_family requires at least one product selector.");
+    static_assert(num_inputs > 1,
+                  "A fold algorithm requires the accumulator and at least one data product.");
 
   public:
     fold_api(configuration const* config,
@@ -291,11 +292,16 @@ namespace phlex::detail {
     template <std::size_t NProducts, typename... Resources>
     auto input_family(std::array<product_selector, NProducts> input_args, std::tuple<Resources...>)
     {
+      static_assert(NProducts >= 1,
+                    "A fold requires at least one data product in addition to the accumulator.");
       static_assert((is_resource<Resources> && ...),
                     "The second argument to input_family(...) must be a tuple of resources.");
-      static_assert(num_inputs - 1 == NProducts + sizeof...(Resources),
-                    "The number of fold product parameters is not the same as the number of "
-                    "specified input arguments.");
+      static_assert(
+        num_inputs - 1 == NProducts + sizeof...(Resources),
+        "The number of product selectors and resources specified to input_family(...) must match "
+        "the number of data products and resources expected by the fold algorithm. The first "
+        "parameter of a fold algorithm is always the accumulator, followed by one or more data "
+        "products, followed by any resources required by the algorithm.");
 
       using product_parameter_types = boost::mp11::mp_take_c<input_parameter_types, NProducts>;
       populate_types<product_parameter_types>(input_args);

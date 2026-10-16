@@ -191,7 +191,10 @@ namespace phlex::detail::internal {
       assert(entry->data_msg);
       output_port<0>(repeater_).try_put(*entry->data_msg);
       cached_products_.erase(a);
-    } else if (entry->flush_received.test() and entry->pending_invocations == 0) {
+    } else if (entry->flush_received.test() and entry->pending_invocations == 0 and
+               entry->data_msg) {
+      // A zero-count flush can precede the product. Keep its completion state until the
+      // product arrives, otherwise that late product would be cached without a future flush.
       cached_products_.erase(a);
     }
   }

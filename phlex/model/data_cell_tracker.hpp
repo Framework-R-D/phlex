@@ -3,9 +3,11 @@
 
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_messages.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_model_export.hpp"
 
 #include <map>
+#include <vector>
 
 namespace phlex::detail {
   class PHLEX_MODEL_EXPORT data_cell_tracker {
@@ -23,12 +25,17 @@ namespace phlex::detail {
     // returns all remaining pending flushes.
     index_flushes report_and_evict_ready_flushes(data_cell_index_ptr const& index);
 
+    void set_driver_layer_paths(std::vector<experimental::layer_path> const& layer_paths);
+
   private:
+    void initialize_index_flush(data_cell_index_ptr const& index);
     void create_parent_count(data_cell_index_ptr const& parent, data_cell_index_ptr const& child);
     void increment_parent_count(data_cell_index_ptr const& parent,
                                 data_cell_index_ptr const& child);
 
     data_cell_index_ptr cached_index_{nullptr};
+    std::map<data_cell_index::hash_type, std::vector<data_cell_index::hash_type>>
+      driver_child_layer_hashes_;
     std::map<data_cell_index::hash_type, index_flush> pending_flushes_;
   };
 }

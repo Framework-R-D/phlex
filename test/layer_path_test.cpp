@@ -28,6 +28,21 @@ TEST_CASE("Layer path tests", "[layer_path]")
   CHECK(event.ends_with(partial_event));
   CHECK_FALSE(subrun.ends_with(partial_event));
 
+  CHECK(event.contains("job"));
+  CHECK(event.contains("run"));
+  CHECK(event.contains(event_id));
+  CHECK_FALSE(event.contains("lumiblock"));
+  CHECK(partial_event.contains("subrun"));
+  CHECK(partial_event.contains(event_id));
+  CHECK_FALSE(partial_event.contains("job"));
+
+  auto const components = event.components();
+  REQUIRE(components.size() == 4);
+  CHECK(components[0] == "job");
+  CHECK(components[1] == "run");
+  CHECK(components[2] == "subrun");
+  CHECK(components[3] == "event");
+
   CHECK(subrun.to_string() == "/job/run/subrun");
 
   auto event_hashes = event.hashes();
