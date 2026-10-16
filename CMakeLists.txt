@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.31...4.3)
 
 # ##############################################################################
 # Ensure we have access to a suitable version of Cetmodules

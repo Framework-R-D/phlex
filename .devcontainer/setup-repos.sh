@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  printf '%s\n' 'ERROR: setup-repos.sh must be executed, not sourced' >&2
+  return 1
+fi
+
 # Clone companion repositories into the codespace so they are available
 # for reference by developers and AI agents.
 #

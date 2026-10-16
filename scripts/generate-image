@@ -1,0 +1,98 @@
+#!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  printf '%s\n' 'ERROR: generate-image must be executed, not sourced' >&2
+  return 1
+fi
+
+# Build the Phlex CI or development podman image using ci/Dockerfile.
+# See the Podman instructions at the top of ci/Dockerfile for details.
+
+set -eu
+
+usage() {
+  echo "Usage: $(basename "$0") ci|dev" >&2
+    exit 2
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+fi
+
+case "$1" in
+  ci | dev) PHLEX_PODMAN_TARGET="$1" ;;
+  *)
+    echo "error: image identifier must be 'ci' or 'dev', got '$1'" >&2
+    usage
+    ;;
+esac
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_SOURCE="$(dirname "$SCRIPT_DIR")"
+
+: "${GPG_KEY_ID:=}"
+: "${PHLEX_TAG_EXTRA:=}"
+: "${PHLEX_DEFAULT_COMPILER:=gcc}"
+: "${PHLEX_GCC_VERSION:=15.3}"
+: "${PHLEX_LLVM_TARGET:=auto}"
+: "${PHLEX_LLVM_VERSION:=22.1.8}"
+: "${PHLEX_SPACK_CACHE:=}"
+
+host_arch=$(uname -m)
+case "$host_arch" in
+  amd64 | x86_64) host_target=x86_64_v3 ;;
+  arm64 | aarch64) host_target=aarch64 ;;
+  *)
+    echo "error: unsupported platform '$host_arch'" >&2
+    exit 1
+    ;;
+esac
+
+case "${PHLEX_SPACK_TARGET:-auto}" in
+  auto) PHLEX_SPACK_TARGET="$host_target" ;;
+  amd64 | x86_64_v3) PHLEX_SPACK_TARGET=x86_64_v3 ;;
+  arm64 | aarch64) PHLEX_SPACK_TARGET=aarch64 ;;
+  *)
+    echo "error: unsupported PHLEX_SPACK_TARGET '$PHLEX_SPACK_TARGET'" >&2
+    exit 1
+    ;;
+esac
+if [ "$PHLEX_SPACK_TARGET" != "$host_target" ]; then
+  echo "error: host architecture '$host_arch' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_TARGET'; images must be built natively" >&2
+  exit 1
+fi
+
+: "${PHLEX_TAG_BASE:=phlex-${PHLEX_PODMAN_TARGET}}"
+: "${PHLEX_TAG_TAG:=$(date +%F)${PHLEX_TAG_EXTRA}}"
+: "${PHLEX_TAG_REMOTE:=ghcr.io/framework-r-d/}"
+
+PHLEX_TAG_LOCAL="${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}-${PHLEX_SPACK_TARGET}"
+
+args=(podman build --format docker)
+have_cache=0
+
+if [ -n "$PHLEX_SPACK_CACHE" ]; then
+  have_cache=1
+  args+=(-v "${PHLEX_SPACK_CACHE}:/build-cache:Z")
+else
+  echo "info: no local cache configured"
+fi
+if [ -d "${HOME}/.gnupg" ]; then
+  args+=(-v "${HOME}/.gnupg:/run/gpg:Z")
+elif (( have_cache )); then
+  echo "info: packages written to cache will be unsigned"
+fi
+args+=(--target "${PHLEX_PODMAN_TARGET}" --tag "${PHLEX_TAG_LOCAL}")
+if [ -n "$GPG_KEY_ID" ]; then
+  args+=(--build-arg "GPG_KEY_ID=${GPG_KEY_ID}")
+fi
+args+=(--build-arg "PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET}")
+args+=(--build-arg "PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET}")
+args+=(--build-arg "PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}")
+args+=(--build-arg "PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}")
+args+=(--build-arg "PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}")
+
+echo "${args[*]}"
+
+cd "${PROJECT_SOURCE}/ci"
+exec "${args[@]}" .
