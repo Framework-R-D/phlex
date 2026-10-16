@@ -126,11 +126,10 @@ namespace phlex::detail {
       return receiver_for(join_, input(), input_product);
     }
 
-    tbb::flow::receiver<index_message>& partition_port() override { return join_.partition_port(); }
     tbb::flow::sender<message>& output_port() override { return join_.output_port(); }
     phlex::experimental::product_specifications const& output() const override { return output_; }
 
-    join_registration index_ports() final { return join_.index_ports(); }
+    join_registration index_ports_for() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
     std::size_t apply_fold(

@@ -40,10 +40,12 @@ namespace phlex::detail {
 
     // One completion token per slot combines all applicable descendant counting paths.
     // The hashes identify entries in the partition gate's committed_counts_; their sum balances
-    // the receiving slot's pending invocations when the partition flushes.
+    // the receiving slot's pending invocations when the partition flushes. A fold's accumulator
+    // is initialized when its storage path is routed, through the optional partition_port.
     struct end_token_entry {
       std::vector<std::size_t> counting_layer_hashes;
       tbb::flow::receiver<indexed_end_token>* flush_port;
+      tbb::flow::receiver<index_message>* partition_port{nullptr};
     };
     using end_token_entries = std::vector<end_token_entry>;
     using end_token_entries_ptr = std::shared_ptr<end_token_entries const>;
@@ -65,12 +67,6 @@ namespace phlex::detail {
       tbb::flow::receiver<index_message>* port{};
     };
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
-
-    struct fold_input_port_t {
-      phlex::experimental::identifier layer;
-      tbb::flow::receiver<index_message>* partition_port;
-    };
-    using fold_partition_ports_t = std::map<std::string, fold_input_port_t>;
 
     // Keeps an unfold's input layers together with the child layer it produces. Only the deepest
     // input on a compatible ancestor chain parents the children and receives the unfold's flush.
@@ -97,7 +93,6 @@ namespace phlex::detail {
                   std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
                   unfold_data const& unfolds,
                   provider_input_ports_t provider_input_ports,
-                  fold_partition_ports_t fold_partition_ports,
                   std::map<std::string, join_registration> const& multilayer_join_ports);
     void drain(index_flushes const& flushes);
 
@@ -124,8 +119,6 @@ namespace phlex::detail {
       std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
       unfold_data const& unfolds);
     void wire_provider_index_sets(tbb::flow::graph& g, provider_input_ports_t provider_input_ports);
-    void wire_fold_partition_index_sets(tbb::flow::graph& g,
-                                        fold_partition_ports_t fold_partition_ports);
     void build_multilayer_join_slots(
       tbb::flow::graph& g, std::map<std::string, join_registration> const& multilayer_join_ports);
     internal::index_set_node_ptr index_set_node_for(phlex::experimental::layer_path const& layer);

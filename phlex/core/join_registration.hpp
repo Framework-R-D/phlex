@@ -7,6 +7,10 @@
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <cstddef>
+#include <functional>
+#include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace phlex::detail {
@@ -16,6 +20,13 @@ namespace phlex::detail {
     phlex::experimental::identifier layer;
     gsl::not_null<tbb::flow::receiver<index_message>*> index_port;
     gsl::not_null<tbb::flow::receiver<indexed_end_token>*> completion_port;
+    // Receives the hashes of the cell paths whose products this participant accepts. The router
+    // calls it during finalize(), before any message flows, only when other cells could reach it.
+    std::function<void(std::unordered_set<std::size_t>)> accept_cells;
+    // Set only for a fold's accumulator; the router initializes it at each storage path.
+    tbb::flow::receiver<index_message>* partition_port{nullptr};
+    // Product input ordinal in the owning consumer; unset for a fold's accumulator.
+    std::optional<std::size_t> input_ordinal;
   };
 
   // Product inputs drive invocations; all participants constrain their ancestry.

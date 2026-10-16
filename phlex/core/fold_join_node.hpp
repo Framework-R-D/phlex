@@ -9,6 +9,7 @@
 #include <gsl/assert>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -116,10 +117,6 @@ namespace phlex::detail {
       set_ports(std::make_index_sequence<NProducts>{});
     }
 
-    tbb::flow::receiver<index_message>& partition_port()
-    {
-      return result_repeater_.partition_port();
-    }
     tbb::flow::sender<message>& output_port()
     {
       return tbb::flow::output_port<0>(result_repeater_);
@@ -136,11 +133,15 @@ namespace phlex::detail {
     {
       join_registration result{.input_layers = layers_, .participants = {}};
       result.participants.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      result.participants.emplace_back(
-        partition_layer_, &result_repeater_.index_port(), &result_repeater_.flush_port());
+      result.participants.push_back({.layer = partition_layer_,
+                                     .index_port = &result_repeater_.index_port(),
+                                     .completion_port = &result_repeater_.flush_port(),
+                                     .partition_port = &result_repeater_.partition_port()});
       for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.participants.emplace_back(
-          layers_[i], &repeaters_[i]->index_port(), &repeaters_[i]->flush_port());
+        result.participants.push_back({.layer = layers_[i],
+                                       .index_port = &repeaters_[i]->index_port(),
+                                       .completion_port = &repeaters_[i]->flush_port(),
+                                       .input_ordinal = i});
       }
       return result;
     }

@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -97,19 +98,20 @@ namespace phlex::detail {
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
 
-      bool matches_exactly(layer_path const& path) const;
       bool cached() const { return cached_; }
       tbb::flow::receiver<indexed_end_token>* completion_port() const { return completion_port_; }
+      tbb::flow::receiver<index_message>* partition_port() const { return partition_port_; }
 
       // Only called while building the join, before any index is routed.
       void add_storage_path(std::size_t storage_hash, std::size_t invocation_hash);
-      // A cell of this layer name that is not a storage path owns no invocations.
-      std::vector<std::size_t> counting_layer_hashes_for(layer_path const& path) const;
+      // Null unless the path is one of this slot's storage paths.
+      std::vector<std::size_t> const* counting_layer_hashes_at(layer_path const& path) const;
 
     private:
       identifier layer_;
       index_set_node broadcaster_;
       tbb::flow::receiver<indexed_end_token>* completion_port_;
+      tbb::flow::receiver<index_message>* partition_port_;
       bool cached_;
       // Storage-path hash to the hashes of the invocation paths completed against it.
       std::unordered_map<std::size_t, std::vector<std::size_t>> storage_paths_;
@@ -121,6 +123,7 @@ namespace phlex::detail {
       layer_{participant.layer},
       broadcaster_{g},
       completion_port_{participant.completion_port},
+      partition_port_{participant.partition_port},
       cached_{cached}
     {
       make_edge(broadcaster_, *participant.index_port);
@@ -136,22 +139,17 @@ namespace phlex::detail {
       broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
-    bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
-    {
-      return layer_path.ends_with(layer_);
-    }
-
     void multilayer_slot::add_storage_path(std::size_t const storage_hash,
                                            std::size_t const invocation_hash)
     {
       storage_paths_[storage_hash].push_back(invocation_hash);
     }
 
-    std::vector<std::size_t> multilayer_slot::counting_layer_hashes_for(
+    std::vector<std::size_t> const* multilayer_slot::counting_layer_hashes_at(
       layer_path const& path) const
     {
       auto const it = storage_paths_.find(path.hash());
-      return it != storage_paths_.end() ? it->second : std::vector<std::size_t>{};
+      return it != storage_paths_.end() ? &it->second : nullptr;
     }
   } // namespace internal
 
@@ -161,9 +159,9 @@ namespace phlex::detail {
       internal::end_token_entries end_token_entries;
     };
 
-    // Route all participants only for an eligible invocation. At a participant's partition,
-    // combine the same domain's strict descendant counts into one completion token. A deepest
-    // product passes through and receives no token; applicable empty partitions still get zero.
+    // Route all participants only for an eligible invocation. At a cached participant's storage
+    // path, combine the same domain's strict descendant counts into one completion token. A
+    // deepest product passes through and receives no token; empty storage cells still get zero.
     join_slot_resolution resolve_join_slots(layer_path const& layer_path,
                                             internal::join_node_slots const& node_slots)
     {
@@ -177,12 +175,10 @@ namespace phlex::detail {
       }
 
       for (auto const& slot : slots) {
-        if (slot->cached() and slot->matches_exactly(layer_path)) {
-          // Name-based product wiring also supplies excluded storage cells. They need a
-          // zero completion even when no eligible invocation projects to this cell.
-          end_token_entries.push_back(
-            {.counting_layer_hashes = slot->counting_layer_hashes_for(layer_path),
-             .flush_port = slot->completion_port()});
+        if (auto const* hashes = slot->counting_layer_hashes_at(layer_path)) {
+          end_token_entries.push_back({.counting_layer_hashes = *hashes,
+                                       .flush_port = slot->completion_port(),
+                                       .partition_port = slot->partition_port()});
         }
       }
       return {.message_slots = std::move(message_slots),
@@ -214,7 +210,6 @@ namespace phlex::detail {
                               std::vector<layer_path> const& layer_paths_from_driver,
                               unfold_data const& unfolds,
                               provider_input_ports_t provider_input_ports,
-                              fold_partition_ports_t fold_partition_ports,
                               std::map<std::string, join_registration> const& multilayer_join_ports)
   {
     using namespace phlex::experimental::literals;
@@ -223,7 +218,6 @@ namespace phlex::detail {
     }
     establish_layer_hierarchy(layer_paths_from_driver, unfolds);
     wire_provider_index_sets(g, std::move(provider_input_ports));
-    wire_fold_partition_index_sets(g, std::move(fold_partition_ports));
     build_multilayer_join_slots(g, multilayer_join_ports);
   }
 
@@ -328,15 +322,6 @@ namespace phlex::detail {
     }
   }
 
-  void index_router::wire_fold_partition_index_sets(tbb::flow::graph& g,
-                                                    fold_partition_ports_t fold_partition_ports)
-  {
-    for (auto& [layer, port] : fold_partition_ports | std::views::values) {
-      auto [it, _] = index_set_nodes_.emplace(layer, std::make_shared<internal::index_set_node>(g));
-      make_edge(*it->second, *port);
-    }
-  }
-
   // --------------------------------------------------------------------------------------------
   // Product inputs drive invocations only on paths satisfying every participant's ancestry.
   // Resolve the domain once so routing and completion cannot select different branches.
@@ -375,13 +360,27 @@ namespace phlex::detail {
                         participant.layer));
         }
         auto slot = std::make_shared<internal::multilayer_slot>(g, participant, cached);
-        if (cached) {
-          for (auto const& path : node_slots.invocation_paths) {
-            auto const storage_hash = nearest_ancestor_ending_with(path, participant.layer).hash();
-            // A cached storage path is a strict prefix of an invocation path, so it has a gate.
-            assert(not is_lowest_layer_hash(storage_hash));
-            slot->add_storage_path(storage_hash, path.hash());
+        // A fold's accumulator is always initialized at a strict ancestor of its invocations.
+        assert(cached or not participant.partition_port);
+        std::unordered_set<std::size_t> accepted_hashes;
+        for (auto const& path : node_slots.invocation_paths) {
+          if (not cached) {
+            accepted_hashes.insert(path.hash());
+            continue;
           }
+          auto const storage_hash = nearest_ancestor_ending_with(path, participant.layer).hash();
+          // A cached storage path is a strict prefix of an invocation path, so it has a gate.
+          assert(not is_lowest_layer_hash(storage_hash));
+          slot->add_storage_path(storage_hash, path.hash());
+          accepted_hashes.insert(storage_hash);
+        }
+        // Reject foreign products before they reach a repeater, including pass-through slots
+        // whose mode remains unset until their first eligible index arrives.
+        if (participant.accept_cells and
+            std::ranges::any_of(sorted_layer_paths_, [&](auto const& p) {
+              return p.ends_with(participant.layer) and not accepted_hashes.contains(p.hash());
+            })) {
+          participant.accept_cells(std::move(accepted_hashes));
         }
         node_slots.slots.push_back(std::move(slot));
       }
@@ -405,17 +404,18 @@ namespace phlex::detail {
     }
 
     auto [message_slots, end_token_entries] = multilayer_slots_for(index);
+    for (auto const& entry : *end_token_entries) {
+      if (entry.partition_port) {
+        entry.partition_port->try_put({.index = index, .msg_id = message_id});
+      }
+    }
     for (auto const& slot : *message_slots) {
       slot->put_message(index, message_id);
     }
 
-    // Lowest-layer indices have no flush gate. Excluded storage cells can nevertheless
-    // receive products in a globally cached participant, so retire those with a zero token.
+    // Lowest-layer indices have no flush gate.
     if (is_lowest_layer) {
-      for (auto const& entry : *end_token_entries) {
-        assert(entry.counting_layer_hashes.empty());
-        entry.flush_port->try_put({.index = index, .count = 0});
-      }
+      assert(end_token_entries->empty());
       return index;
     }
 

@@ -192,7 +192,7 @@ namespace phlex::detail {
       }
     }
 
-    join_registration index_ports() final { return join_.index_ports(); }
+    join_registration index_ports_for() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<input_args> input_{input_arguments<input_args>()};

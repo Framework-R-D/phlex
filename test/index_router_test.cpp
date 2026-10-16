@@ -12,12 +12,29 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 using namespace phlex;
+
+TEST_CASE("Index routing requires an explicit driver hierarchy", "[graph]")
+{
+  tbb::flow::graph graph;
+  detail::index_router router{graph};
+  CHECK_THROWS_WITH(router.finalize(graph, {}, {}, {}, {}),
+                    "Cannot finalize index_router with an empty driver hierarchy.");
+  CHECK_NOTHROW(router.finalize(graph, {experimental::layer_path{"/job"}}, {}, {}, {}));
+  CHECK_NOTHROW(router.route(data_cell_index::job(), {}));
+  CHECK_THROWS_WITH(router.route(data_cell_index::job()->make_child("run", 0), {}),
+                    "Index layer path '/job/run' is not in the established layer hierarchy.");
+  graph.wait_for_all();
+}
 
 TEST_CASE("Index routing rejects undeclared layer paths", "[graph]")
 {
@@ -29,7 +46,6 @@ TEST_CASE("Index routing rejects undeclared layer paths", "[graph]")
     {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/spill"}},
     {},
     {{"dummy", {.input_product = {.layer = "event"}, .port = &indices}}},
-    {},
     {});
 
   auto job = data_cell_index::job();
@@ -40,19 +56,6 @@ TEST_CASE("Index routing rejects undeclared layer paths", "[graph]")
   CHECK_THROWS_WITH(
     router.route(unknown, {}),
     "Index layer path '/job/spill/event' is not in the established layer hierarchy.");
-  graph.wait_for_all();
-}
-
-TEST_CASE("Index routing requires an explicit driver hierarchy", "[graph]")
-{
-  tbb::flow::graph graph;
-  detail::index_router router{graph};
-  CHECK_THROWS_WITH(router.finalize(graph, {}, {}, {}, {}, {}),
-                    "Cannot finalize index_router with an empty driver hierarchy.");
-  CHECK_NOTHROW(router.finalize(graph, {experimental::layer_path{"/job"}}, {}, {}, {}, {}));
-  CHECK_NOTHROW(router.route(data_cell_index::job(), {}));
-  CHECK_THROWS_WITH(router.route(data_cell_index::job()->make_child("run", 0), {}),
-                    "Index layer path '/job/run' is not in the established layer hierarchy.");
   graph.wait_for_all();
 }
 
@@ -77,7 +80,6 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
     {experimental::layer_path{"/job/event"}, experimental::layer_path{"/job/run/event"}},
     {},
     {{"dummy", {.input_product = {.layer = "job"}, .port = &indices}}},
-    {},
     {{"fold",
       {.input_layers = {"event"_id},
        .participants = {
@@ -128,7 +130,6 @@ TEST_CASE("Join participants share partition-constrained invocation accounting",
      experimental::layer_path{"/job/event/subevent"}},
     {},
     {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {},
     {{"fold",
       {.input_layers = {"event"_id, "subevent"_id},
        .participants = {
@@ -172,9 +173,6 @@ TEST_CASE("Join participants share partition-constrained invocation accounting",
   REQUIRE(parent_tokens.try_get(token));
   CHECK(token.index == event);
   CHECK(std::cmp_equal(token.count, count));
-  REQUIRE(parent_tokens.try_get(token));
-  CHECK(token.index == excluded);
-  CHECK(token.count == 0);
   CHECK_FALSE(parent_tokens.try_get(token));
   CHECK_FALSE(child_tokens.try_get(token));
 
@@ -199,13 +197,15 @@ TEST_CASE("Join participants share partition-constrained invocation accounting",
   CHECK_FALSE(child_indices.try_get(index));
 }
 
-TEST_CASE("Excluded lowest-layer cell of a cached participant gets a zero token", "[graph]")
+TEST_CASE("Cells outside a participant's storage paths get no completion or partition message",
+          "[graph]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> provider_indices{graph};
   tbb::flow::queue_node<detail::index_message> cached_indices{graph};
   tbb::flow::queue_node<detail::index_message> child_indices{graph};
+  tbb::flow::queue_node<detail::index_message> partition_indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> cached_tokens{graph};
   tbb::flow::queue_node<detail::indexed_end_token> child_tokens{graph};
   detail::index_router router{graph};
@@ -214,28 +214,142 @@ TEST_CASE("Excluded lowest-layer cell of a cached participant gets a zero token"
     {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/other/run"}},
     {},
     {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {},
     {{"join",
       {.input_layers = {"event"_id},
        .participants = {
-         {.layer = "run"_id, .index_port = &cached_indices, .completion_port = &cached_tokens},
+         {.layer = "run"_id,
+          .index_port = &cached_indices,
+          .completion_port = &cached_tokens,
+          .partition_port = &partition_indices},
          {.layer = "event"_id, .index_port = &child_indices, .completion_port = &child_tokens}}}}});
 
   auto job = data_cell_index::job();
-  // The run under "other" is a lowest layer that is not an invocation path.
+  auto run = job->make_child("run", 0);
+  auto event = run->make_child("event", 0);
+  // The run under "other" shares the participant's name but is not an ancestor of any invocation.
   auto excluded = job->make_child("other", 0)->make_child("run", 0);
+  router.route(job, {});
+  router.route(run, {});
+  router.route(event, {});
   router.route(excluded, {});
+  auto run_counts = std::make_shared<detail::data_cell_counts>();
+  run_counts->emplace(event->layer_hash(), 1);
+  router.drain({{.index = run, .counts = run_counts}});
   graph.wait_for_all();
+
+  detail::index_message index;
+  REQUIRE(partition_indices.try_get(index));
+  CHECK(index.index == run);
+  CHECK_FALSE(partition_indices.try_get(index));
 
   detail::indexed_end_token token;
   REQUIRE(cached_tokens.try_get(token));
-  CHECK(token.index == excluded);
-  CHECK(token.count == 0);
+  CHECK(token.index == run);
+  CHECK(token.count == 1);
   CHECK_FALSE(cached_tokens.try_get(token));
   CHECK_FALSE(child_tokens.try_get(token));
-  detail::index_message index;
+
+  REQUIRE(cached_indices.try_get(index));
+  CHECK(index.index == run);
   CHECK_FALSE(cached_indices.try_get(index));
+  REQUIRE(child_indices.try_get(index));
+  CHECK(index.index == event);
   CHECK_FALSE(child_indices.try_get(index));
+}
+
+TEST_CASE(
+  "Cached participants learn their accepted cells only when same-named cells exist elsewhere",
+  "[graph]")
+{
+  using namespace phlex::experimental::literals;
+  auto const with_foreign = GENERATE(false, true);
+  CAPTURE(with_foreign);
+  std::vector<experimental::layer_path> paths{experimental::layer_path{"/job/run/event"}};
+  if (with_foreign) {
+    paths.emplace_back("/job/other/run");
+  }
+
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
+  tbb::flow::queue_node<detail::index_message> cached_indices{graph};
+  tbb::flow::queue_node<detail::index_message> child_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> cached_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> child_tokens{graph};
+  std::optional<std::unordered_set<std::size_t>> cached_accepted;
+  bool pass_through_notified = false;
+  detail::index_router router{graph};
+  router.finalize(graph,
+                  paths,
+                  {},
+                  {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
+                  {{"join",
+                    {.input_layers = {"event"_id},
+                     .participants = {{.layer = "run"_id,
+                                       .index_port = &cached_indices,
+                                       .completion_port = &cached_tokens,
+                                       .accept_cells =
+                                         [&cached_accepted](std::unordered_set<std::size_t> cells) {
+                                           cached_accepted = std::move(cells);
+                                         }},
+                                      {.layer = "event"_id,
+                                       .index_port = &child_indices,
+                                       .completion_port = &child_tokens,
+                                       .accept_cells = [&pass_through_notified](
+                                                         std::unordered_set<std::size_t> const&) {
+                                         pass_through_notified = true;
+                                       }}}}}});
+
+  CHECK(cached_accepted.has_value() == with_foreign);
+  if (with_foreign) {
+    CHECK(*cached_accepted ==
+          std::unordered_set<std::size_t>{experimental::layer_path{"/job/run"}.hash()});
+  }
+  // The foreign run path has no event layer, so this input needs no filtering.
+  CHECK_FALSE(pass_through_notified);
+}
+
+TEST_CASE("Pass-through participants learn eligible paths when same-named cells exist elsewhere",
+          "[graph][fold]")
+{
+  using namespace phlex::experimental::literals;
+  auto const with_foreign = GENERATE(false, true);
+  CAPTURE(with_foreign);
+  std::vector<experimental::layer_path> paths{experimental::layer_path{"/job/run/event"}};
+  if (with_foreign) {
+    paths.emplace_back("/job/event");
+  }
+
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
+  tbb::flow::queue_node<detail::index_message> cached_indices{graph};
+  tbb::flow::queue_node<detail::index_message> child_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> cached_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> child_tokens{graph};
+  std::optional<std::unordered_set<std::size_t>> accepted;
+  detail::index_router router{graph};
+  router.finalize(
+    graph,
+    paths,
+    {},
+    {{"dummy", {.input_product = {.layer = "event"}, .port = &provider_indices}}},
+    {{"fold",
+      {.input_layers = {"event"_id},
+       .participants = {
+         {.layer = "run"_id, .index_port = &cached_indices, .completion_port = &cached_tokens},
+         {.layer = "event"_id,
+          .index_port = &child_indices,
+          .completion_port = &child_tokens,
+          .accept_cells = [&accepted](std::unordered_set<std::size_t> cells) {
+            accepted = std::move(cells);
+          }}}}}});
+
+  if (with_foreign) {
+    REQUIRE(accepted.has_value());
+    CHECK(*accepted ==
+          std::unordered_set<std::size_t>{experimental::layer_path{"/job/run/event"}.hash()});
+  } else {
+    CHECK_FALSE(accepted.has_value());
+  }
 }
 
 TEST_CASE("Join rejects participants with mixed caching roles", "[graph]")
@@ -251,7 +365,6 @@ TEST_CASE("Join rejects participants with mixed caching roles", "[graph]")
       {experimental::layer_path{"/job/a/b"}, experimental::layer_path{"/job/b/a"}},
       {},
       {{"dummy", {.input_product = {.layer = "job"}, .port = &indices}}},
-      {},
       {{"join",
         {.input_layers = {"a"_id, "b"_id},
          .participants =
@@ -275,7 +388,6 @@ TEST_CASE("Join completion follows nearest repeated ancestor", "[graph]")
     {experimental::layer_path{"/job/a/a/b"}},
     {},
     {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {},
     {{"join",
       {.input_layers = {"a"_id, "b"_id},
        .participants = {
@@ -301,9 +413,7 @@ TEST_CASE("Join completion follows nearest repeated ancestor", "[graph]")
   outer_counts->emplace(inner->layer_hash(), 1);
   router.drain({{.index = outer, .counts = outer_counts}});
   graph.wait_for_all();
-  REQUIRE(parent_tokens.try_get(token));
-  CHECK(token.index == outer);
-  CHECK(token.count == 0);
+  // The outer "a" is shadowed by the inner one and owns no invocations.
   CHECK_FALSE(parent_tokens.try_get(token));
   // The child is pass-through and needs no completion token.
   CHECK_FALSE(child_tokens.try_get(token));
@@ -330,7 +440,6 @@ TEST_CASE("Unfold hierarchy resolves dependencies before their producers", "[gra
     {{.name = "a_split_b", .input_layers = {"a"_id, "spill"_id}, .output_layer = "b"_id},
      {.name = "z_split_a", .input_layers = {"spill"_id}, .output_layer = "a"_id}},
     {{"dummy", {.input_product = {.layer = "spill"}, .port = &indices}}},
-    {},
     {{"fold",
       {.input_layers = {"b"_id},
        .participants = {
@@ -391,7 +500,6 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
                     {experimental::layer_path{"/job/run"}},
                     unfolds,
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {},
                     {}),
     expected_error);
 }
@@ -412,7 +520,6 @@ TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][un
                     {driver_path},
                     {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {},
                     {}),
     "Unfold 'split' specifies output layer '/job/run/spill' already declared by the driver.");
 }
@@ -441,7 +548,6 @@ TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
                     {driver_path},
                     unfolds,
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {},
                     {}),
     "Unfolds 'split_a' and 'split_b' specify the same output layer '/job/run/spill'.");
 }

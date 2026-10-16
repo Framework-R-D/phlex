@@ -89,6 +89,10 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   CHECK(registration.input_layers == std::vector<identifier>{"left_layer", "right_layer"});
   auto const& index_ports = registration.participants;
   REQUIRE(index_ports.size() == 2u);
+  CHECK(index_ports[0].input_ordinal == 0u);
+  CHECK(index_ports[1].input_ordinal == 1u);
+  CHECK_FALSE(index_ports[0].accept_cells);
+  CHECK_FALSE(index_ports[1].accept_cells);
   REQUIRE(index_ports[0].index_port->try_put(
     {.index = left_store->index(), .msg_id = message_id, .cache = true}));
   graph.wait_for_all();

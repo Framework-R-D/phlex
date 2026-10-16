@@ -10,7 +10,7 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
-#include <ranges>
+#include <cstddef>
 #include <set>
 #include <string>
 #include <utility>
@@ -111,8 +111,11 @@ namespace phlex::detail {
     {
       join_registration result{.input_layers = layers_, .participants = {}};
       result.participants.reserve(repeaters_.size());
-      for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
-        result.participants.emplace_back(layer, &repeater->index_port(), &repeater->flush_port());
+      for (std::size_t i = 0; i != repeaters_.size(); ++i) {
+        result.participants.push_back({.layer = layers_[i],
+                                       .index_port = &repeaters_[i]->index_port(),
+                                       .completion_port = &repeaters_[i]->flush_port(),
+                                       .input_ordinal = i});
       }
       return result;
     }
