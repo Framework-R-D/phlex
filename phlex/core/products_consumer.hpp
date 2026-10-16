@@ -4,6 +4,7 @@
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -36,7 +37,7 @@ namespace phlex::detail {
     std::vector<phlex::experimental::identifier> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_selector const& input_product);
 
-    virtual named_index_ports index_ports() = 0;
+    virtual join_registration index_ports() = 0;
     virtual std::size_t num_calls() const = 0;
 
   protected:

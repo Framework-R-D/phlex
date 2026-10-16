@@ -11,10 +11,7 @@
 #include "phlex/utilities/signed_size.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
-#include <oneapi/tbb/flow_graph.h> // <-- belongs somewhere else
-
 #include <cstddef>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -31,11 +28,12 @@ namespace phlex::detail {
 
   struct indexed_end_token {
     data_cell_index_ptr index;
-    // The count is the number of direct children processed for this index. It uses signed_size_t
+    // The count is the number of invocations covered by this partition's completion token.
+    // It combines all applicable descendant counting paths and uses signed_size_t
     // because it is subtracted from a pending-invocations counter, which may be negative when the
     // indexed_end_token arrives before all pending invocations are processed.
     // (See the pending_invocations members in repeater_node and accumulator_node.)
-    signed_size_t count;
+    signed_size_t count{};
   };
 
   struct message {
@@ -53,25 +51,6 @@ namespace phlex::detail {
 
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
-
-  // A named_index_port describes one input slot of a multi-layer join node from the
-  // perspective of the index router.  Two distinct layer concepts are carried:
-  //
-  //  - `layer`           — the *routing* layer.  The router decides whether a routed index
-  //                        feeds this slot's `index_port` (and whether the slot should
-  //                        receive a flush token) using this layer name via
-  //                        `matches_exactly` / `is_parent_of` checks.
-  //
-  //  - `counting_layer`  — the *counting* layer preference.  `std::nullopt` selects the
-  //                        node's deepest layer, while a populated value selects that
-  //                        explicit layer name.
-  struct named_index_port {
-    phlex::experimental::identifier layer;
-    std::optional<phlex::experimental::identifier> counting_layer;
-    tbb::flow::receiver<indexed_end_token>* token_port;
-    tbb::flow::receiver<index_message>* index_port;
-  };
-  using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
   PHLEX_CORE_EXPORT message const& more_derived(message const& a, message const& b);

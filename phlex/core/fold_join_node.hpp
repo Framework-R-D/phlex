@@ -3,11 +3,12 @@
 
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 
+#include <gsl/assert>
 #include <oneapi/tbb/flow_graph.h>
 
-#include <cassert>
 #include <utility>
 #include <vector>
 
@@ -36,27 +37,29 @@ namespace phlex::detail {
   //             ⋮                                        ├──► join_node ──► (accum, data[0..N-1])
   //   data[N-1] ──► repeater[N-1] ────► port<N>(join) ───┘
 
-  template <std::size_t NInputs>
+  template <std::size_t NProducts>
   using partition_index_with_messages =
-    decltype(std::tuple_cat(std::tuple<index_message>{}, message_tuple<NInputs>{}));
+    decltype(std::tuple_cat(std::tuple<index_message>{}, message_tuple<NProducts>{}));
 
-  template <typename FoldResult, std::size_t NInputs>
+  template <typename FoldResult, std::size_t NProducts>
   using accumulator_with_messages = decltype(std::tuple_cat(
-    std::tuple<internal::accumulator_message<FoldResult>>{}, message_tuple<NInputs>{}));
+    std::tuple<internal::accumulator_message<FoldResult>>{}, message_tuple<NProducts>{}));
 
-  template <typename FoldResult, std::size_t NInputs>
+  template <typename FoldResult, std::size_t NProducts>
   using fold_join_node_base_t =
-    tbb::flow::composite_node<partition_index_with_messages<NInputs>,
-                              std::tuple<accumulator_with_messages<FoldResult, NInputs>>>;
+    tbb::flow::composite_node<partition_index_with_messages<NProducts>,
+                              std::tuple<accumulator_with_messages<FoldResult, NProducts>>>;
 
-  template <typename FoldResult, std::size_t NInputs>
-  class fold_join_node : public fold_join_node_base_t<FoldResult, NInputs> {
-    using args_t = partition_index_with_messages<NInputs>;
-    using base_t = fold_join_node_base_t<FoldResult, NInputs>;
-    using join_args_t = accumulator_with_messages<FoldResult, NInputs>;
+  template <typename FoldResult, std::size_t NProducts>
+  class fold_join_node : public fold_join_node_base_t<FoldResult, NProducts> {
+    using args_t = partition_index_with_messages<NProducts>;
+    using base_t = fold_join_node_base_t<FoldResult, NProducts>;
+    using join_args_t = accumulator_with_messages<FoldResult, NProducts>;
     using result_initializer_t = std::function<std::unique_ptr<FoldResult>(data_cell_index const&)>;
     using input_t = base_t::input_ports_type;
     using output_t = base_t::output_ports_type;
+
+    static_assert(NProducts >= 1, "fold_join_node requires at least one data product.");
 
     template <std::size_t... Is>
     static auto make_join(tbb::flow::graph& g, std::index_sequence<Is...>)
@@ -86,17 +89,17 @@ namespace phlex::detail {
                        partition_layer_name,
                        std::move(output),
                        std::move(result_initializer)},
-      join_{make_join(g, std::make_index_sequence<NInputs>{})},
+      join_{make_join(g, std::make_index_sequence<NProducts>{})},
       name_{node_name},
       partition_layer_{partition_layer_name},
       layers_{std::move(layer_names)}
     {
-      assert(NInputs == layers_.size());
+      Expects(NProducts == layers_.size());
 
       // We do not worry about collapsing layers for the fold-join node as the accumulator
       // repeater will always belong to a higher layer than (at least one of) the data products
       // that serve as input to the fold operation.
-      repeaters_.reserve(NInputs);
+      repeaters_.reserve(NProducts);
       for (auto const& layer : layers_) {
         repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
       }
@@ -110,7 +113,7 @@ namespace phlex::detail {
         (make_edge(*repeaters_[Is], input_port<Is + 1>(join_)), ...);
       };
 
-      set_ports(std::make_index_sequence<NInputs>{});
+      set_ports(std::make_index_sequence<NProducts>{});
     }
 
     tbb::flow::receiver<index_message>& partition_port()
@@ -126,36 +129,18 @@ namespace phlex::detail {
       return input_port<3>(result_repeater_);
     }
 
-    // Returns one named_index_port per slot the index router must wire up.
-    //
-    // The first entry is the *partition slot* — it routes the partition index to the
-    // accumulator's index_port and delivers the partition-level flush token to the
-    // accumulator's flush_port.  Its routing layer is the partition layer (e.g. "job"),
-    // but its counting layer is the fold's most-derived input data layer (e.g. "event"),
-    // because the accumulator is incremented once per fold call (= once per cell at the
-    // most-derived input layer) and the flush count must balance against that.
-    //
-    // The remaining entries are the data-input slots, one per repeater.  For these the
-    // routing layer and counting layer are the same: the repeater both routes and counts
-    // at its own input layer.
-    //
-    // FIXME: For multi-input folds, the "most-derived" input layer is the deepest of
-    // `layers_` in the data hierarchy.  Until the router exposes a depth comparison, we
-    // pick `layers_[0]`; all current tests have single-input folds so this is correct in
-    // practice.
-    std::vector<named_index_port> index_ports()
+    // The partition constrains the product-driven invocation domain. Its initialization
+    // connection remains separate from the accumulator's per-invocation index receiver.
+    // Ancestor data repeaters and the accumulator complete against the same invocations.
+    join_registration index_ports()
     {
-      std::vector<named_index_port> result;
-      result.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      phlex::experimental::identifier const counting_layer_for_partition =
-        layers_.empty() ? partition_layer_ : layers_[0];
-      result.emplace_back(partition_layer_,
-                          counting_layer_for_partition,
-                          &result_repeater_.flush_port(),
-                          &result_repeater_.index_port());
+      join_registration result{.input_layers = layers_, .participants = {}};
+      result.participants.reserve(1 + repeaters_.size()); // +1 for the result repeater
+      result.participants.emplace_back(
+        partition_layer_, &result_repeater_.index_port(), &result_repeater_.flush_port());
       for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.emplace_back(
-          layers_[i], layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
+        result.participants.emplace_back(
+          layers_[i], &repeaters_[i]->index_port(), &repeaters_[i]->flush_port());
       }
       return result;
     }
