@@ -8,6 +8,7 @@
 #include "phlex/core/fold_join_node.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
@@ -129,7 +130,7 @@ namespace phlex::detail {
     tbb::flow::sender<message>& output_port() override { return join_.output_port(); }
     phlex::experimental::product_specifications const& output() const override { return output_; }
 
-    named_index_ports index_ports() final { return join_.index_ports(); }
+    join_registration index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
     std::size_t apply_fold(

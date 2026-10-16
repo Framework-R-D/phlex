@@ -2,6 +2,7 @@
 #define PHLEX_CORE_INDEX_ROUTER_HPP
 
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
@@ -25,32 +26,21 @@ namespace phlex::detail {
     using index_set_node_ptr = std::shared_ptr<index_set_node>;
 
     // ==========================================================================================
-    // A multilayer_slot (one per registered named_index_port) captures the routing decision
-    // for one input slot of a multi-layer join node.  See the implementation file for the full
-    // description.  The slot is concerned purely with message routing; flush-side metadata is
-    // carried separately in a paired flush_spec (see below) so that the slot need not know
-    // about counting layers or flush ports.
+    // Each participant slot owns routing and its required non-owning completion receiver.
     class multilayer_slot;
     using multilayer_slots = std::vector<std::shared_ptr<multilayer_slot>>;
     using multilayer_slots_ptr = std::shared_ptr<multilayer_slots const>;
 
-    // Flush metadata paired positionally with the routing slot in join_node_slots.
-    // Descendants ending in the counting layer supply one combined completion count
-    // forwarded as an indexed_end_token to flush_port.
-    struct flush_spec {
-      phlex::experimental::identifier counting_layer;
-      tbb::flow::receiver<indexed_end_token>* flush_port;
-    };
-
-    // Per multi-layer join node: the slots, and the flush metadata paired positionally
-    // with each slot (slots[i] corresponds to flush_specs[i]).  Stored together so
-    // that multilayer_slots_for can iterate the two in lockstep.
+    // Resolve one invocation-path set from product inputs and every participant's ancestry.
+    // Routing and completion counts both use this set, including unfold-generated paths.
     struct join_node_slots {
       multilayer_slots slots;
-      std::vector<flush_spec> flush_specs;
+      std::vector<phlex::experimental::layer_path> invocation_paths;
     };
 
     // One completion token per slot combines all applicable descendant counting paths.
+    // The hashes identify entries in the partition gate's committed_counts_; their sum balances
+    // the receiving slot's pending invocations when the partition flushes.
     struct end_token_entry {
       std::vector<std::size_t> counting_layer_hashes;
       tbb::flow::receiver<indexed_end_token>* flush_port;
@@ -108,7 +98,7 @@ namespace phlex::detail {
                   unfold_data const& unfolds,
                   provider_input_ports_t provider_input_ports,
                   fold_partition_ports_t fold_partition_ports,
-                  std::map<std::string, named_index_ports> const& multilayer_join_ports);
+                  std::map<std::string, join_registration> const& multilayer_join_ports);
     void drain(index_flushes const& flushes);
 
     tbb::flow::function_node<index_message, data_cell_index_ptr>& unfold_index_receiver()
@@ -137,18 +127,11 @@ namespace phlex::detail {
     void wire_fold_partition_index_sets(tbb::flow::graph& g,
                                         fold_partition_ports_t fold_partition_ports);
     void build_multilayer_join_slots(
-      tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports);
+      tbb::flow::graph& g, std::map<std::string, join_registration> const& multilayer_join_ports);
     internal::index_set_node_ptr index_set_node_for(phlex::experimental::layer_path const& layer);
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
-    struct join_slot_resolution {
-      internal::multilayer_slots message_slots;
-      internal::end_token_entries end_token_entries;
-    };
-    join_slot_resolution resolve_join_slots(data_cell_index_ptr const& index,
-                                            phlex::experimental::layer_path const& layer_path,
-                                            internal::join_node_slots const& node_slots) const;
     void update_flush_counts(index_flushes const& flushes);
     void apply_expected_count(flush_gate& gate,
                               data_cell_index::hash_type child_layer_hash,
@@ -156,21 +139,11 @@ namespace phlex::detail {
     flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
-    // Resolve descendant paths ending in the counting layer beneath this partition.
-    std::vector<std::size_t> counting_layer_hashes_under(
-      phlex::experimental::layer_path const& partition_layer_path,
-      phlex::experimental::identifier const& counting_layer_name) const;
-
-    phlex::experimental::identifier deepest_layer_name(
-      std::vector<phlex::experimental::identifier> const& layer_names) const;
-
     tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
     tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;
     std::atomic<std::size_t> received_indices_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;
-    // Driver and unfold paths, sorted lexicographically. Used to resolve a slot's
-    // counting-layer name into the set of path-aware layer hashes that the flush gate
-    // will populate, when the counting layer differs from the routing layer.
+    // Driver and unfold paths, sorted lexicographically, used to resolve invocation domains.
     std::vector<phlex::experimental::layer_path> sorted_layer_paths_;
 
     // ==========================================================================================
@@ -191,7 +164,7 @@ namespace phlex::detail {
 
     // This struct lets multilayer_slots_for return message slots and end-token entries together,
     // instead of passing concurrent_hash_map accessors as output parameters. End-token entries
-    // contain one descendant count per receiving slot and counting path.
+    // contain one combined descendant count per receiving slot.
     struct multilayer_slot_cache_entry {
       internal::multilayer_slots_ptr message_slots;
       internal::end_token_entries_ptr end_token_entries;
