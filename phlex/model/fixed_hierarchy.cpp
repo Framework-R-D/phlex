@@ -106,6 +106,8 @@ namespace phlex {
 
   // ================================================================================
   // fixed_hierarchy implementation
+  fixed_hierarchy::fixed_hierarchy() : fixed_hierarchy{{"job"}} {}
+
   fixed_hierarchy::fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths) :
     fixed_hierarchy(std::vector<std::vector<std::string>>(layer_paths))
   {
@@ -115,6 +117,9 @@ namespace phlex {
     layer_paths_(convert_vector_vector_string(std::move(layer_paths))),
     layer_hashes_(std::from_range, build_hashes(layer_paths_))
   {
+    if (layer_paths_.empty()) {
+      throw std::runtime_error("A fixed hierarchy must declare at least one layer path.");
+    }
   }
 
   // The layer_paths variable is directly moved from when creating the merged set.
@@ -130,9 +135,6 @@ namespace phlex {
 
   void fixed_hierarchy::validate(data_cell_index_ptr const& index) const
   {
-    if (layer_hashes_.empty()) {
-      return;
-    }
     if (std::ranges::binary_search(layer_hashes_, index->layer_hash())) {
       return;
     }

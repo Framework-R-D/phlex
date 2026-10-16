@@ -33,6 +33,9 @@ namespace phlex::experimental {
 
   fixed_hierarchy layer_generator::hierarchy() const
   {
+    if (layer_paths_.empty()) {
+      return {};
+    }
     using layer_path_t = std::vector<std::string>;
     return fixed_hierarchy{layer_paths_ | std::views::transform([](auto const& path) {
                              return path | std::views::split('/') |
