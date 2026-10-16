@@ -3,6 +3,7 @@
 
 #include <boost/json/object.hpp>
 #include <boost/json/parse.hpp>
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/format.h>
 
@@ -12,6 +13,7 @@
 #include <cstddef>
 #include <functional>
 #include <set>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <unordered_set>
@@ -306,4 +308,109 @@ TEST_CASE("suffix_t is an alias of identifier_or_empty", "[identifier]")
   CHECK(empty.empty());
   CHECK(fmt::format("[{}]", empty) == "[]");
   CHECK(fmt::format("{}", hits) == "hits");
+}
+
+TEMPLATE_TEST_CASE("Empty-capable values implicitly accept C strings",
+                   "[identifier]",
+                   identifier_or_empty,
+                   suffix_t)
+{
+  STATIC_CHECK(std::is_convertible_v<char const*, TestType>);
+
+  TestType const empty = "";
+  TestType const hits = "hits";
+  TestType const terminated_hits = "hits\0ignored";
+  TestType const expected_empty{empty_string{}};
+  TestType const expected_hits{"hits"_id};
+
+  CHECK(empty.empty());
+  CHECK(empty.named() == nullptr);
+  CHECK(empty.text() == ""sv);
+  CHECK(empty == expected_empty);
+  CHECK(empty.hash() == expected_empty.hash());
+  CHECK(fmt::format("[{}]", empty) == "[]");
+  CHECK_FALSE(hits.empty());
+  REQUIRE(hits.named() != nullptr);
+  CHECK(*hits.named() == "hits"_id);
+  CHECK(hits.text() == "hits"sv);
+  CHECK(hits == expected_hits);
+  CHECK(hits.hash() == expected_hits.hash());
+  CHECK(terminated_hits == hits);
+  CHECK(terminated_hits.text() == "hits"sv);
+  CHECK(fmt::format("{}", hits) == "hits");
+  CHECK(empty < hits);
+  CHECK(empty != hits);
+}
+
+TEMPLATE_TEST_CASE("Empty-capable values explicitly accept string objects",
+                   "[identifier]",
+                   identifier_or_empty,
+                   suffix_t)
+{
+  STATIC_CHECK(std::is_constructible_v<TestType, std::string&>);
+  STATIC_CHECK(std::is_constructible_v<TestType, std::string const&>);
+  STATIC_CHECK(std::is_constructible_v<TestType, std::string>);
+  STATIC_CHECK(std::is_constructible_v<TestType, std::string_view>);
+  STATIC_CHECK_FALSE(std::is_convertible_v<std::string&, TestType>);
+  STATIC_CHECK_FALSE(std::is_convertible_v<std::string const&, TestType>);
+  STATIC_CHECK_FALSE(std::is_convertible_v<std::string, TestType>);
+  STATIC_CHECK_FALSE(std::is_convertible_v<std::string_view, TestType>);
+  STATIC_CHECK(std::is_convertible_v<empty_string, TestType>);
+  STATIC_CHECK(std::is_convertible_v<identifier const&, TestType>);
+  STATIC_CHECK(std::is_convertible_v<identifier, TestType>);
+  STATIC_CHECK(std::is_nothrow_default_constructible_v<TestType>);
+
+  std::string empty_text;
+  std::string const hits_text{"hits"};
+  std::array<TestType, 4> const empty_values{
+    TestType{empty_text}, TestType{std::string{}}, TestType{std::string_view{}}, TestType{""sv}};
+  std::array<TestType, 4> const named_values{TestType{hits_text},
+                                             TestType{std::string{"hits"}},
+                                             TestType{std::string_view{hits_text}},
+                                             TestType{"hits"sv}};
+  TestType const expected_empty{empty_string{}};
+  TestType const expected_hits{"hits"_id};
+
+  for (auto const& empty : empty_values) {
+    CHECK(empty.empty());
+    CHECK(empty.named() == nullptr);
+    CHECK(empty.text() == ""sv);
+    CHECK(empty == expected_empty);
+    CHECK((empty <=> expected_empty) == std::strong_ordering::equal);
+    CHECK(std::hash<TestType>{}(empty) == std::hash<TestType>{}(expected_empty));
+    CHECK(hash_value(empty) == expected_empty.hash());
+    CHECK(fmt::format("[{}]", empty) == "[]");
+  }
+  for (auto const& named : named_values) {
+    CHECK_FALSE(named.empty());
+    REQUIRE(named.named() != nullptr);
+    CHECK(*named.named() == "hits"_id);
+    CHECK(named.text() == "hits"sv);
+    CHECK(named == expected_hits);
+    CHECK((named <=> expected_hits) == std::strong_ordering::equal);
+    CHECK(std::hash<TestType>{}(named) == std::hash<TestType>{}(expected_hits));
+    CHECK(hash_value(named) == expected_hits.hash());
+    CHECK(fmt::format("{}", named) == "hits");
+    CHECK(expected_empty < named);
+  }
+}
+
+TEMPLATE_TEST_CASE("Empty-capable values own exactly the supplied text range",
+                   "[identifier]",
+                   identifier_or_empty,
+                   suffix_t)
+{
+  std::string backing_text{"hits_extra"};
+  TestType const from_view{std::string_view{backing_text}.substr(0, 4)};
+  TestType const from_string{backing_text};
+  TestType const from_c_string = backing_text.c_str();
+  backing_text.assign("other");
+
+  CHECK(from_view.text() == "hits"sv);
+  CHECK(from_view == TestType{"hits"_id});
+  CHECK(from_view.hash() == TestType{"hits"_id}.hash());
+  CHECK(from_string.text() == "hits_extra"sv);
+  CHECK(from_c_string.text() == "hits_extra"sv);
+  CHECK(from_string == from_c_string);
+  CHECK(from_string.hash() == from_c_string.hash());
 }

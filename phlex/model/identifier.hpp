@@ -121,6 +121,12 @@ namespace phlex::experimental {
   ///   identifier.
   ///
   /// The default constructor produces the empty state.
+  ///
+  /// The lasting textual construction policy mirrors `identifier`: C strings convert implicitly,
+  /// while `std::string` and `std::string_view` require explicit construction. Empty text produces
+  /// `empty_string`; non-empty text is passed to `identifier`, including its validation when enabled.
+  /// C strings must be non-null and null-terminated; only text before the first NUL is consumed.
+  /// Length-bearing inputs retain their full length and are never routed through a C-string boundary.
   class PHLEX_MODEL_EXPORT identifier_or_empty {
   public:
     identifier_or_empty() noexcept = default;
@@ -133,6 +139,21 @@ namespace phlex::experimental {
 
     // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     identifier_or_empty(identifier&& id) noexcept : value_{std::move(id)} {}
+
+    explicit identifier_or_empty(std::string_view str)
+    {
+      if (!str.empty()) {
+        value_.emplace<identifier>(str);
+      }
+    }
+
+    explicit identifier_or_empty(std::string const& str) :
+      identifier_or_empty(std::string_view{str})
+    {
+    }
+
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
+    identifier_or_empty(char const* lit) : identifier_or_empty(std::string_view{lit}) {}
 
     /// True when this value holds `empty_string`.
     bool empty() const noexcept { return std::holds_alternative<empty_string>(value_); }
