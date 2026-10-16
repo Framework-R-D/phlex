@@ -8,6 +8,7 @@
 #include "phlex/model/type_id.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <iterator>
@@ -52,4 +53,13 @@ TEST_CASE("producer_catalog registers all products from a producer", "[producer_
     CHECK(matches[0]->output_port == &node.output_port());
     CHECK(matches[0]->type == spec.type());
   }
+
+  // Algorithm registration via framework_graph::input_family always populates
+  // product_selector::type from the consumer callback's parameter types, so an
+  // untyped selector matching products of different types can only be tested by
+  // calling find_producers directly.
+  phlex::product_selector const ambiguous_query{.creator = node.name().algorithm()};
+  CHECK_THROWS_WITH(
+    catalog.find_producers(ambiguous_query, algorithm_name{"consumer"}, identifier{"test_stage"}),
+    "Ambiguous product selector -- see errors");
 }

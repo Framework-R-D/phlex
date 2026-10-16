@@ -41,7 +41,7 @@ namespace phlex {
     if (!creator_match(spec.creator())) {
       return false;
     }
-    if (type != spec.type()) {
+    if (type.valid() && type != spec.type()) {
       return false;
     }
     if (suffix) {

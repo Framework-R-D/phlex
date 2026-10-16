@@ -57,7 +57,7 @@ namespace {
       return false;
     }
 
-    if (query.type != producer.type) {
+    if (query.type.valid() && query.type != producer.type) {
       spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                     "from candidate list.",
                     query.to_string(),
@@ -67,7 +67,7 @@ namespace {
       return false;
     }
 
-    if (query.type.exact_compare(producer.type)) {
+    if (!query.type.valid() || query.type.exact_compare(producer.type)) {
       spdlog::debug("Matched ({}) from {} and types match. Keeping in candidate list.",
                     query.to_string(),
                     producer.node.to_string());
