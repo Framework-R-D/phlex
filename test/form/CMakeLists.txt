@@ -1,5 +1,13 @@
 # Copyright (C) 2025 ...
 
+# Suppress a GCC false positive triggered by LTO when linking ROOT-generated dictionaries. See issue
+# 972. Defined before add_subdirectory(data_products) so the helper is available in subdirectories.
+function(form_suppress_root_dictionary_warnings target)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options("${target}" PRIVATE "-Wno-alloc-size-larger-than")
+  endif()
+endfunction()
+
 if(FORM_USE_ROOT_STORAGE)
   add_subdirectory(data_products)
 

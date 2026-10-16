@@ -104,11 +104,11 @@ namespace {
     std::string throw_on_fill;
 
     void create_containers(
-      std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
+      std::vector<std::pair<placement, std::type_info const*>> const& containers,
       form::experimental::config::tech_setting_config const& /*settings*/) override
     {
       for (auto const& [plcmnt, type] : containers) {
-        auto const [top, column] = split(plcmnt->container_name());
+        auto const [top, column] = split(plcmnt.container_name());
         if (top.starts_with("nav_")) {
           tables[top].columns.push_back(column);
         }
@@ -456,9 +456,8 @@ TEST_CASE("storage_writer basic operations", "[form]")
 
   form::experimental::config::tech_setting_config const settings;
 
-  std::map<std::unique_ptr<placement>, std::type_info const*> containers;
-  auto p = std::make_unique<placement>("file.root", "cont", form::technology::id{});
-  containers.emplace(std::move(p), &typeid(int));
+  std::vector<std::pair<placement, std::type_info const*>> containers;
+  containers.emplace_back(placement{"file.root", "cont", form::technology::id{}}, &typeid(int));
 
   storage->create_containers(containers, settings);
 

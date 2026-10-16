@@ -1,23 +1,22 @@
 #include "phlex/core/producer_catalog.hpp"
 
+#include "phlex/core/producer.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/type_id.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
-#include "phlex/utilities/hashing.hpp"
 
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include <concepts>
-#include <cstdint>
 #include <map>
 #include <ranges>
+#include <set>
+#include <span>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -27,38 +26,6 @@ namespace {
   using namespace phlex::experimental;
   using namespace phlex::detail;
   using named_output_port = producer_catalog::named_output_port;
-
-  /// Add an item to a tracking set to detect duplicates
-  template <typename T>
-    requires fmt::formattable<T> || requires(T const& value) {
-      { value.to_string() } -> std::same_as<std::string>;
-    }
-  void add_to_tracker(std::map<std::uint64_t, T const*>& values,
-                      std::uint64_t const hash,
-                      T const& value,
-                      std::string_view const kind)
-  {
-    auto const& [elem, inserted] = values.emplace(hash, &value);
-    // Exclude from coverage. It won't run unless we have a hash collision.
-    // LCOV_EXCL_START
-    auto const display = [](T const& item) {
-      if constexpr (fmt::formattable<T>) {
-        return item;
-      } else {
-        return item.to_string();
-      }
-    };
-
-    // A collision requires distinct values with the same 64-bit hash.
-    if (!inserted && *(elem->second) != value) {
-      throw std::runtime_error(fmt::format("Encountered two {} ({} and {}) which share the hash {}",
-                                           kind,
-                                           display(*(elem->second)),
-                                           display(value),
-                                           elem->first));
-    }
-    // LCOV_EXCL_STOP
-  }
 
   bool providers_only(product_selector const& query,
                       std::multimap<product_suffix_t, named_output_port> const& producers,
@@ -90,7 +57,7 @@ namespace {
       return false;
     }
 
-    if (query.type != producer.type) {
+    if (query.type.valid() && query.type != producer.type) {
       spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                     "from candidate list.",
                     query.to_string(),
@@ -100,7 +67,7 @@ namespace {
       return false;
     }
 
-    if (query.type.exact_compare(producer.type)) {
+    if (!query.type.valid() || query.type.exact_compare(producer.type)) {
       spdlog::debug("Matched ({}) from {} and types match. Keeping in candidate list.",
                     query.to_string(),
                     producer.node.to_string());
@@ -117,11 +84,10 @@ namespace {
 
   void check_postconditions(product_selector const& query,
                             std::vector<named_output_port const*> const& candidates,
-                            std::map<std::uint64_t, identifier const*> const& suffixes,
-                            std::map<std::uint64_t, algorithm_name const*> const& creators,
-                            std::map<std::uint64_t, type_id const*> const& types)
+                            std::set<identifier> const& suffixes,
+                            std::set<algorithm_name> const& creators,
+                            std::set<type_id> const& types)
   {
-
     if (candidates.empty()) {
       spdlog::debug(
         "Cannot identify product matching the query {}. Assuming it comes from a provider.",
@@ -135,8 +101,6 @@ namespace {
     static auto const port_to_node = [](named_output_port const* p) -> algorithm_name const& {
       return p->node;
     };
-    static auto const deref_view =
-      std::views::transform([]<typename T>(T const* p) -> T const& { return *p; });
     std::string const msg =
       fmt::format("More than one candidate matches the query {}: \n{}",
                   query.to_string(),
@@ -154,27 +118,41 @@ namespace {
       spdlog::error("Selector matches multiple products with different suffixes.\n"
                     "Suffix must be specified to disambiguate\n"
                     "Suffixes found: {}",
-                    suffixes | std::views::values | deref_view);
+                    suffixes);
     }
     if (creators.size() > 1) {
       spdlog::error("Selector matches multiple products with different creators.\n"
                     "Creator must be specified to disambiguate\n"
                     "Creators found: {}",
-                    creators | std::views::values |
-                      std::views::transform(
-                        [](experimental::algorithm_name const* p) { return p->to_string(); }));
+                    creators | std::views::transform([](experimental::algorithm_name const& p) {
+                      return p.to_string();
+                    }));
     }
     if (types.size() > 1) {
       spdlog::error("Selector matches multiple products with different types.\n"
                     "Type must be specified to disambiguate\n"
                     "Types found: {}",
-                    types | std::views::values | deref_view);
+                    types);
     }
     throw std::runtime_error("Ambiguous product selector -- see errors");
   }
 }
 
 namespace phlex::detail {
+  producer_catalog::producer_catalog(std::span<producer* const> producers)
+  {
+    for (auto* node : producers) {
+      for (auto const& product_spec : node->output()) {
+        producers_.emplace(product_spec.suffix(),
+                           named_output_port{
+                             .node = node->name(),
+                             .output_port = &node->output_port(),
+                             .type = product_spec.type(),
+                           });
+      }
+    }
+  }
+
   std::vector<producer_catalog::named_output_port const*> producer_catalog::find_producers(
     product_selector const& query,
     phlex::experimental::algorithm_name const& consumer_name,
@@ -194,13 +172,12 @@ namespace phlex::detail {
     }
     std::vector<named_output_port const*> candidates;
 
-    // Don't really want to copy these fields so we'll use hashes and store a pointer to one copy
-    std::map<std::uint64_t, experimental::identifier const*> suffixes;
+    std::set<experimental::identifier> suffixes;
     if (query.suffix.has_value()) {
-      add_to_tracker(suffixes, query.suffix->hash(), *query.suffix, "identifiers");
+      suffixes.insert(*query.suffix);
     }
-    std::map<std::uint64_t, experimental::algorithm_name const*> creators;
-    std::map<std::uint64_t, experimental::type_id const*> types;
+    std::set<experimental::algorithm_name> creators;
+    std::set<experimental::type_id> types;
 
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       // Prevent self-edges
@@ -216,14 +193,11 @@ namespace phlex::detail {
       if (producer_matches(query, producer)) {
         candidates.push_back(&producer);
         if (!query.suffix.has_value()) {
-          add_to_tracker(suffixes, key.hash(), key, "identifiers");
+          // Query doesn't have suffix, but products do (at least an empty one)
+          suffixes.insert(key);
         }
-        add_to_tracker(
-          creators,
-          phlex::detail::hash(producer.node.plugin().hash(), producer.node.algorithm().hash()),
-          producer.node,
-          "algorithms");
-        types.emplace(hash_value(producer.type), &producer.type);
+        creators.insert(producer.node);
+        types.insert(producer.type);
       }
     }
 

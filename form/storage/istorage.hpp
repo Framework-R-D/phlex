@@ -9,9 +9,9 @@
 
 #include <cstdint>
 #include <limits>
-#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace form::detail::experimental {
@@ -45,8 +45,9 @@ namespace form::detail::experimental {
     i_storage_writer() = default;
     virtual ~i_storage_writer() = default;
 
+    // Containers are created in the order given by the caller.
     virtual void create_containers(
-      std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
+      std::vector<std::pair<placement, std::type_info const*>> const& containers,
       form::experimental::config::tech_setting_config const& settings) = 0;
     // Returns the 0-based row (entry) number written, or invalid_row_id if no rows
     virtual std::uint64_t fill_container(placement const& plcmnt,

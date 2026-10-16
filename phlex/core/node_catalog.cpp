@@ -1,5 +1,6 @@
 #include "phlex/core/node_catalog.hpp"
 
+#include "phlex/core/producer.hpp"
 #include "phlex/core/producer_catalog.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/source.hpp"
@@ -61,7 +62,16 @@ namespace phlex::detail {
 
   producer_catalog node_catalog::producers() const
   {
-    return producer_catalog{transforms, folds, unfolds};
+    auto as_producers = [](auto const& nodes) {
+      return nodes | std::views::values |
+             std::views::transform([](auto const& node) -> producer* { return node.get(); });
+    };
+
+    std::vector<producer*> result;
+    result.append_range(as_producers(transforms));
+    result.append_range(as_producers(folds));
+    result.append_range(as_producers(unfolds));
+    return producer_catalog{result};
   }
 
   source_vector node_catalog::sources_for(std::vector<std::string> const& keys) const
