@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <string>
+#include <tuple>
 #include <utility>
 
 using namespace phlex;
@@ -231,5 +232,25 @@ TEST_CASE("Querying products in different ways", "[graph]")
       .output_product_suffixes("job_temp");
     g.execute();
     CHECK(g.execution_count("layer_only") == 1);
+  }
+
+  SECTION("Ambiguous product selector with different suffixes is rejected")
+  {
+    g.transform("both_temperatures", [](double const& t) { return std::tuple{t, t}; })
+      .input_family(product_selector{.creator = "input", .suffix = "temperature"})
+      .output_product_suffixes("temperature_c", "temperature_f");
+    g.observe("ambiguous_suffix", [](double const&) {})
+      .input_family(product_selector{.creator = "both_temperatures"});
+    CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
+  }
+
+  SECTION("Ambiguous product selector with different creators is rejected")
+  {
+    g.transform("another_temperature", [](double const& t) { return t; })
+      .input_family(product_selector{.creator = "input", .suffix = "temperature"})
+      .output_product_suffixes("temperature");
+    g.observe("ambiguous_creator", [](double const&) {})
+      .input_family(product_selector{.suffix = "temperature"});
+    CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
   }
 }
