@@ -343,16 +343,22 @@ TEST_CASE("Test data-only with flush count zero", "[multithreading]")
   repeater_test_fixture fixture{"test_repeater_data_only_flush_zero"};
   auto [run1, store1] = make_run_with_product(1, 42);
 
-  // Send data only (no index messages)
-  fixture.put_data_message({.store = store1, .id = 0});
-  fixture.wait_for_all();
-
-  // Consumer should not receive anything and cache should contain the product
-  CHECK(fixture.consumed_messages().empty());
-  CHECK(fixture.cache_size() == 1);
-
-  // Emit a flush token with count=0 — this should evict the cached product without emitting messages
-  fixture.put_flush_token({.index = run1, .count = 0});
+  SECTION("Product before completion")
+  {
+    fixture.put_data_message({.store = store1, .id = 0});
+    fixture.wait_for_all();
+    CHECK(fixture.consumed_messages().empty());
+    CHECK(fixture.cache_size() == 1);
+    fixture.put_flush_token({.index = run1, .count = 0});
+  }
+  SECTION("Completion before product")
+  {
+    fixture.put_flush_token({.index = run1, .count = 0});
+    fixture.wait_for_all();
+    CHECK(fixture.consumed_messages().empty());
+    CHECK(fixture.cache_size() == 1);
+    fixture.put_data_message({.store = store1, .id = 0});
+  }
   fixture.wait_for_all();
 
   CHECK(fixture.consumed_messages().empty());

@@ -107,7 +107,7 @@ namespace phlex::detail {
          [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
            assert(driver_);
            if (auto item = (*driver_)()) {
-             return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
+             return {.ready_flushes = cell_tracker_->report_and_evict_ready_flushes(*item),
                      .index_to_emit = *item};
            }
            fc.stop();
@@ -153,9 +153,9 @@ namespace phlex::detail {
 
   framework_graph::~framework_graph()
   {
-    if (shutdown_on_error_) {
+    if (shutdown_on_error_ and cell_tracker_) {
       // When in an error state, we need to pop the layer stack and wait for any tasks to finish.
-      auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
+      auto remaining_flushes = cell_tracker_->report_and_evict_ready_flushes(nullptr);
       index_router_.drain(remaining_flushes);
       graph_.wait_for_all();
     }
@@ -201,7 +201,9 @@ namespace phlex::detail {
     graph_.wait_for_all();
 
     // Now back out of all remaining layers
-    index_router_.drain(cell_tracker_.report_and_evict_ready_flushes(nullptr));
+    assert(cell_tracker_);
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    index_router_.drain(cell_tracker_->report_and_evict_ready_flushes(nullptr));
     graph_.wait_for_all();
   }
 
@@ -243,6 +245,7 @@ namespace phlex::detail {
   void framework_graph::finalize()
   {
     throw_if_registration_errors();
+    cell_tracker_.emplace(fixed_hierarchy_.layer_paths());
     make_filter_edges();
     make_bookkeeping_edges();
 
