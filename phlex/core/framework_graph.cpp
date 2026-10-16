@@ -243,6 +243,7 @@ namespace phlex::detail {
   void framework_graph::finalize()
   {
     throw_if_registration_errors();
+    cell_tracker_.set_driver_layer_paths(fixed_hierarchy_.layer_paths());
     make_filter_edges();
     make_bookkeeping_edges();
 

@@ -35,8 +35,8 @@ namespace phlex::detail {
     using multilayer_slots_ptr = std::shared_ptr<multilayer_slots const>;
 
     // Flush metadata paired positionally with the routing slot in join_node_slots.
-    // Descendants ending in the counting layer supply the committed counts forwarded
-    // individually as indexed_end_tokens to flush_port.
+    // Descendants ending in the counting layer supply one combined completion count
+    // forwarded as an indexed_end_token to flush_port.
     struct flush_spec {
       phlex::experimental::identifier counting_layer;
       tbb::flow::receiver<indexed_end_token>* flush_port;
@@ -50,9 +50,9 @@ namespace phlex::detail {
       std::vector<flush_spec> flush_specs;
     };
 
-    // Each entry identifies one descendant count in the partition gate's committed_counts_.
+    // One completion token per slot combines all applicable descendant counting paths.
     struct end_token_entry {
-      std::size_t counting_layer_hash;
+      std::vector<std::size_t> counting_layer_hashes;
       tbb::flow::receiver<indexed_end_token>* flush_port;
     };
     using end_token_entries = std::vector<end_token_entry>;
