@@ -58,6 +58,7 @@ namespace {
 namespace form::detail::experimental {
   std::unique_ptr<i_storage_writer> create_storage_writer()
   {
+    ensure_backend_thread_safety();
     return std::unique_ptr<i_storage_writer>(new storage_writer());
   }
 }

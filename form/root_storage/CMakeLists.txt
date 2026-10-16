@@ -7,6 +7,7 @@ set(FORM_ROOT_STORAGE_SOURCES)
 list(
   APPEND FORM_ROOT_STORAGE_SOURCES
   root_tfile.cpp
+  root_thread_safety.cpp
   root_ttree_write_container.cpp
   root_tbranch_read_container.cpp
   root_tbranch_write_container.cpp
