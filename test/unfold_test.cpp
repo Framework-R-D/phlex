@@ -29,7 +29,6 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -116,6 +115,11 @@ namespace {
   private:
     unsigned int max_;
     numbers_t numbers_;
+  };
+
+  class iota_with_ancestor : public iota {
+  public:
+    iota_with_ancestor(unsigned int max_number, unsigned int /*ancestor*/) : iota{max_number} {}
   };
 
   void check_no_cached_entries(std::ostringstream const& output)
@@ -358,15 +362,194 @@ TEST_CASE("Unfold receives a resource token", "[graph][unfold][resource]")
   CHECK(g.execution_count("resource_iota") == num_events);
 }
 
-TEST_CASE("Multi-layer unfolds not supported until v0.5", "[graph][unfold]")
+// Reproducer for issue #955: job -> spill --split_a--> a --split_b--> b.
+// Joining the spill product in split_b must not prevent the spill fold from flushing.
+TEST_CASE("Nested unfold with a higher-layer input flushes the outer layer", "[graph][unfold]")
 {
-  auto g = phlex::detail::framework_graph::without_driver("test");
-  CHECK_THROWS_WITH(
-    g.unfold<iota_two_inputs>("iota_two_inputs",
-                              &iota_two_inputs::predicate,
-                              &iota_two_inputs::unfold,
-                              concurrency::unlimited,
-                              "subevent")
-      .input_family(product_selector{.layer = "run"}, product_selector{.layer = "event"}),
-    Catch::Matchers::ContainsSubstring("Unfolds cannot yet accept multi-layer inputs"));
+  using data_cell_index_number = unsigned int;
+  using counts_t = std::vector<std::pair<data_cell_index_number, int>>;
+  struct scenario {
+    char const* description;
+    std::vector<unsigned int> expected_b_counts;
+  };
+  auto const test =
+    GENERATE(scenario{.description = "Two-input nested unfold (issue reproducer)",
+                      .expected_b_counts = {2u, 2u, 2u}},
+             scenario{.description = "Some empty b children, including an empty spill partition",
+                      .expected_b_counts = {0u, 1u, 2u}},
+             scenario{.description = "All b partitions empty", .expected_b_counts = {0u, 0u, 0u}});
+  CAPTURE(test.description);
+
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  auto const run_graph = [](scenario const& test) {
+    counts_t counts;
+    counts_t sums;
+    auto const num_spills = static_cast<unsigned int>(test.expected_b_counts.size());
+    auto const num_b =
+      std::accumulate(test.expected_b_counts.begin(), test.expected_b_counts.end(), std::size_t{0});
+
+    auto gen = experimental::layer_generator::make();
+    gen->add_layer("spill", {.parent_layer = "job", .count = num_spills});
+
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(gen);
+    g.provide(
+       "provide_n", [](data_cell_index const&) { return 2u; }, concurrency::unlimited)
+      .output_product("src", "n", "spill");
+
+    product_selector const spill_n{.creator = "src", .layer = "spill", .suffix = "n"};
+    product_selector const a_n{.creator = "split_a", .layer = "a", .suffix = "n"};
+    product_selector const b_n{.creator = "split_b", .layer = "b", .suffix = "n"};
+    product_selector const split_b_input{
+      .creator = "set_b_child_count", .layer = "a", .suffix = "n"};
+
+    g.transform(
+       "set_b_child_count",
+       [expected_b_counts = test.expected_b_counts](handle<unsigned int> n) {
+         auto const& index = n.data_cell_index();
+         auto const spill_number = index.parent()->number();
+         return static_cast<unsigned int>(index.number() < expected_b_counts.at(spill_number));
+       },
+       concurrency::unlimited)
+      .input_family(a_n)
+      .output_product_suffixes("n");
+
+    g.unfold<iota>("split_a", &iota::predicate, &iota::unfold, concurrency::unlimited, "a")
+      .input_family(spill_n)
+      .output_product_suffixes("n");
+
+    g.unfold<iota_with_ancestor>(
+       "split_b", &iota::predicate, &iota::unfold, concurrency::unlimited, "b")
+      .input_family(split_b_input, spill_n)
+      .output_product_suffixes("n");
+
+    g.fold(
+       "count", [](int& count, unsigned int) { ++count; }, concurrency::serial, "spill")
+      .input_family(b_n)
+      .output_product_suffixes("count");
+    g.observe(
+       "check_count",
+       [&counts](handle<int> count) {
+         counts.emplace_back(count.data_cell_index().number(), *count);
+       },
+       concurrency::serial)
+      .input_family(product_selector{.creator = "count", .layer = "spill", .suffix = "count"});
+
+    g.transform(
+       "join_b_spill",
+       [](unsigned int b, unsigned int spill) { return static_cast<int>(b + spill); },
+       concurrency::unlimited)
+      .input_family(b_n, spill_n)
+      .output_product_suffixes("n");
+    g.fold(
+       "sum_joined", [](int& sum, int n) { sum += n; }, concurrency::serial, "spill")
+      .input_family(product_selector{.creator = "join_b_spill", .layer = "b", .suffix = "n"})
+      .output_product_suffixes("sum");
+    g.observe(
+       "check_joined",
+       [&sums](handle<int> sum) { sums.emplace_back(sum.data_cell_index().number(), *sum); },
+       concurrency::serial)
+      .input_family(product_selector{.creator = "sum_joined", .layer = "spill", .suffix = "sum"});
+
+    g.execute();
+
+    CHECK(g.execution_count("split_a") == num_spills);
+    CHECK(g.execution_count("split_b") == static_cast<std::size_t>(2 * num_spills));
+    CHECK(g.execution_count("count") == num_b);
+    CHECK(g.execution_count("join_b_spill") == num_b);
+    CHECK(g.execution_count("sum_joined") == num_b);
+    // Check emission separately: checks inside the observer cannot catch it never running.
+    CHECK(g.execution_count("check_count") == num_spills);
+    CHECK(g.execution_count("check_joined") == num_spills);
+    return std::make_pair(std::move(counts), std::move(sums));
+  };
+  // Destroy the graph before checking for cached-entry warnings.
+  auto [counts, sums] = run_graph(test);
+  std::ranges::sort(counts);
+  std::ranges::sort(sums);
+  counts_t expected_counts;
+  counts_t expected_sums;
+  for (data_cell_index_number spill = 0; spill != test.expected_b_counts.size(); ++spill) {
+    auto const count = static_cast<int>(test.expected_b_counts[spill]);
+    expected_counts.emplace_back(spill, count);
+    // Each b product is 0, and the spill product is 2.
+    expected_sums.emplace_back(spill, count * 2);
+  }
+  CHECK(counts == expected_counts);
+  CHECK(sums == expected_sums);
+  check_no_cached_entries(output);
+}
+
+TEST_CASE("Unfold flush expectations distinguish repeated layer names", "[graph][unfold]")
+{
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  auto const run_graph = [] {
+    std::vector<std::pair<std::string, int>> counts;
+    std::vector<int> extra_counts;
+    auto gen = experimental::layer_generator::make();
+    gen->add_layer("run", {.parent_layer = "job", .count = 1});
+    gen->add_layer("spill", {.parent_layer = "run", .count = 2});
+    gen->add_layer("spill", {.parent_layer = "job", .count = 3});
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(gen);
+    g.provide(
+       "provide_n",
+       [](data_cell_index const& index) { return index.depth() == 1 ? 2u : 3u; },
+       concurrency::unlimited)
+      .output_product("src", "n", "spill");
+    g.provide(
+       "provide_run", [](data_cell_index const&) { return 7u; }, concurrency::unlimited)
+      .output_product("src", "n", "run");
+
+    product_selector const spill_n{.creator = "src", .layer = "spill", .suffix = "n"};
+    g.unfold<iota>("split_a", &iota::predicate, &iota::unfold, concurrency::unlimited, "a")
+      .input_family(spill_n)
+      .output_product_suffixes("n");
+    // Only /job/run/spill has a run ancestor, so its flush gate expects a second unfold.
+    g.unfold<iota_with_ancestor>(
+       "split_c", &iota::predicate, &iota::unfold, concurrency::unlimited, "c")
+      .input_family(spill_n, product_selector{.creator = "src", .layer = "run", .suffix = "n"})
+      .output_product_suffixes("n");
+    g.fold(
+       "count_a", [](int& count, unsigned int) { ++count; }, concurrency::serial, "spill")
+      .input_family(product_selector{.creator = "split_a", .layer = "a", .suffix = "n"})
+      .output_product_suffixes("count");
+    g.observe(
+       "check_a",
+       [&counts](handle<int> count) {
+         counts.emplace_back(count.data_cell_index().layer_path().to_string(), *count);
+       },
+       concurrency::serial)
+      .input_family(product_selector{.creator = "count_a", .layer = "spill", .suffix = "count"});
+    g.fold(
+       "count_c", [](int& count, unsigned int) { ++count; }, concurrency::serial, "run")
+      .input_family(product_selector{.creator = "split_c", .layer = "c", .suffix = "n"})
+      .output_product_suffixes("count");
+    g.observe(
+       "check_c",
+       [&extra_counts](int count) { extra_counts.push_back(count); },
+       concurrency::serial)
+      .input_family(product_selector{.creator = "count_c", .layer = "run", .suffix = "count"});
+
+    g.execute();
+    CHECK(g.execution_count("split_a") == 5);
+    CHECK(g.execution_count("split_c") == 2);
+    CHECK(g.execution_count("count_a") == 12);
+    CHECK(g.execution_count("count_c") == 6);
+    CHECK(g.execution_count("check_a") == 5);
+    CHECK(g.execution_count("check_c") == 1);
+    return std::make_pair(std::move(counts), std::move(extra_counts));
+  };
+  // Destroy the graph before checking for cached-entry warnings.
+  auto [counts, extra_counts] = run_graph();
+  std::ranges::sort(counts);
+  CHECK(counts == std::vector<std::pair<std::string, int>>{{"/job/run/spill", 3},
+                                                           {"/job/run/spill", 3},
+                                                           {"/job/spill", 2},
+                                                           {"/job/spill", 2},
+                                                           {"/job/spill", 2}});
+  CHECK(extra_counts == std::vector<int>{6});
+  check_no_cached_entries(output);
 }
