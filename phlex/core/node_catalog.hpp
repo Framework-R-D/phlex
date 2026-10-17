@@ -1,6 +1,7 @@
 #ifndef PHLEX_CORE_NODE_CATALOG_HPP
 #define PHLEX_CORE_NODE_CATALOG_HPP
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_output.hpp"
@@ -8,7 +9,6 @@
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/producer_catalog.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/provider_node.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/source.hpp"
@@ -102,7 +102,7 @@ namespace phlex::detail {
     source_vector sources_for(std::vector<std::string> const& keys) const;
 
     std::size_t execution_count(std::string const& node_name) const;
-    std::vector<products_consumer*> consumers() const;
+    std::vector<consumer*> consumers() const;
     producer_catalog producers() const;
 
     simple_ptr_map<declared_predicate_ptr> predicates;
