@@ -14,6 +14,8 @@
 // overload takes precedence.
 // =======================================================================================
 
+#include <boost/mp11/tuple.hpp>
+
 #include <atomic>
 #include <concepts>
 
@@ -49,6 +51,22 @@ namespace phlex::experimental {
 
   template <typename T>
   using sendable_type = detail::sendable_type_impl<T>::type;
+
+  /// A tuple of sendable types is sendable
+  template <typename... Ts>
+    requires((has_send<Ts> || sendable_by_move<Ts>) && ...)
+  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...> const& tup)
+  {
+    constexpr auto f = [](auto const& arg) {
+      if constexpr (has_send<decltype(arg)>) {
+        return send(arg);
+      } else {
+        return std::move(arg);
+      }
+    };
+
+    return boost::mp11::tuple_transform(f, tup);
+  }
 }
 
 #endif // PHLEX_CORE_FOLD_SEND_HPP

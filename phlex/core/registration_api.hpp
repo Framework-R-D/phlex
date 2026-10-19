@@ -257,9 +257,11 @@ namespace phlex::detail {
   class fold_api {
     using init_tuple = std::tuple<InitArgs...>;
     using input_parameter_types = skip_first_type<typename AlgorithmBits::input_parameter_types>;
+    using result_type =
+      std::decay_t<std::tuple_element_t<0, typename AlgorithmBits::input_parameter_types>>;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
-    static constexpr auto num_outputs = 1; // For now
+    static constexpr auto num_outputs = number_types<result_type>; // For now
 
     static_assert(num_inputs > 1, "input_family requires at least one product selector.");
 
