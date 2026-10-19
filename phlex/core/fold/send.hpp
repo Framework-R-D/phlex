@@ -26,6 +26,19 @@ namespace phlex::experimental {
     return a.load();
   }
 
+  namespace detail {
+    template <typename T>
+    struct sendable_type_impl {};
+  }
+
+  template <typename T>
+  using sendable_type = detail::sendable_type_impl<T>::type;
+
+  /// A tuple of sendable types is sendable
+  template <typename... Ts>
+    requires(requires { typename sendable_type<Ts>; } && ...)
+  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...> const& tup);
+
   template <typename T>
   concept has_send = requires(T const& t) {
     { send(t) } -> std::move_constructible;
@@ -35,9 +48,6 @@ namespace phlex::experimental {
   concept sendable_by_move = std::move_constructible<T> && !has_send<T>;
 
   namespace detail {
-    template <typename T>
-    struct sendable_type_impl {};
-
     template <has_send T>
     struct sendable_type_impl<T> {
       using type = decltype(send(std::declval<T const&>()));
@@ -49,12 +59,8 @@ namespace phlex::experimental {
     };
   }
 
-  template <typename T>
-  using sendable_type = detail::sendable_type_impl<T>::type;
-
-  /// A tuple of sendable types is sendable
   template <typename... Ts>
-    requires((has_send<Ts> || sendable_by_move<Ts>) && ...)
+    requires(requires { typename sendable_type<Ts>; } && ...)
   std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...> const& tup)
   {
     constexpr auto f = [](auto const& arg) {
