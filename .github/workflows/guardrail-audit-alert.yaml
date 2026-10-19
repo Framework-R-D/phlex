@@ -3,7 +3,7 @@
 #
 # Detect when commits are pushed directly to `main` rather than via PR.
 #
-# Set a repository variable `GUARDRAIL_AUDIT_ALERT_ENABLED' to true in
+# Set a repository variable `GUARDRAIL_AUDIT_ALERT_ENABLED` to true in
 # the repository or fork for which you wish to enable this alert.
 #
 # The fork owner is responsible for setting the SLACK_WEBHOOK_URL
