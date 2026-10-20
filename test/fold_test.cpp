@@ -54,8 +54,9 @@ namespace {
   void add_and_count(std::tuple<std::atomic<unsigned int>, std::atomic<unsigned int>>& result,
                      unsigned int number)
   {
-    std::get<0>(result) += number;
-    ++std::get<1>(result);
+    auto& [sum, count] = result;
+    result += number;
+    ++count;
   }
 
   void collect(std::vector<unsigned int>& numbers, unsigned int number)
