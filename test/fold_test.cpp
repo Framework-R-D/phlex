@@ -55,7 +55,7 @@ namespace {
                      unsigned int number)
   {
     auto& [sum, count] = result;
-    result += number;
+    sum += number;
     ++count;
   }
 
