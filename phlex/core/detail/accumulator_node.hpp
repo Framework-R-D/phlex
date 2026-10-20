@@ -26,6 +26,7 @@ namespace phlex::detail::internal {
   class accumulator {
   public:
     using sendable_t = phlex::experimental::sendable_type<T>;
+    static constexpr auto num_outputs = number_types<T>;
 
     explicit accumulator(std::unique_ptr<T> initial_value) : accumulator_(std::move(initial_value))
     {
@@ -43,8 +44,6 @@ namespace phlex::detail::internal {
     {
       auto result = std::move(accumulator_);
       using namespace phlex::experimental;
-
-      constexpr auto num_outputs = number_types<T>;
 
       // Rely on NRVO
       products new_products{num_outputs};
@@ -78,7 +77,7 @@ namespace phlex::detail::internal {
     {
       // Only used to release the entire result
       auto store = std::make_shared<phlex::experimental::product_store>(
-        index, node_name, stage, std::move(partial_result->release_as_products(output)));
+        index, node_name, stage, partial_result->release_as_products(output));
       partial_result.reset();
       return {.store = std::move(store), .id = original_id};
     }
