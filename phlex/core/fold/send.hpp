@@ -2,22 +2,26 @@
 #define PHLEX_CORE_FOLD_SEND_HPP
 
 // =======================================================================================
-// Phlex requires fold results to be "sendable", where the result can be represented
-// as a data product that is at least moveable.  For some types, notably std::atomic<T>
-// specializations, move operations are not supported.  The framework thus permits a
-// translation step where a non-moveable type can be converted to a type that is moveable.
+// Phlex requires fold results to be "sendable", where the result can be
+// represented as a data product that is at least moveable. For some types,
+// notably std::atomic<T> specializations, move operations are not supported.
+// The framework thus permits a translation step where a non-moveable type can
+// be converted to a type that is moveable.
 //
-// For non-moveable types, an overload of 'T send(U const&)' is required, where U is the
-// unmoveable type, and T is the type that can be a represented as a data product.
+// For non-moveable types, an overload of 'T send(U const&)' (or `T send (U&&)`)
+// is required, where U is the unmoveable type, and T is the type that can be a
+// represented as a data product.
 //
-// If a type both has a 'send(...)' overload and is move-constructible, the 'send(...)'
-// overload takes precedence.
+// If a type both has a 'send(...)' overload and is move-constructible, the
+// 'send(...)' overload takes precedence.
 // =======================================================================================
 
 #include <boost/mp11/tuple.hpp>
 
 #include <atomic>
 #include <concepts>
+#include <tuple>
+#include <utility>
 
 namespace phlex::experimental {
   template <typename T>
@@ -37,11 +41,11 @@ namespace phlex::experimental {
   /// A tuple of sendable types is sendable
   template <typename... Ts>
     requires(requires { typename sendable_type<Ts>; } && ...)
-  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...> const& tup);
+  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...>&& tup);
 
   template <typename T>
-  concept has_send = requires(T const& t) {
-    { send(t) } -> std::move_constructible;
+  concept has_send = requires(T&& t) {
+    { send(std::move(t)) } -> std::move_constructible;
   };
 
   template <typename T>
@@ -50,7 +54,7 @@ namespace phlex::experimental {
   namespace detail {
     template <has_send T>
     struct sendable_type_impl<T> {
-      using type = decltype(send(std::declval<T const&>()));
+      using type = decltype(send(std::move(std::declval<T&&>())));
     };
 
     template <sendable_by_move T>
@@ -61,17 +65,17 @@ namespace phlex::experimental {
 
   template <typename... Ts>
     requires(requires { typename sendable_type<Ts>; } && ...)
-  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...> const& tup)
+  std::tuple<sendable_type<Ts>...> send(std::tuple<Ts...>&& tup)
   {
-    constexpr auto f = [](auto const& arg) {
+    constexpr auto f = [](auto&& arg) {
       if constexpr (has_send<decltype(arg)>) {
-        return send(arg);
+        return send(std::forward<decltype(arg)>(arg));
       } else {
-        return std::move(arg);
+        return std::forward<decltype(arg)>(arg);
       }
     };
 
-    return boost::mp11::tuple_transform(f, tup);
+    return boost::mp11::tuple_transform(f, std::move(tup));
   }
 }
 

@@ -37,6 +37,8 @@ namespace phlex::detail::internal {
       std::invoke(f, *accumulator_, args...);
     }
 
+    /// Move contents of accumulator into a `products`
+    /// @param output Product specifications to use for `products`
     products release_as_products(phlex::experimental::product_specifications const& output)
     {
       auto result = std::move(accumulator_);
@@ -47,7 +49,7 @@ namespace phlex::detail::internal {
       // Rely on NRVO
       products new_products{num_outputs};
       if constexpr (has_send<T>) {
-        new_products.add_all(output, send(*result));
+        new_products.add_all(output, send(std::move(*result)));
       } else {
         new_products.add_all(output, std::move(*result));
       }
