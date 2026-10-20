@@ -18,4 +18,4 @@ To restore the default boundary, quit Insiders, launch it without `PHLEX_ENABLE_
 
 ## Self-tests
 
-The production scripts load fixture listeners, assertions, and test cases only when their `--self-test` mode is requested. `ensure-repos-self-test.sh` remains beside the host initializer; `kilo-env-self-test.sh` is installed at `/usr/local/lib/phlex/kilo-env-self-test.sh`, outside `/etc/profile.d`, so login shells do not source the test suite. Normal Kilo environment setup and relay cleanup work without these optional test helpers. The existing `--self-test` commands retain their fixture-directory requirements and report an error if the corresponding helper is unavailable.
+`kilo-env-self-test.sh` and `ensure-repos.sh` execute their own unit tests when the `--self-test` option is provided. Fixture listeners, assertions, and test cases are loaded by sourcing the appropriate `*-self-test.sh` file, and the tests executed in lieu of each script executing its production code.
