@@ -444,6 +444,48 @@ cet_test(
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
 
+add_library(cell_number_vector MODULE cell_number_vector.cpp)
+target_link_libraries(cell_number_vector PRIVATE phlex::module)
+
+foreach(case unordered offset)
+  cet_test(
+    job:form_cell_numbers_${case}_write
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_cell_numbers_${case}_write.jsonnet
+    --stage test
+    -j 8
+    TEST_WORKDIR
+    form_cell_numbers_${case}
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+
+  cet_test(
+    job:form_cell_numbers_${case}_read
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_cell_numbers_${case}_read.jsonnet
+    --stage test
+    -j 8
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_cell_numbers_${case}
+    REQUIRED_FIXTURES
+    job:form_cell_numbers_${case}_write
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+endforeach()
+
 if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
   cet_test(
     "form_rntuple_error_handling_extra"
