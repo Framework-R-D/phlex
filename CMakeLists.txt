@@ -1,7 +1,5 @@
-# The upper bound indicates the latest version of CMake for which [CMake
-# policies](https://cmake.org/cmake/help/latest/manual/cmake-policies.7.html)
-# are set to `NEW`. Policies introduced by later versions are left
-# unset.
+# Set policies through CMake 4.3 to NEW, avoiding "policy not set"
+# warnings while leaving policies from later versions for review.
 cmake_minimum_required(VERSION 3.31...4.3)
 
 # ##############################################################################
