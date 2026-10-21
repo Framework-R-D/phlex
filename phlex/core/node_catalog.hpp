@@ -6,6 +6,7 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/declared_translator.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/producer_catalog.hpp"
 #include "phlex/core/products_consumer.hpp"
@@ -23,7 +24,7 @@ namespace phlex::detail {
   // A node_catalog is the framework_graph's registry of all the algorithm nodes
   // that make up a Phlex data-processing application.  It holds every kind of
   // node the framework knows about (predicates, observers, outputs, folds,
-  // unfolds, transforms, and providers), grouped by type, and serves
+  // unfolds, transforms, translators, and providers), grouped by type, and serves
   // as the single source of node information used to build and run the flow
   // graph. It also holds the sources, which are factories for creating provider
   // nodes.
@@ -52,7 +53,7 @@ namespace phlex::detail {
     // There are three insertion paths, all of which ultimately insert a node
     // into one of the simple_ptr_map members:
     //
-    //   1. Algorithm registration (transform, predicate, observe, fold,
+    //   1. Algorithm registration (transform, translate, predicate, observe, fold,
     //      unfold, provide, output):  Each declaration creates a short-lived
     //      *_api builder holding a registrar bound to the appropriate map (see
     //      registrar_for()).  For all but output nodes, the registrar's
@@ -111,6 +112,7 @@ namespace phlex::detail {
     simple_ptr_map<declared_fold_ptr> folds;
     simple_ptr_map<declared_unfold_ptr> unfolds;
     simple_ptr_map<declared_transform_ptr> transforms;
+    simple_ptr_map<declared_translator_ptr> translators;
     simple_ptr_map<provider_node_ptr> providers;
     simple_ptr_map<source_ptr> sources;
 
@@ -134,6 +136,8 @@ namespace phlex::detail {
         return unfolds;
       } else if constexpr (std::is_same_v<Ptr, declared_transform_ptr>) {
         return transforms;
+      } else if constexpr (std::is_same_v<Ptr, declared_translator_ptr>) {
+        return translators;
       } else if constexpr (std::is_same_v<Ptr, provider_node_ptr>) {
         return providers;
       } else if constexpr (std::is_same_v<Ptr, source_ptr>) {
