@@ -10,6 +10,7 @@
 #include "phlex/core/predicate_node.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/core/transform_node.hpp"
+#include "phlex/core/translator_node.hpp"
 #include "phlex/core/unfold_node.hpp"
 #include "phlex/core/upstream_predicates.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
