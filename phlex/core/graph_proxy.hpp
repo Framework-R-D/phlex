@@ -97,6 +97,11 @@ namespace phlex::detail {
                    is_transform_like auto f, // NOLINT(performance-unnecessary-value-param)
                    concurrency c = concurrency::serial) const;
 
+    /// @brief Registers a translator node.
+    auto translate(std::string_view name,
+                   is_translator_like auto f, // NOLINT(performance-unnecessary-value-param)
+                   concurrency c = concurrency::serial) const;
+
     /// @brief Registers an unfold node.
     template <typename Unfolder>
     auto unfold(std::string_view name,
@@ -209,6 +214,14 @@ namespace phlex::detail {
                                  concurrency c) const
   {
     return create_glue().transform(name, std::move(f), c);
+  }
+
+  template <typename T>
+  auto graph_proxy<T>::translate(std::string_view name,
+                                 is_translator_like auto f,
+                                 concurrency c) const
+  {
+    return create_glue().translate(name, std::move(f), c);
   }
 
   template <typename T>

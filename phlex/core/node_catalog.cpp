@@ -29,6 +29,7 @@ namespace phlex::detail {
     result.append_range(as_product_consumers(folds));
     result.append_range(as_product_consumers(unfolds));
     result.append_range(as_product_consumers(transforms));
+    result.append_range(as_product_consumers(translators));
     return result;
   }
 
@@ -50,6 +51,9 @@ namespace phlex::detail {
     if (auto* node = transforms.get(node_name)) {
       return node->num_calls();
     }
+    if (auto* node = translators.get(node_name)) {
+      return node->num_calls();
+    }
     if (auto* node = providers.get(node_name)) {
       return node->num_calls();
     }
@@ -68,6 +72,7 @@ namespace phlex::detail {
 
     std::vector<producer*> result;
     result.append_range(as_producers(transforms));
+    result.append_range(as_producers(translators));
     result.append_range(as_producers(folds));
     result.append_range(as_producers(unfolds));
     return producer_catalog{result};
