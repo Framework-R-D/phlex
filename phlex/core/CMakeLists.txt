@@ -10,6 +10,7 @@ cet_make_library(
   declared_output.cpp
   declared_predicate.cpp
   declared_transform.cpp
+  declared_translator.cpp
   declared_unfold.cpp
   detail/filter_impl.cpp
   detail/make_algorithm_name.cpp
@@ -48,6 +49,7 @@ install(
     declared_output.hpp
     declared_predicate.hpp
     declared_transform.hpp
+    declared_translator.hpp
     declared_unfold.hpp
     fold_join_node.hpp
     fold_node.hpp
@@ -74,6 +76,7 @@ install(
     resource_api.hpp
     source.hpp
     transform_node.hpp
+    translator_node.hpp
     unfold_node.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
