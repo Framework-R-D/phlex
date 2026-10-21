@@ -68,7 +68,7 @@ namespace phlex::detail {
     using input_product_types =
       boost::mp11::mp_take_c<non_result_parameter_types, num_input_products>;
 
-    static constexpr std::size_t num_outputs = 1; // hard-coded for now
+    static constexpr std::size_t num_outputs = number_types<result_type>;
     using function_t = AlgorithmBits::bound_type;
     using builder = node_builder<accumulator_with_messages<result_type, num_input_products>,
                                  no_outputs_t,
