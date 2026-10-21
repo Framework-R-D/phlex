@@ -4,8 +4,11 @@
 #include "phlex/model/handle.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <array>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 
@@ -108,4 +111,51 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   g.observe("verify_results", verify_results).input_family(input_products);
 
   g.execute();
+}
+
+TEST_CASE("Register and execute a translator", "[programming model]")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("translator-test");
+  data_cell_index const* input_index{};
+
+  g.provide("provide_number", provide_number)
+    .output_product("input", "number", "job", "input-stage");
+  g.translate("translate_number",
+              [&input_index](handle<int> number) {
+                input_index = &number.data_cell_index();
+                CHECK(number.stage() == "input-stage");
+                return *number * 0.5;
+              })
+    .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"})
+    .output_product_suffixes("translated_number");
+  g.observe("verify_translation",
+            [&input_index](handle<double> number) {
+              CHECK(*number == 1.5);
+              CHECK(number.creator().algorithm == "translate_number");
+              CHECK(number.suffix() == "translated_number");
+              CHECK(number.layer() == "job");
+              CHECK(number.stage() == "translator-test");
+              REQUIRE(input_index != nullptr);
+              CHECK(&number.data_cell_index() == input_index);
+            })
+    .input_family(product_selector{
+      .creator = "translate_number", .layer = "job", .suffix = "translated_number"});
+
+  g.execute();
+
+  CHECK(g.execution_count("provide_number") == 1u);
+  CHECK(g.execution_count("translate_number") == 1u);
+  CHECK(g.execution_count("verify_translation") == 1u);
+}
+
+TEST_CASE("Registering a translator validates its name", "[programming model]")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver("translator_test");
+  auto const translate_number = [](handle<int> number) { return *number * 0.5; };
+
+  // Name validation happens when the translator is registered, not when the graph executes.
+  CHECK_THROWS_AS(g.translate("", translate_number), std::invalid_argument);
+  CHECK_THROWS_WITH(g.translate("", translate_number),
+                    Catch::Matchers::ContainsSubstring("Invalid algorithm name"));
+  CHECK_THROWS_AS(g.translate("not-an-identifier", translate_number), std::invalid_argument);
 }
