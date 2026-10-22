@@ -227,7 +227,7 @@ namespace phlex::detail {
     tbb::flow::graph graph_{};
     std::optional<framework_driver> driver_;
     std::vector<std::string> registration_errors_;
-    data_cell_tracker cell_tracker_;
+    std::optional<data_cell_tracker> cell_tracker_;
     tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
     tbb::flow::function_node<ready_flushes_then_emit, data_cell_index_ptr, tbb::flow::lightweight>

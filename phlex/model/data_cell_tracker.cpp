@@ -3,36 +3,71 @@
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/flush_messages.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
+#include "phlex/utilities/hashing.hpp"
 
 #include <fmt/format.h>
+#include <gsl/assert>
 #include <spdlog/spdlog.h>
 
-#include <cassert>
+#include <algorithm>
+#include <initializer_list>
+#include <iterator>
+#include <map>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+using phlex::experimental::layer_path;
+using layer_hash_type = phlex::data_cell_index::hash_type;
+
 namespace {
-  auto make_data_cell_counts(phlex::data_cell_index_ptr const& index)
+  auto make_driver_child_layer_hashes(std::vector<layer_path> const& layer_paths)
   {
-    auto result = std::make_shared<phlex::detail::data_cell_counts>();
-    result->emplace(index->layer_hash(), 1);
+    std::map<layer_hash_type, std::vector<layer_hash_type>> result;
+    for (auto const& path : layer_paths) {
+      auto parent_hash = phlex::experimental::identifier{"job"}.hash();
+      auto components = path.components();
+      if (path.is_complete()) {
+        components = components.subspan(1);
+      }
+      for (auto const& component : components) {
+        auto const child_hash = phlex::detail::hash(parent_hash, component.hash());
+        result[parent_hash].push_back(child_hash);
+        parent_hash = child_hash;
+      }
+    }
+    for (auto& child_hashes : result | std::views::values) {
+      std::ranges::sort(child_hashes);
+      child_hashes.erase(std::ranges::unique(child_hashes).begin(), child_hashes.end());
+    }
     return result;
   }
 }
 
 namespace phlex::detail {
+  data_cell_tracker::data_cell_tracker(std::initializer_list<layer_path> const layer_paths) :
+    data_cell_tracker{std::vector<layer_path>(layer_paths)}
+  {
+  }
+
+  data_cell_tracker::data_cell_tracker(std::vector<layer_path> const& layer_paths) :
+    driver_child_layer_hashes_{make_driver_child_layer_hashes(layer_paths)}
+  {
+  }
+
   data_cell_tracker::~data_cell_tracker()
   {
-    if (pending_flushes_.empty()) {
+    if (active_families_.empty()) {
       return;
     }
-    spdlog::warn("Cached pending flushes at destruction:");
-    for (auto const& [index, flush_counts] : pending_flushes_ | std::views::values) {
-      spdlog::warn("  Index: {}", index->to_string());
-      for (auto const& [layer_hash, count] : *flush_counts) {
+    spdlog::warn("Active families at destruction:");
+    for (auto const& family : active_families_) {
+      spdlog::warn("  Index: {}", family.index->to_string());
+      for (auto const& [layer_hash, count] : *family.counts) {
         spdlog::warn("    {} = {}", layer_hash, count.load());
       }
     }
@@ -41,109 +76,64 @@ namespace phlex::detail {
   index_flushes data_cell_tracker::report_and_evict_ready_flushes(
     data_cell_index_ptr const& received_index)
   {
-    // Always update the cached index.  The logic below uses the previous cached index to
-    // determine what flushes to emit.
-    auto cached_index = std::exchange(cached_index_, received_index);
-
-    // Just beginning job (or ending a job that immediately threw an exception)
-    if (cached_index == nullptr) {
-      return {};
-    }
-
-    // Ending job.  Backout to the job layer and emit flush tokens for all closed-out indices.
-    //
-    // Example:
-    //   Current index: [run: 4, spill: 7]
-    //   Received index: nullptr (end of job)
-    //   Actions:
-    //     a. Emit flush token for [run: 4, spill: 7]
-    //     b. Emit flush token for [run: 4]
-    //     c. Remove remaining flushes from cache
     if (received_index == nullptr) {
-      // The "std::move" empties the cache, so we don't need to manually clear it after.
-      return std::move(pending_flushes_) | std::views::values | std::ranges::to<std::vector>();
-    }
-
-    assert(received_index);
-    assert(cached_index);
-
-    // A parent must exist at this point
-    auto received_parent = received_index->parent();
-    assert(received_parent);
-
-    // Received index is immediate child of current index.
-    //
-    // Example:
-    //   Current index: [run: 4]
-    //   Received index: [run: 4, spill: 6]
-    //   Actions:
-    //     a. Initialize count for [run: 4]
-    if (received_parent->hash() == cached_index->hash()) {
-      create_parent_count(received_parent, received_index);
-      return {};
-    }
-
-    auto cached_parent = cached_index->parent();
-
-    // Received index is a sibling of the current index.  Increment parent count and move
-    // current index to the new sibling.
-    //
-    // Example:
-    //   Current index: [run: 4, spill: 6]
-    //   Received index: [run: 4, spill: 7]
-    //   Actions:
-    //     a. Increment count for [run: 4]
-    if (cached_parent and received_parent->hash() == cached_parent->hash()) {
-      increment_parent_count(received_parent, received_index);
-      return {};
-    }
-
-    // Received index is a parent of the cached index.  This means we've closed out the
-    // cached index and all of its siblings, and are moving back up the hierarchy.  We need
-    // to emit flush tokens for all closed-out indices.
-    //
-    // Example:
-    //   Cached index: [run: 4, spill: 6, subspill: 2, subsubspill: 3]
-    //   Received index: [run: 4, spill: 7]
-    //   Actions:
-    //     a. Emit flush token for [run: 4, spill: 6, subspill: 2]
-    //     b. Emit flush token for [run: 4, spill: 6]
-    //     c. Remove relevant flush tokens from cache
-    //     d. Increment count for [run: 4]
-    index_flushes result;
-    auto recursive_parent = cached_parent;
-    while (recursive_parent != received_parent) {
-      if (recursive_parent == nullptr) {
-        // We will get here if the received parent is at a layer lower than the cached parent and is
-        // not an immediate child of the cached parent. The recursive parent walks all the way back
-        // up to the root without finding the received parent. This means the received index is not
-        // an ancestor of the cached index, and is invalid.
-        throw std::runtime_error(
-          fmt::format("Received index {}, which is not an immediate child of {}",
-                      received_index->to_string(),
-                      cached_index->to_string()));
+      index_flushes result;
+      result.reserve(active_families_.size());
+      while (not active_families_.empty()) {
+        result.push_back(close_active_family());
       }
-      auto fh = pending_flushes_.extract(recursive_parent->hash());
-      result.push_back(fh.mapped());
-      recursive_parent = recursive_parent->parent();
+      return result;
     }
-    increment_parent_count(received_parent, received_index);
+
+    // The job index starts the stream and is the only valid index without a parent.
+    if (not received_index->has_parent()) {
+      Expects(received_index->layer_path() == layer_path{"/job"});
+      if (not active_families_.empty()) {
+        throw std::runtime_error(fmt::format(
+          "Received root index {} while driver families are active", received_index->to_string()));
+      }
+      if (driver_child_layer_hashes_.contains(received_index->layer_hash())) {
+        active_families_.push_back(
+          {.index = received_index, .counts = std::make_shared<data_cell_counts>()});
+      }
+      return {};
+    }
+
+    auto const parent = received_index->parent();
+    auto const parent_family =
+      std::ranges::find_if(active_families_, [&parent](index_flush const& family) {
+        return family.index->hash() == parent->hash();
+      });
+    if (parent_family == active_families_.end()) {
+      throw std::runtime_error(
+        fmt::format("Received index {}, whose parent {} does not identify an active driver family",
+                    received_index->to_string(),
+                    parent->to_string()));
+    }
+
+    index_flushes result;
+    while (std::next(parent_family) != active_families_.end()) {
+      result.push_back(close_active_family());
+    }
+
+    parent_family->counts->increment(received_index->layer_hash());
+    if (driver_child_layer_hashes_.contains(received_index->layer_hash())) {
+      active_families_.push_back(
+        {.index = received_index, .counts = std::make_shared<data_cell_counts>()});
+    }
     return result;
   }
 
-  void data_cell_tracker::create_parent_count(data_cell_index_ptr const& parent,
-                                              data_cell_index_ptr const& child)
+  index_flush data_cell_tracker::close_active_family()
   {
-    pending_flushes_.emplace(parent->hash(),
-                             index_flush{.index = parent, .counts = make_data_cell_counts(child)});
-  }
-
-  void data_cell_tracker::increment_parent_count(data_cell_index_ptr const& parent,
-                                                 data_cell_index_ptr const& child)
-  {
-    auto it = pending_flushes_.find(parent->hash());
-    // This is only called for siblings, so the parent count must already exist in the cache.
-    assert(it != pending_flushes_.end());
-    it->second.counts->increment(child->layer_hash());
+    auto family = std::move(active_families_.back());
+    active_families_.pop_back();
+    if (family.counts->size() == 0) {
+      for (auto const child_layer_hash :
+           driver_child_layer_hashes_.at(family.index->layer_hash())) {
+        family.counts->emplace(child_layer_hash, 0);
+      }
+    }
+    return family;
   }
 }
