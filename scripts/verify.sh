@@ -60,12 +60,18 @@ else
     cmake --build "$build_dir" --parallel
 fi
 
-selection=(--test-dir "$build_dir")
+if [[ -n "$project" ]]; then
+    test_command=(spack mpd test --)
+    selection=()
+else
+    test_command=(ctest)
+    selection=(--test-dir "$build_dir")
+fi
 if [[ -n "$pattern" ]]; then
     selection+=(-R "$pattern")
 fi
-ctest "${selection[@]}" -N
+"${test_command[@]}" "${selection[@]}" -N
 if [[ "$verbose" == 1 ]]; then
     selection+=(-V)
 fi
-ctest "${selection[@]}" --parallel --output-on-failure --no-tests=error
+"${test_command[@]}" "${selection[@]}" --parallel --output-on-failure --no-tests=error
