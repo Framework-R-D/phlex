@@ -61,7 +61,7 @@ namespace phlex::detail {
   decltype(auto) make_fold_like(F&& f)
   {
     using namespace boost::mp11;
-    if constexpr (std::is_member_function_pointer_v<F> ||
+    if constexpr (std::is_member_function_pointer_v<std::remove_cvref_t<F>> ||
                   make_fold_like_traits<F>::num_accumulators::value < 2) {
       return std::forward<F>(f);
     } else {
