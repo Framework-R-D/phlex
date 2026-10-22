@@ -1,23 +1,74 @@
 # syntax=docker/dockerfile:1.4
 
-# Multi-target Dockerfile for building the Phlex CI and development images.
+# Multi-target podman/Dockerfile for building the Phlex CI and
+# development images.
 
+########################################################################
 # Podman instructions for building tagged images with this file:
 #
-#   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache:Z] \
-#       [-v ~/.gnupg:/run/gpg:Z] \
-#       --target ci   --tag phlex-ci:<tag>  .
-#   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache:Z] \
-#       [-v ~/.gnupg:/run/gpg:Z] \
-#       --target dev  --tag phlex-dev:<tag> .
-#   $ podman login ghcr.io --username <username> -p <token>
-#   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
-#   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
-# ... and optionally push either image as "latest".
+# Customizable variables for substitution in commands below:
 #
-# where <tag> is the date (e.g. "2025-08-12").
+#   GPG_KEY_ID=
+#   PHLEX_TAG_EXTRA=
+#
+#   PHLEX_DEFAULT_COMPILER=gcc
+#   PHLEX_GCC_VERSION=15.3
+#   PHLEX_LLVM_TARGET=auto
+#   PHLEX_LLVM_VERSION=22.1.8
+#   PHLEX_PODMAN_TARGET=ci|dev
+#   PHLEX_SPACK_CACHE= # /scratch/${USER}/phlex-build-cache...
+#   PHLEX_SPACK_TARGET=x86_64_v3|aarch64
+#   PHLEX_TAG_BASE=phlex-${PHLEX_PODMAN_TARGET}
+#   PHLEX_TAG_TAG=$(date +%F)${PHLEX_TAG_EXTRA}
+#   PHLEX_TAG_REMOTE=ghcr.io/framework-r-d/
+#
+# Derivative variables:
+#
+#   PHLEX_TAG_LOCAL=${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}-${PHLEX_SPACK_TARGET}
+#   PHLEX_TAG_LATEST=${PHLEX_TAG_REMOTE}${PHLEX_TAG_BASE}:latest
+#   PHLEX_TAG_MANIFEST=${PHLEX_TAG_REMOTE}${PHLEX_TAG_BASE}:${PHLEX_TAG_TAG}
+#
+# Docker build command:
+#
+#   podman build --format docker \
+#     ${PHLEX_SPACK_CACHE:+-v ${PHLEX_SPACK_CACHE}:/build-cache:Z} \
+#     -v ~/.gnupg:/run/gpg:Z \
+#     --target ${PHLEX_PODMAN_TARGET} --tag ${PHLEX_TAG_LOCAL} \
+#     ${GPG_KEY_ID:+--build-arg GPG_KEY_ID=${GPG_KEY_ID}} \
+#     --build-arg PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET} \
+#     --build-arg PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET} \
+#     --build-arg PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION} \
+#     --build-arg PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION} \
+#     --build-arg PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER} \
+#     ci/
+#
+# Registry login command:
+#
+#   podman login ghcr.io --username <username> -p <token>
+#
+# Push image to registry:
+#
+#   podman push ${PHLEX_TAG_LOCAL} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
+#
+# After both architectures have been pushed:
+#
+#   podman manifest create ${PHLEX_TAG_MANIFEST}
+#
+# For each architecture-specific ${PHLEX_TAG_LOCAL}:
+#
+#   podman manifest add ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_REMOTE}${PHLEX_TAG_LOCAL}
+#
+# Inspect and push the full manifest:
+#
+#   podman manifest inspect ${PHLEX_TAG_MANIFEST}
+#   podman manifest push --all ${PHLEX_TAG_MANIFEST}
+#
+# If you are ready to turn over the latest tag, then:
+#
+#   podman tag ${PHLEX_TAG_MANIFEST} ${PHLEX_TAG_LATEST}
+#   podman push ${PHLEX_TAG_LATEST}
+#
+########################################################################
 #
 # Binary package signing (optional):
 #   When -v <local-spack-cache>:/build-cache is supplied, newly built
@@ -48,7 +99,15 @@
 #   Host prerequisite: systemctl --user enable --now podman.socket
 
 ARG GPG_KEY_ID
+
 FROM ubuntu:24.04 AS base
+
+# Build arguments
+ARG PHLEX_SPACK_TARGET=auto
+ARG PHLEX_LLVM_TARGET=auto
+ARG PHLEX_GCC_VERSION=15.3
+ARG PHLEX_LLVM_VERSION=22.1.8
+ARG PHLEX_DEFAULT_COMPILER=gcc
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -56,8 +115,42 @@ ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
 ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
+ENV PHLEX_SPACK_SOURCE_TARGET=${PHLEX_SPACK_TARGET}
+ENV PHLEX_LLVM_SOURCE_TARGET=${PHLEX_LLVM_TARGET}
+ENV PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}
+ENV PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}
+ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
 
 SHELL ["/bin/bash", "-c"]
+
+# Validate the raw build inputs before any Spack clone or configuration.
+RUN <<'ARCH_MAP_VALIDATE'
+set -euo pipefail
+case "$PHLEX_SPACK_SOURCE_TARGET" in
+  auto|amd64|arm64|x86_64_v3|aarch64) ;;
+  *)
+    echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', 'x86_64_v3', or 'aarch64'" >&2
+    echo "       Got: '$PHLEX_SPACK_SOURCE_TARGET'" >&2
+    exit 1
+    ;;
+esac
+case "$PHLEX_LLVM_SOURCE_TARGET" in
+  auto|x86|aarch64) ;;
+  *)
+    echo "ERROR: PHLEX_LLVM_TARGET must be 'auto', 'x86', or 'aarch64'" >&2
+    echo "       Got: '$PHLEX_LLVM_SOURCE_TARGET'" >&2
+    exit 1
+    ;;
+esac
+case "$PHLEX_DEFAULT_COMPILER" in
+  gcc|clang) ;;
+  *)
+    echo "ERROR: PHLEX_DEFAULT_COMPILER must be 'gcc' or 'clang'" >&2
+    echo "       Got: '$PHLEX_DEFAULT_COMPILER'" >&2
+    exit 1
+    ;;
+esac
+ARCH_MAP_VALIDATE
 
 ########################################################################
 # Install essential build tools, git, and Python
@@ -84,6 +177,8 @@ apt-get install -y --no-install-recommends \
     lsb-release \
     ninja-build \
     pkg-config \
+    rpm \
+    rpm2cpio \
     software-properties-common \
     sudo \
     unzip \
@@ -93,6 +188,88 @@ apt autoremove -y
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 INSTALL_ESSENTIALS
+
+########################################################################
+# Validate and preserve architecture and build details
+RUN <<'ARCHITECTURE_CHECK'
+set -euo pipefail
+
+# Validate that the container build host architecture matches the requested SPACK target
+# This check runs early, before any Spack clone/install/concretization operations
+NATIVE_ARCH=$(dpkg --print-architecture)
+case "$NATIVE_ARCH" in
+  amd64) if [ "$PHLEX_SPACK_SOURCE_TARGET" != "auto" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "amd64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "x86_64_v3" ]; then
+      echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
+      echo "       CI images must be built for the host architecture" >&2
+      exit 1
+    fi
+    # Normalize amd64 to x86_64_v3 for Spack
+    normalized_spack_target=x86_64_v3
+    normalized_llvm_target=x86
+    ;;
+  arm64) if [ "$PHLEX_SPACK_SOURCE_TARGET" != "auto" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "arm64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "aarch64" ]; then
+      echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
+      echo "       CI images must be built for the host architecture" >&2
+      exit 1
+    fi
+    # Normalize arm64 to aarch64 for Spack
+    normalized_spack_target=aarch64
+    normalized_llvm_target=aarch64
+    ;;
+  *)
+    echo "ERROR: Unknown host architecture '$NATIVE_ARCH'" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$PHLEX_LLVM_SOURCE_TARGET" != "auto" ] &&
+   [ "$PHLEX_LLVM_SOURCE_TARGET" != "$normalized_llvm_target" ]; then
+  echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_LLVM_TARGET='$PHLEX_LLVM_SOURCE_TARGET'" >&2
+  echo "       Expected LLVM target '$normalized_llvm_target' for PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
+  exit 1
+fi
+
+# RUN layers do not retain shell exports. Persist normalized values for later
+# Spack operations instead of relying on Docker layer state.
+cat > /etc/profile.d/phlex-targets.sh <<EOF
+export PHLEX_SPACK_TARGET="$normalized_spack_target"
+export PHLEX_LLVM_TARGET="$normalized_llvm_target"
+export PHLEX_NATIVE_GCC_VERSION="$(/usr/bin/gcc --version | sed -Ene '1 { s&^gcc[[:space:]]+(\(.*\)[[:space:]]+)?&&p; }')"
+export PHLEX_GCC_VERSION="$PHLEX_GCC_VERSION"
+export PHLEX_LLVM_VERSION="$PHLEX_LLVM_VERSION"
+EOF
+chmod 644 /etc/profile.d/phlex-targets.sh
+
+cat > /opt/render-spack-template.sh <<'RENDER_SPACK_TEMPLATE'
+render_spack_template() {
+  if [ "$#" -ne 2 ]; then
+    echo "ERROR: render_spack_template requires template, output" >&2
+    return 2
+  fi
+
+  local template_path=$1
+  local output_path=$2
+
+  local variable_name
+  for variable_name in PHLEX_GCC_VERSION PHLEX_LLVM_TARGET PHLEX_LLVM_VERSION \
+    PHLEX_NATIVE_GCC_VERSION PHLEX_SPACK_TARGET; do
+    if [ -z "${!variable_name:-}" ]; then
+      echo "ERROR: $variable_name must be set before rendering" >&2
+      return 1
+    fi
+  done
+
+  sed -E \
+    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
+    "$template_path" > "$output_path"
+}
+RENDER_SPACK_TEMPLATE
+chmod 644 /opt/render-spack-template.sh
+ARCHITECTURE_CHECK
 
 ########################################################################
 # Clone Spack checkout used by both CI and dev images
@@ -121,7 +298,7 @@ PREP_SPACK_GROUP
 ########################################################################
 # Configure Spack: add repos, compilers, externals, and cache locations
 
-COPY packages.yaml /tmp/packages.yaml
+COPY packages.yaml /tmp/packages.yaml.template
 COPY upgrade_repos.py /tmp/upgrade_repos.py
 
 ENV GNUPGHOME=/run/gpg
@@ -141,6 +318,8 @@ chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
+. /opt/render-spack-template.sh
 
 # Other config settings
 spack config --scope defaults add config:build_stage:/opt/spack-stage
@@ -151,9 +330,10 @@ spack config --scope defaults add config:install_tree:padded_length:255
 # Find compilers (destination packages.yaml for Spack >=1.0)
 spack --timestamp compiler find --scope site
 
-# Install settings from our copied packages.yaml
+# Install settings from the rendered build-time packages.yaml copy.
+render_spack_template /tmp/packages.yaml.template /tmp/packages.yaml
 spack config --scope site add -f /tmp/packages.yaml
-rm -f /tmp/packages.yaml
+rm -f /tmp/packages.yaml /tmp/packages.yaml.template
 
 # Discover externals
 #
@@ -174,7 +354,6 @@ rm -f /tmp/upgrade_repos.py
 spack repo list
 spack clean -m
 spack audit configs
-
 SPACK_CONFIGURE_DEFAULTS
 
 ########################################################################
@@ -190,6 +369,7 @@ set -euo pipefail
 # configured mirrors so that signed packages from those mirrors can be
 # verified during subsequent installs.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
@@ -210,6 +390,7 @@ set -euo pipefail
 # was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
 # and add its checksum to the package file so that Spack can install it.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 if spack versions -n intel-tbb | grep -Fwq '2023.0.0'; then
   EDITOR=true spack checksum -ab intel-tbb 2023.0.0
@@ -224,14 +405,19 @@ set -euo pipefail
 
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
+
+# PHLEX_SPACK_TARGET is already normalized to x86_64_v3 or aarch64 by the
+# early architecture check (before this layer runs).
+GCC_TARGET="${PHLEX_SPACK_TARGET}"
 
 spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
-      gcc@15.3 target=x86_64_v3 \
+      gcc@${PHLEX_GCC_VERSION} target="${GCC_TARGET}" \
       +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
-      %c,cxx=gcc@13.3.0 # % must be LAST (along with ^ dependencies)
+      %c,cxx=gcc@${PHLEX_NATIVE_GCC_VERSION} # % must be LAST (along with ^ dependencies)
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -240,13 +426,13 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
-        /build-cache $(spack find --no-groups -LI | \
-        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) \
+  --update-index /build-cache $(spack find --no-groups -LI | \
+  sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
 # Make GCC external to simplify concretization
-spack compiler find $(spack location -i gcc@15)
+spack compiler find $(spack location -i gcc@${PHLEX_GCC_VERSION})
 
 spack clean -dfs
 SPACK_INSTALL_GCC
@@ -254,22 +440,31 @@ SPACK_INSTALL_GCC
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
 
-COPY spack.yaml /tmp/spack.yaml
+COPY spack.yaml /tmp/spack.yaml.template
+COPY promote_phlex_dependencies.py /tmp/promote_phlex_dependencies.py
 RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
 # Build the phlex-ci environment lockfile with consistent permissions
-. /spack/share/spack/setup-env.sh
+# PHLEX_SPACK_TARGET and PHLEX_LLVM_TARGET are already normalized by
+# the early architecture check before this layer runs.
 
+. /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
+. /opt/render-spack-template.sh
+
+render_spack_template /tmp/spack.yaml.template /tmp/spack.yaml
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
-rm -f /tmp/spack.yaml
 spack --timestamp env activate -d "$PHLEX_SPACK_ENV"
 spack --timestamp concretize
+# Phlex itself is not installed; promote its dependencies so activation reaches their hooks.
+spack python /tmp/promote_phlex_dependencies.py
 chgrp -R spack "$PHLEX_SPACK_ENV"
 chmod -R g+rwX "$PHLEX_SPACK_ENV"
 find "$PHLEX_SPACK_ENV" -type d -exec chmod g+s {} +
+rm -f /tmp/spack.yaml /tmp/spack.yaml.template /tmp/promote_phlex_dependencies.py
 SPACK_CONCRETIZE_ENV
 
 ########################################################################
@@ -287,7 +482,6 @@ set -euo pipefail
 # failures (EXDEV) when Spack rotates view -> view.old.<hash>.
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
-
 
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
@@ -343,8 +537,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
+# PHLEX_LLVM_TARGET is sourced from the normalized carrier prepared early in the build
+# Valid values: x86 (for x86_64_v3), aarch64 (for aarch64)
+
 spack --timestamp install --fail-fast -j $(nproc) \
-  --no-add --only-concrete --no-check-signature llvm
+  --no-add --only-concrete --no-check-signature \
+  llvm@${PHLEX_LLVM_VERSION} +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${PHLEX_LLVM_TARGET}"
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -455,6 +653,7 @@ WRITE_BUILDCACHE
 # Install Perfetto SDK for profiling
 
 ARG INSTALL_TRACEBOX=true
+ARG INSTALL_TRACEBOX_ARM64=true
 
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
@@ -480,14 +679,38 @@ echo "${PERFETTO_CC_SHA256}  perfetto.cc" | sha256sum -c -
 chmod 644 perfetto.h perfetto.cc
 
 if [ "${INSTALL_TRACEBOX}" = "true" ]; then
-  # tracebox is downloaded from get.perfetto.dev/tracebox, which currently
-  # serves the latest binary with no versioned or checksum-verifiable download
-  # offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
-  # if supply-chain policy requires a verifiable artifact.  Revisit when the
-  # project provides versioned tracebox releases with integrity metadata.
-  curl -fsSL -o tracebox https://get.perfetto.dev/tracebox
-  chmod +x tracebox
-  mv tracebox /usr/local/bin/
+  # Perfetto publishes versioned tracebox prebuilts with SHA-256 checksums, as
+  # listed in the tracebox prebuilt manifest of tools/record_android_trace
+  # (generated by tools/release/roll-prebuilts).  Pin the release and the
+  # per-architecture checksums here; update both when rolling the SDK version.
+  PERFETTO_TRACEBOX_VERSION=v58.2
+  TRACEBOX_BASE=https://commondatastorage.googleapis.com/perfetto-luci-artifacts
+  ARCH=$(dpkg --print-architecture)
+  TRACEBOX_ARCH_DIR=""
+  case "$ARCH" in
+    amd64)
+      TRACEBOX_ARCH_DIR=linux-amd64
+      TRACEBOX_SHA256=5348e5f3513dec2e70f02d3e4296cfed546e6ebc7f9a7cc6b5499f363b4aea03
+      ;;
+    arm64)
+      if [ "${INSTALL_TRACEBOX_ARM64}" != "true" ]; then
+        echo "tracebox arm64 installation disabled via --build-arg INSTALL_TRACEBOX_ARM64=false"
+      else
+        TRACEBOX_ARCH_DIR=linux-arm64
+        TRACEBOX_SHA256=2d21883e9c55818f851fd8c391afb9b366032b3110076b4fd41f31f30b5849fa
+      fi
+      ;;
+    *)
+      echo "ERROR: Unsupported architecture '$ARCH' for tracebox download" >&2
+      exit 1
+      ;;
+  esac
+  if [ -n "${TRACEBOX_ARCH_DIR}" ]; then
+    curl -fsSL -o tracebox "${TRACEBOX_BASE}/${PERFETTO_TRACEBOX_VERSION}/${TRACEBOX_ARCH_DIR}/tracebox"
+    echo "${TRACEBOX_SHA256}  tracebox" | sha256sum -c -
+    chmod +x tracebox
+    mv tracebox /usr/local/bin/
+  fi
 fi
 INSTALL_PERFETTO
 
@@ -502,7 +725,9 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
+ARG PHLEX_DEFAULT_COMPILER=clang
 ENV SPACK_GROUP=spack
+ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
 
 ########################################################################
 # Install useful developer command-line tools with apt-get
@@ -562,18 +787,47 @@ PREP_DEV_WORKSPACE
 ########################################################################
 # Install GitHub's act CLI for local workflow testing
 
+ARG INSTALL_ACT=true
+ARG INSTALL_ACT_ARM64=true
+
 RUN <<'INSTALL_ACT'
 set -euo pipefail
 
 # Install GitHub's act CLI for local workflow testing
-download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
-  cut -d '"' -f 4)
-if [ -z "$download_url" ]; then
-  echo "Failed to determine act download URL" >&2
-  exit 1
+# Pin the release and its architecture-specific checksums together.
+ACT_VERSION=v0.2.89
+
+if [ "${INSTALL_ACT}" != "true" ]; then
+  echo "act installation disabled via --build-arg INSTALL_ACT=false"
+  exit 0
 fi
-curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
+
+ARCH=$(dpkg --print-architecture)
+ARCHIVE=""
+case "$ARCH" in
+  amd64)
+    ARCHIVE="Linux_x86_64"
+    ACT_SHA256=0191d6f1f3b716b5c55820032605d05fc3c1cdbf581ebeff655019e5dd1524c0
+    ;;
+  arm64)
+    if [ "${INSTALL_ACT_ARM64}" != "true" ]; then
+      echo "act arm64 installation disabled via --build-arg INSTALL_ACT_ARM64=false"
+      exit 0
+    fi
+    ARCHIVE="Linux_arm64"
+    ACT_SHA256=daa8679ba9615a74d2d0cec321dc593f21948a2a11bb65862b063d8b930f4bcb
+    ;;
+  *)
+    echo "ERROR: Unsupported architecture '$ARCH' for act download" >&2
+    exit 1
+    ;;
+esac
+
+act_archive=$(mktemp)
+trap 'rm -f "$act_archive"' EXIT
+curl -fsSL -o "$act_archive" "https://github.com/nektos/act/releases/download/${ACT_VERSION}/act_${ARCHIVE}.tar.gz"
+echo "${ACT_SHA256}  ${act_archive}" | sha256sum -c -
+tar -C /usr/local/bin -zxf "$act_archive" act
 chmod +x /usr/local/bin/act
 INSTALL_ACT
 
