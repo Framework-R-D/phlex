@@ -27,7 +27,10 @@ def tools(tmp_path: Path) -> tuple[Path, dict[str, str]]:
         "name = Path(sys.argv[0]).name\n"
         "args = sys.argv[1:]\n"
         "if name == 'spack':\n"
-        "    phase = {'info': 'discover', 'select': 'select', 'build': 'build'}[args[1]]\n"
+        "    if args[1] == 'test':\n"
+        "        phase = 'list' if '-N' in args else 'test'\n"
+        "    else:\n"
+        "        phase = {'info': 'discover', 'select': 'select', 'build': 'build'}[args[1]]\n"
         "elif name == 'cmake':\n"
         "    phase = 'build'\n"
         "elif name == 'nproc':\n"
@@ -84,9 +87,13 @@ def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[st
     assert commands[1][2] == ["mpd", "select", "--project", "phlex-work-dir"]
     assert commands[2][2] == ["mpd", "build"]
     assert commands[1][3] == commands[2][3] == commands[4][3]
-    selection = ["--test-dir", str(build), "-R", "^identifier$"]
-    assert commands[3][2] == [*selection, "-N"]
+    selection = ["-R", "^identifier$"]
+    assert commands[3][1] == commands[4][1] == "spack"
+    assert commands[3][2] == ["mpd", "test", "--", *selection, "-N"]
     assert commands[4][2] == [
+        "mpd",
+        "test",
+        "--",
         *selection,
         "-V",
         "--parallel",
