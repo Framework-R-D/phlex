@@ -33,12 +33,15 @@ namespace form::detail::experimental {
                         form::experimental::config::tech_setting_config const& settings) override;
 
   private:
+    std::map<std::string, int> const& index_map(
+      token const& token, form::experimental::config::tech_setting_config const& settings);
+
     std::map<std::string, std::shared_ptr<i_storage_file>> files_;
     std::unordered_map<std::pair<std::string, std::string>,
                        std::shared_ptr<i_storage_read_container>,
                        pair_hash>
       read_containers_;
-    std::map<std::string, std::map<std::string, int>> index_maps_;
+    std::map<std::pair<std::string, std::string>, std::map<std::string, int>> index_maps_;
   };
 
 } // namespace form::detail::experimental

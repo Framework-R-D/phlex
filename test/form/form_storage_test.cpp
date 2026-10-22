@@ -25,6 +25,7 @@
 #include <TBranch.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -80,6 +81,80 @@ namespace {
                             ", segment:" + std::to_string(segment) + "]",
                       .hierarchy = {{"event", "segment"}},
                       .layer_values = {event, segment}};
+  }
+
+  cell_index event_cell(std::uint64_t event)
+  {
+    return cell_index{.id = "[event:" + std::to_string(event) + "]",
+                      .hierarchy = {{"event"}},
+                      .layer_values = {event}};
+  }
+
+  // Each cell's payload is its own layer values, so a read-back shows which cell a row belongs to.
+  std::vector<int> payload_of(cell_index const& cell)
+  {
+    std::vector<int> payload;
+    payload.reserve(cell.layer_values.size());
+    for (auto const value : cell.layer_values) {
+      payload.push_back(static_cast<int>(value));
+    }
+    return payload;
+  }
+
+  std::vector<std::string> ids_of(std::vector<cell_index> const& cells)
+  {
+    std::vector<std::string> ids;
+    ids.reserve(cells.size());
+    for (auto const& cell : cells) {
+      ids.push_back(cell.id);
+    }
+    return ids;
+  }
+
+  // Writes one "prod" row per cell, in the given order.
+  void write_cells(std::string const& file_name,
+                   std::string const& creator,
+                   std::vector<cell_index> const& cells)
+  {
+    auto writer = create_persistence_writer();
+    REQUIRE(writer != nullptr);
+    writer->configure_tech_settings(form::experimental::config::tech_setting_config{});
+    auto const prod_place = make_placement(file_name, creator, "prod", technology);
+    writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
+    for (auto const& cell : cells) {
+      auto const payload = payload_of(cell);
+      writer->register_write(
+        identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
+      writer->commit_place(prod_place, cell);
+    }
+    writer->finalize();
+  }
+
+  token index_token_of(std::string const& file_name, std::string const& creator)
+  {
+    return token{file_name, build_full_label(row_space(creator), "index"), technology};
+  }
+
+  // Locates a cell through the index and reads the "prod" payload stored in its row.
+  std::vector<int> read_cell(storage_reader& reader,
+                             std::string const& file_name,
+                             std::string const& creator,
+                             std::string const& id)
+  {
+    form::experimental::config::tech_setting_config const settings{};
+    auto const row = reader.get_index(index_token_of(file_name, creator), id, settings);
+    void const* raw = nullptr;
+    reader.read_container(token{file_name,
+                                build_full_label(row_space(creator), "prod"),
+                                technology,
+                                static_cast<std::uint64_t>(row)},
+                          &raw,
+                          typeid(std::vector<int>),
+                          settings);
+    std::unique_ptr<std::vector<int> const> const payload{
+      static_cast<std::vector<int> const*>(raw)};
+    REQUIRE(payload != nullptr);
+    return *payload;
   }
 }
 
@@ -448,56 +523,144 @@ TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error"
   raw_tfile->SetWritable(true);
 }
 
-TEST_CASE("Persistence round-trip: structured index normalization and listing", "[form]")
+TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")
 {
   using namespace form::experimental::config;
 
   std::string const file_name =
     "persistence_roundtrip_" + form::technology::to_string(technology) + ".root";
-  std::string const creator = "norm_creator";
+  std::string const creator = "roundtrip_creator";
+  std::vector<cell_index> const cells{make_cell(3, 1), make_cell(1, 2), make_cell(2, 0)};
+  write_cells(file_name, creator, cells);
 
   item_config cfg;
   cfg.add_item("prod", file_name, technology);
-
-  std::vector<int> first = {10, 20, 30};
-  std::vector<int> second = {40, 50, 60};
-
-  cell_index const first_id = make_cell(1, 2);
-  cell_index const second_id = make_cell(3, 4);
-
-  {
-    auto writer = create_persistence_writer();
-    REQUIRE(writer != nullptr);
-    writer->configure_tech_settings(tech_setting_config{});
-    auto const prod_place = make_placement(file_name, creator, "prod", technology);
-    // Persistence adds the place's index container itself; the caller names only the product.
-    writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
-
-    writer->register_write(identity(creator, "prod"), prod_place, &first, typeid(std::vector<int>));
-    writer->commit_place(prod_place, first_id);
-
-    writer->register_write(
-      identity(creator, "prod"), prod_place, &second, typeid(std::vector<int>));
-    writer->commit_place(prod_place, second_id);
-  }
-
   auto reader = create_persistence_reader();
   REQUIRE(reader != nullptr);
   reader->configure(cfg);
   reader->configure_tech_settings(tech_setting_config{});
-
   reader->prime(creator, test_stage, "prod", typeid(std::vector<int>));
 
-  auto indices = reader->list_indices(creator, test_stage, "prod");
-  REQUIRE_FALSE(indices.empty());
+  CHECK(reader->list_indices(creator, test_stage, "prod") == ids_of(cells));
+  for (auto const& cell : cells) {
+    void const* raw = nullptr;
+    reader->read(creator, test_stage, "prod", cell.id, &raw, typeid(std::vector<int>));
+    std::unique_ptr<std::vector<int> const> const read_back{
+      static_cast<std::vector<int> const*>(raw)};
+    REQUIRE(read_back != nullptr);
+    CHECK(*read_back == payload_of(cell));
+  }
+}
 
-  void const* raw = nullptr;
-  // Backends may canonicalize persisted index strings differently.
-  // Use an index emitted by list_indices() to verify readback.
-  reader->read(creator, test_stage, "prod", indices.front(), &raw, typeid(std::vector<int>));
-  auto const* read_first = static_cast<std::vector<int> const*>(raw);
-  REQUIRE(read_first != nullptr);
-  CHECK((*read_first == first || *read_first == second));
+TEST_CASE("storage_reader get_index: cells written out of order resolve to their own rows",
+          "[form]")
+{
+  auto const tech = form::technology::to_string(technology);
+  std::string const creator = "unordered_creator";
+
+  // Each cell must resolve to the row it was written to and read back its own payload.
+  auto const check_cells = [&creator](std::string const& file_name,
+                                      std::vector<cell_index> const& cells) {
+    write_cells(file_name, creator, cells);
+    storage_reader reader;
+    form::experimental::config::tech_setting_config const settings{};
+    CHECK(reader.list_indices(index_token_of(file_name, creator), settings) == ids_of(cells));
+    for (std::size_t row = 0; row != cells.size(); ++row) {
+      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) ==
+            static_cast<int>(row));
+      CHECK(read_cell(reader, file_name, creator, cells[row].id) == payload_of(cells[row]));
+    }
+  };
+
+  SECTION("single layer")
+  {
+    // [event:N] is not row N: neither the write order nor the numbering (from 1000) follows rows.
+    check_cells("storage_reader_unordered_single_" + tech + ".root",
+                {event_cell(5), event_cell(2), event_cell(7), event_cell(0), event_cell(1000)});
+  }
+  SECTION("multiple layers")
+  {
+    check_cells("storage_reader_unordered_multi_" + tech + ".root",
+                {make_cell(3, 1), make_cell(1, 2), make_cell(2, 0)});
+  }
+}
+
+TEST_CASE("storage_reader get_index: the job cell resolves through the index", "[form]")
+{
+  std::string const file_name =
+    "storage_reader_job_cell_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "job_cell_creator";
+  write_cells(file_name, creator, {cell_index{.id = "[]"}});
+
+  storage_reader reader;
+  CHECK(reader.get_index(index_token_of(file_name, creator), "[]", {}) == 0);
+  CHECK(read_cell(reader, file_name, creator, "[]").empty());
+}
+
+TEST_CASE("storage_reader get_index: index maps are kept per file", "[form]")
+{
+  auto const tech = form::technology::to_string(technology);
+  std::string const first_file = "storage_reader_per_file_a_" + tech + ".root";
+  std::string const second_file = "storage_reader_per_file_b_" + tech + ".root";
+  // Same creator and stage, so both files hold an index container of the same name.
+  std::string const creator = "per_file_creator";
+  std::vector<cell_index> const first_cells{event_cell(0), event_cell(1), event_cell(2)};
+  std::vector<cell_index> const second_cells{event_cell(2), event_cell(0), event_cell(3)};
+  write_cells(first_file, creator, first_cells);
+  write_cells(second_file, creator, second_cells);
+
+  storage_reader reader;
+  form::experimental::config::tech_setting_config const settings{};
+  // Alternate between the files with one reader so that a shared index map would be reused.
+  for (std::size_t row = 0; row != first_cells.size(); ++row) {
+    for (auto const& [file_name, cells] :
+         {std::pair{first_file, first_cells}, std::pair{second_file, second_cells}}) {
+      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) ==
+            static_cast<int>(row));
+      CHECK(read_cell(reader, file_name, creator, cells[row].id) == payload_of(cells[row]));
+    }
+  }
+  CHECK(reader.list_indices(index_token_of(first_file, creator), settings) == ids_of(first_cells));
+  CHECK(reader.list_indices(index_token_of(second_file, creator), settings) ==
+        ids_of(second_cells));
+  CHECK_THROWS_AS(reader.get_index(index_token_of(first_file, creator), "[event:3]", settings),
+                  std::runtime_error);
+}
+
+TEST_CASE("persistence_writer: a cell written twice by one stream throws", "[form]")
+{
+  std::string const file_name =
+    "persistence_writer_duplicate_" + form::technology::to_string(technology) + ".root";
+  CHECK_THROWS_AS(
+    write_cells(file_name, "duplicate_creator", {event_cell(1), event_cell(2), event_cell(1)}),
+    std::runtime_error);
+}
+
+TEST_CASE("storage_reader get_index: a cell recorded twice in the index throws", "[form]")
+{
+  std::string const file_name =
+    "storage_reader_duplicate_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "duplicate_creator";
+  {
+    form::experimental::config::tech_setting_config const settings{};
+    auto storage = create_storage_writer();
+    REQUIRE(storage != nullptr);
+    placement const index_place{
+      file_name, build_full_label(row_space(creator), "index"), technology};
+    storage->create_containers({{index_place, &typeid(std::string)}}, settings);
+    for (std::string const id : {"[event:1]", "[event:2]", "[event:1]"}) {
+      storage->fill_container(index_place, &id, typeid(std::string));
+      storage->commit_containers(index_place);
+    }
+  }
+
+  // Which row holds [event:1] is ambiguous, so the index is rejected rather than guessed.
+  storage_reader reader;
+  form::experimental::config::tech_setting_config const settings{};
+  CHECK_THROWS_AS(reader.get_index(index_token_of(file_name, creator), "[event:2]", settings),
+                  std::runtime_error);
+  CHECK_THROWS_AS(reader.list_indices(index_token_of(file_name, creator), settings),
+                  std::runtime_error);
 }
 
 TEST_CASE("register_write returns a token locating the written product", "[form]")
@@ -583,82 +746,33 @@ TEST_CASE("register_write throws when the backend does not address rows", "[form
                   std::runtime_error);
 }
 
-TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
+TEST_CASE("storage_reader get_index: ids not recorded in the index throw", "[form]")
 {
-  using namespace form::experimental::config;
-
-  std::string const file_name =
-    "persistence_zero_index_" + form::technology::to_string(technology) + ".root";
-  std::string const creator = "zero_creator";
-
-  item_config cfg;
-  cfg.add_item("prod", file_name, technology);
-
-  std::vector<int> payload = {7, 8, 9};
-  {
-    auto writer = create_persistence_writer();
-    REQUIRE(writer != nullptr);
-    writer->configure_tech_settings(tech_setting_config{});
-    auto const prod_place = make_placement(file_name, creator, "prod", technology);
-    // Persistence adds the place's index container itself; the caller names only the product.
-    writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
-    writer->register_write(
-      identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, cell_index{});
-  }
-
-  auto reader = create_persistence_reader();
-  REQUIRE(reader != nullptr);
-  reader->configure(cfg);
-  reader->configure_tech_settings(tech_setting_config{});
-
-  void const* raw = nullptr;
-  reader->read(creator, test_stage, "prod", "[event:0, segment:0]", &raw, typeid(std::vector<int>));
-
-  auto const* read_payload = static_cast<std::vector<int> const*>(raw);
-  REQUIRE(read_payload != nullptr);
-  CHECK(*read_payload == payload);
-}
-
-TEST_CASE("storage_reader get_index: malformed ids and compatibility fallbacks", "[form]")
-{
-  using namespace form::experimental::config;
-
   std::string const file_name =
     "storage_reader_index_branches_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "storage_reader_creator";
-  std::string const index_container = build_full_label(row_space(creator), "index");
-
-  std::vector<int> payload = {1, 2, 3};
-  {
-    auto writer = create_persistence_writer();
-    REQUIRE(writer != nullptr);
-    writer->configure_tech_settings(tech_setting_config{});
-    auto const prod_place = make_placement(file_name, creator, "prod", technology);
-    // Persistence adds the place's index container itself; the caller names only the product.
-    writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
-    writer->register_write(
-      identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, make_cell(1, 2));
-  }
+  write_cells(file_name, creator, {make_cell(1, 2)});
 
   storage_reader reader;
-  token const index_token{file_name, index_container, technology};
-  tech_setting_config const settings{};
+  auto const index_token = index_token_of(file_name, creator);
+  form::experimental::config::tech_setting_config const settings{};
 
-  CHECK(reader.get_index(index_token, "[]", settings) == 0);
-  CHECK(reader.get_index(index_token, "plain-text-id", settings) == 0);
+  CHECK(reader.get_index(index_token, "[event:1, segment:2]", settings) == 0);
 
-  // Malformed IDs must be rejected by the storage-layer index parser
-  CHECK_THROWS_AS(reader.get_index(index_token, "[EVENT,SEG=1]", settings), std::runtime_error);
-  CHECK_THROWS_AS(
-    reader.get_index(index_token, "[EVENT=99999999999999999999999999999999]", settings),
-    std::runtime_error);
-  CHECK_THROWS_AS(reader.get_index(index_token, "[=1]", settings), std::runtime_error);
-  CHECK_THROWS_AS(reader.get_index(index_token, "[EVENT]", settings), std::runtime_error);
-  CHECK_THROWS_AS(reader.get_index(index_token, "[    ]", settings), std::runtime_error);
+  // Only the canonical id written for a cell locates it; nothing falls back to row 0.
+  for (auto const* id : {"[]",
+                         "plain-text-id",
+                         "[event:1]",
+                         "[event:0, segment:0]",
+                         "[event:1,segment:2]",
+                         "[segment:2, event:1]",
+                         "[EVENT:1, SEGMENT:2]",
+                         "[EVENT=1;SEGMENT=2]",
+                         "[event:01, segment:2]"}) {
+    INFO("id: " << id);
+    CHECK_THROWS_AS(reader.get_index(index_token, id, settings), std::runtime_error);
+  }
 }
-
 TEST_CASE("storage_reader get_index: empty container and tech-table branches", "[form]")
 {
   using namespace form::experimental::config;
@@ -695,19 +809,22 @@ TEST_CASE("storage_reader get_index: empty container and tech-table branches", "
 
   tech_setting_config attr_settings;
   attr_settings.file_settings[technology][file_name] = {{"compression", "1"}};
-  CHECK(
-    reader.get_index(token{file_name, build_full_label(row_space(creator), "index"), technology},
-                     "missing-id",
-                     attr_settings) == 0);
+  CHECK(reader.get_index(
+          index_token_of(file_name, creator), "[event:5, segment:6]", attr_settings) == 0);
+  CHECK_THROWS_AS(reader.get_index(index_token_of(file_name, creator), "missing-id", attr_settings),
+                  std::runtime_error);
 
+  // The index of a (file, container) is read once; later settings do not rebuild it.
   tech_setting_config container_attr_settings;
   container_attr_settings
     .container_settings[technology][build_full_label(row_space(creator), "index")] = {
     {"split", "0"}};
-  CHECK_NOTHROW(
-    reader.get_index(token{file_name, build_full_label(row_space(creator), "index"), technology},
-                     "missing-id",
-                     container_attr_settings));
+  CHECK(reader.get_index(index_token_of(file_name, creator),
+                         "[event:5, segment:6]",
+                         container_attr_settings) == 0);
+  CHECK_THROWS_AS(
+    reader.get_index(index_token_of(file_name, creator), "missing-id", container_attr_settings),
+    std::runtime_error);
 }
 
 TEST_CASE("storage_reader prime/list_indices/read_container: attribute and error branches",
