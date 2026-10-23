@@ -15,13 +15,22 @@
 #include <utility>
 
 namespace {
-  phlex::experimental::algorithm_name provider_creator(
+  // A provider always names its creator, so an output specification without one is an error.
+  phlex::experimental::algorithm_name const& provider_creator(
     phlex::experimental::product_specification const& spec)
   {
     if (!spec.creator()) {
-      throw std::runtime_error("Cannot create a provider without a product creator.");
+      throw std::runtime_error("Cannot create a provider for the product specification '" +
+                               spec.to_string() + "' because it has no creator");
     }
     return *spec.creator();
+  }
+
+  phlex::experimental::product_specification require_creator(
+    phlex::experimental::product_specification spec)
+  {
+    provider_creator(spec);
+    return spec;
   }
 }
 
@@ -45,7 +54,7 @@ namespace phlex::detail {
                                phlex::experimental::identifier output_layer,
                                phlex::experimental::identifier stage) :
     name_{std::move(algo_name)},
-    output_{std::move(output_spec)},
+    output_{require_creator(std::move(output_spec))},
     layer_{std::move(output_layer)},
     stage_{std::move(stage)},
     provider_{g,
