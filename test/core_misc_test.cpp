@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -27,34 +28,37 @@ TEST_CASE("algorithm_name tests", "[model]")
   using namespace phlex::experimental;
   using namespace phlex::experimental::literals;
 
+  SECTION("Empty creator name is rejected")
+  {
+    STATIC_CHECK_FALSE(std::is_default_constructible_v<algorithm_name>);
+    CHECK_THROWS_AS(algorithm_name{""}, std::invalid_argument);
+  }
   SECTION("Create from string with colon")
   {
     auto an = algorithm_name{"plugin:algo"};
     CHECK(an.to_string() == "plugin:algo");
+    REQUIRE(an.plugin().has_value());
+    CHECK(an.plugin().value() == "plugin"_id);
+    CHECK(an.algorithm() == "algo"_id);
   }
-  SECTION("Create from string without colon")
+  SECTION("Create from string without colon has an absent plugin")
   {
     auto an = algorithm_name{"algo"};
     // For 'either' cases, the word is stored as algorithm_
     CHECK(an.to_string() == "algo");
+    CHECK_FALSE(an.plugin().has_value());
+    CHECK(an.algorithm() == "algo"_id);
+  }
+  SECTION("Create rejects an empty plugin or algorithm")
+  {
+    CHECK_THROWS_AS(algorithm_name{":find_hits"}, std::invalid_argument);
+    CHECK_THROWS_AS(algorithm_name{"reco:"}, std::invalid_argument);
+    CHECK_THROWS_AS(algorithm_name{":"}, std::invalid_argument);
   }
   SECTION("Create from char pointer")
   {
     auto an = algorithm_name{"ptr:algo"};
     CHECK(an.to_string() == "ptr:algo");
-  }
-  SECTION("Unqualified name has no plugin")
-  {
-    auto const an = algorithm_name{"algo"};
-    CHECK_FALSE(an.plugin().has_value());
-    CHECK(an.algorithm() == "algo"_id);
-  }
-  SECTION("Qualified name has plugin and algorithm")
-  {
-    auto const an = algorithm_name{"plugin:algo"};
-    REQUIRE(an.plugin().has_value());
-    CHECK(an.plugin().value() == "plugin"_id);
-    CHECK(an.algorithm() == "algo"_id);
   }
   SECTION("Construct from typed components")
   {
@@ -155,6 +159,7 @@ TEST_CASE("make_algorithm_name tests", "[core]")
     auto const name = make_algorithm_name(nullptr, "my_algorithm");
     CHECK_FALSE(name.plugin().has_value());
     CHECK(name.algorithm() == "my_algorithm"_id);
+    CHECK(name.to_string() == "my_algorithm");
   }
 
   SECTION("With configuration the module label is the plugin")
@@ -166,6 +171,7 @@ TEST_CASE("make_algorithm_name tests", "[core]")
     auto const name = make_algorithm_name(&config, "my_algorithm");
     REQUIRE(name.plugin().has_value());
     CHECK(name.plugin().value() == "my_module"_id);
+    CHECK(name.algorithm() == "my_algorithm"_id);
     CHECK(name.to_string() == "my_module:my_algorithm");
   }
 
@@ -183,6 +189,24 @@ TEST_CASE("make_algorithm_name tests", "[core]")
       make_algorithm_name(&config, ""),
       Catch::Matchers::ContainsSubstring(
         "Invalid algorithm name \"my_module:\": the algorithm after ':' is missing"));
+  }
+
+  SECTION("A configuration without a module label is an error, not an absent plugin")
+  {
+    phlex::configuration const config{boost::json::object{}};
+    CHECK_THROWS_AS(make_algorithm_name(&config, "my_algorithm"), std::runtime_error);
+  }
+
+  SECTION("A configured empty module label is an error, not an absent plugin")
+  {
+    boost::json::object obj;
+    obj["module_label"] = "";
+    phlex::configuration const config{obj};
+    CHECK_THROWS_AS(make_algorithm_name(&config, "my_algorithm"), std::invalid_argument);
+    CHECK_THROWS_WITH(
+      make_algorithm_name(&config, "my_algorithm"),
+      Catch::Matchers::ContainsSubstring(
+        "Invalid algorithm name \":my_algorithm\": the plugin label before ':' is missing"));
   }
 
   SECTION("A malformed algorithm name is reported with the composed name")

@@ -21,15 +21,6 @@
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
 
-TEST_CASE("Product store default source", "[data model]")
-{
-  auto const source = product_store::default_source();
-  CHECK(source.to_string() == "Source");
-  CHECK(source.algorithm() == "Source"_id);
-  CHECK_FALSE(source.plugin().has_value());
-  CHECK(product_store::default_source() == source);
-}
-
 TEST_CASE("Product store insertion", "[data model]")
 {
   auto const creator = algorithm_name{"test_algorithm"};
@@ -68,6 +59,58 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(*h == many_numbers);
   CHECK(h.suffix() == "numbers");
   CHECK(store->get_product<std::vector<int>>(gsl::make_not_null(&numbers_spec)) == many_numbers);
+}
+
+TEST_CASE("Product store lookup of specifications is exact", "[data model]")
+{
+  auto const creator = algorithm_name{"test_algorithm"};
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
+
+  auto const type = make_type_id<int>();
+  product_specification const unqualified{creator, "hits"_id, type};
+  product_specification const other_creator{algorithm_name{"reco:test_algorithm"}, "hits"_id, type};
+  product_specification parsed{"test_algorithm/hits"};
+  parsed.set_type(make_type_id<int>());
+
+  store->add_product(unqualified, 1);
+
+  CHECK(parsed == unqualified);
+  CHECK(store->get_product<int>(gsl::make_not_null(&unqualified)) == 1);
+  CHECK(store->get_product<int>(gsl::make_not_null(&parsed)) == 1);
+
+  // A different creator, even with the same algorithm and suffix, does not match.
+  CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),
+                    Catch::Matchers::ContainsSubstring(
+                      "No product exists with the specification 'reco:test_algorithm/hits'."));
+  CHECK(store->get_handle<int>(gsl::make_not_null(&unqualified)).suffix() == "hits");
+}
+
+TEST_CASE("Product store with the default source creator", "[data model]")
+{
+  auto const source = product_store::default_source();
+  CHECK(source.to_string() == "phlex_source");
+  CHECK_FALSE(source.plugin().has_value());
+  CHECK(source.algorithm() == "phlex_source"_id);
+  CHECK(source == algorithm_name{"phlex_source"});
+  CHECK(product_store::default_source() == source);
+
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&source), gsl::make_not_null(&stage));
+  CHECK(store->source() == source);
+
+  // Insertion of a product created by the source, and exact lookup by its specification.
+  auto const type = make_type_id<int>();
+  product_specification const from_source{source, "hits"_id, type};
+  product_specification const other_creator{algorithm_name{"test_algorithm"}, "hits"_id, type};
+  store->add_product(from_source, 7);
+
+  CHECK(store->size() == 1ull);
+  CHECK(store->get_product<int>(gsl::make_not_null(&from_source)) == 7);
+  CHECK(store->get_handle<int>(gsl::make_not_null(&from_source)).suffix() == "hits");
+  CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),
+                    Catch::Matchers::ContainsSubstring(
+                      "No product exists with the specification 'test_algorithm/hits'."));
 }
 
 TEST_CASE("Product retrieval requires exactly one match", "[data model]")
