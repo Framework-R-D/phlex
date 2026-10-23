@@ -53,7 +53,10 @@ namespace phlex::experimental {
     template <typename T>
     void add_product(product_specification const& key, std::unique_ptr<product<T>>&& t);
 
-    // default Source identifier
+    /// The creator used by default for products supplied by a source.
+    ///
+    /// This is the valid internal creator name `phlex_source`: an unqualified algorithm name
+    /// whose plugin component is empty.
     static experimental::algorithm_name default_source();
 
   private:

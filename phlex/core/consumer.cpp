@@ -15,7 +15,7 @@ namespace phlex::detail {
   }
 
   phlex::experimental::algorithm_name const& consumer::name() const noexcept { return name_; }
-  phlex::experimental::identifier const& consumer::plugin() const noexcept
+  phlex::experimental::identifier_or_empty const& consumer::plugin() const noexcept
   {
     return name_.plugin();
   }
