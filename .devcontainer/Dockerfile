@@ -1,4 +1,5 @@
-FROM ghcr.io/framework-r-d/phlex-dev:2026-07-23
+ARG PHLEX_DEV_IMAGE=ghcr.io/framework-r-d/phlex-dev:latest
+FROM ${PHLEX_DEV_IMAGE}
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
@@ -103,7 +104,7 @@ INSTALL_DEV_UTILS
 
 RUN bash <<'INSTALL_NPM_PACKAGES'
 set -euo pipefail
-npm update -g npm@^11.10.0
+npm install -g npm@^11.10.0
 npm config set allow-scripts=@kilocode/cli --location=user
 npm config set min-release-age=3 --location=user
 npm install -g @kilocode/cli
@@ -117,9 +118,12 @@ RUN printf '. /entrypoint.sh\n' >> /root/.bashrc
 # allow GPG agent to function correctly when running as root.
 RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0
 
-COPY gitignore-global /root/.gitignore-global
+COPY .devcontainer/gitignore-global /root/.gitignore-global
 RUN git config --global core.excludesfile '/root/.gitignore-global'
 
 # Install Kilo environment script that sets KILO_CONFIG_CONTENT globally
-COPY kilo-env.sh /etc/profile.d/kilo-env.sh
-RUN chmod +x /etc/profile.d/kilo-env.sh
+# Keep runtime fixes current without rebuilding the expensive Spack base image.
+COPY ci/entrypoint.sh /entrypoint.sh
+COPY .devcontainer/kilo-env.sh /etc/profile.d/kilo-env.sh
+COPY .devcontainer/kilo-env-self-test.sh /usr/local/lib/phlex/kilo-env-self-test.sh
+RUN chmod +x /etc/profile.d/kilo-env.sh /usr/local/lib/phlex/kilo-env-self-test.sh

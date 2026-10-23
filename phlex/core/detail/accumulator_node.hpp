@@ -3,6 +3,7 @@
 
 #include "phlex/core/fold/send.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
@@ -25,6 +26,7 @@ namespace phlex::detail::internal {
   class accumulator {
   public:
     using sendable_t = phlex::experimental::sendable_type<T>;
+    static constexpr auto num_outputs = number_types<T>;
 
     explicit accumulator(std::unique_ptr<T> initial_value) : accumulator_(std::move(initial_value))
     {
@@ -36,15 +38,21 @@ namespace phlex::detail::internal {
       std::invoke(f, *accumulator_, args...);
     }
 
-    auto release_as_product()
+    /// Move contents of accumulator into a `products`
+    /// @param output Product specifications to use for `products`
+    products release_as_products(phlex::experimental::product_specifications const& output)
     {
       auto result = std::move(accumulator_);
       using namespace phlex::experimental;
+
+      // Rely on NRVO
+      products new_products{num_outputs};
       if constexpr (has_send<T>) {
-        return std::make_unique<product<sendable_t>>(send(*result));
+        new_products.add_all(output, send(std::move(*result)));
       } else {
-        return std::make_unique<product<sendable_t>>(std::move(*result));
+        new_products.add_all(output, std::move(*result));
       }
+      return new_products;
     }
 
   private:
@@ -67,10 +75,9 @@ namespace phlex::detail::internal {
                                phlex::experimental::product_specifications const& output,
                                std::size_t original_id)
     {
-      auto store = std::make_shared<phlex::experimental::product_store>(index, node_name, stage);
-      // FIXME: Only read the first output specification, which is a temporary limitation until
-      // we support multiple outputs from folds.
-      store->add_product(output.front(), partial_result->release_as_product());
+      // Only used to release the entire result
+      auto store = std::make_shared<phlex::experimental::product_store>(
+        index, node_name, stage, partial_result->release_as_products(output));
       partial_result.reset();
       return {.store = std::move(store), .id = original_id};
     }

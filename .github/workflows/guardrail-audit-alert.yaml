@@ -1,3 +1,15 @@
+################################################################################
+# guardrail-audit-alert
+#
+# Detect when commits are pushed directly to `main` rather than via PR.
+#
+# Set a repository variable `GUARDRAIL_AUDIT_ALERT_ENABLED` to true in
+# the repository or fork for which you wish to enable this alert.
+#
+# The fork owner is responsible for setting the SLACK_WEBHOOK_URL
+# appropriately to allow a message to be sent to the appropriate
+# workspace and channel.
+################################################################################
 name: Guardrail Push Alerts
 on:
   push:
@@ -7,7 +19,7 @@ jobs:
   slack-alert:
     runs-on: ubuntu-latest
     permissions: {} # Explicitly drops all token permissions
-    if: github.actor != 'dependabot[bot]'
+    if: vars.GUARDRAIL_AUDIT_ALERT_ENABLED == 'true' && github.actor != 'dependabot[bot]'
     steps:
       - name: Process and Format Slack Alert
         env:

@@ -6,8 +6,11 @@ comments which do not have replies. These tests verify that the expected
 YAML structure and markers are present.
 """
 
+import os
 import pathlib
+import subprocess
 
+import pytest
 import yaml
 
 WORKFLOWS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / ".github" / "workflows"
@@ -77,3 +80,48 @@ def test_clang_tidy_marks_completed_only_after_tidy_succeeds():
     )
 
     assert tidy_failure < issues_found < completed_marker
+
+
+@pytest.mark.parametrize(
+    "coverage_result,available,expected_status",
+    [
+        ("success", ("amd64", "arm64"), 0),
+        ("success", ("amd64",), 1),
+        ("success", ("arm64",), 1),
+        ("success", (), 1),
+        ("failure", ("amd64",), 0),
+        ("failure", ("arm64",), 0),
+        ("failure", (), 1),
+    ],
+)
+def test_coverage_upload_requires_reports_from_successful_matrix(
+    tmp_path, coverage_result, available, expected_status
+):
+    """Missing successful reports fail collection without hiding available upload targets."""
+    workflow = _load_yaml(WORKFLOWS_DIR / "coverage.yaml")
+    steps = workflow["jobs"]["coverage-upload"]["steps"]
+    downloads = [step for step in steps if step["name"].startswith("Download ")]
+    assert len(downloads) == 2
+    assert all(step["continue-on-error"] and step["if"] == "always()" for step in downloads)
+    collector = next(step for step in steps if step.get("id") == "codecov_targets")
+    assert collector["env"]["COVERAGE_RESULT"] == "${{ needs.coverage.result }}"
+    for arch in available:
+        report_dir = tmp_path / "coverage-artifacts" / f"coverage-generated-{arch}"
+        report_dir.mkdir(parents=True)
+        (report_dir / "coverage.xml").write_text("<coverage/>\n")
+    output = tmp_path / "output"
+    result = subprocess.run(
+        ["bash", "-c", collector["run"]],
+        cwd=tmp_path,
+        env={**os.environ, "GITHUB_OUTPUT": str(output), "COVERAGE_RESULT": coverage_result},
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == expected_status, result.stderr
+    targets = dict(line.split("=", 1) for line in output.read_text().splitlines())
+    for arch in ("amd64", "arm64"):
+        assert targets[f"{arch}_found"] == str(arch in available).lower()
+        if arch in available:
+            assert targets[f"{arch}_files"].endswith("/coverage.xml")
+    uploads = [step for step in steps if step["name"].endswith("coverage to Codecov")]
+    assert all("always()" in step["if"] for step in uploads)

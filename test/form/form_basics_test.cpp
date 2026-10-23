@@ -445,8 +445,7 @@ TEST_CASE("storage_reader basic operations", "[form]")
   void const* read_data = nullptr;
   storage->read_container(product_token, &read_data, typeid(int), settings);
 
-  int const index = storage->get_index(product_token, "some_id", settings);
-  CHECK(index == 0);
+  CHECK_THROWS_AS(storage->get_index(product_token, "[event:1]", settings), std::runtime_error);
 }
 
 TEST_CASE("storage_writer basic operations", "[form]")
@@ -484,8 +483,8 @@ TEST_CASE("persistence_reader basic operations", "[form]")
   SECTION("Full Lifecycle")
   {
     void const* data = nullptr;
-    // This will call get_token -> get_index (returns 0 for Storage_Container) -> read_container
-    CHECK_NOTHROW(p->read("my_creator", test_stage, "prod", "event_1", &data, typeid(int)));
+    CHECK_THROWS_AS(p->read("my_creator", test_stage, "prod", "[event:1]", &data, typeid(int)),
+                    std::runtime_error);
   }
 }
 

@@ -210,6 +210,7 @@ cet_test(
   spdlog::spdlog
   layer_generator_internal
 )
+add_subdirectory(compile-fail)
 cet_test(
   repeater_node
   USE_CATCH2_MAIN
