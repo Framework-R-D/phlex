@@ -70,6 +70,8 @@ namespace phlex::detail {
   {
     static std::string const default_product_suffix;
 
+    // Fluent suffix registration is textual; empty text becomes `empty_string` and non-empty
+    // text a named identifier here, when the specifications are created.
     if (output_suffixes.empty()) {
       // This happens whenever the user does not specify output_product_suffixes(...), so we
       // assign the default suffix to all output data products.

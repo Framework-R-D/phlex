@@ -147,7 +147,6 @@ namespace phlex::detail {
                    FT f, // NOLINT(performance-unnecessary-value-param)
                    concurrency c)
     {
-      internal::verify_name(name, config_);
       return make_registration<translator_node, declared_translator_ptr>(
         config_,
         name,

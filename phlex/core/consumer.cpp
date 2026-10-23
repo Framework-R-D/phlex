@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -72,6 +73,16 @@ namespace phlex::detail {
   consumer::~consumer() = default;
 
   phlex::experimental::algorithm_name const& consumer::name() const noexcept { return name_; }
+
+  std::optional<phlex::experimental::identifier> const& consumer::plugin() const noexcept
+  {
+    return name_.plugin();
+  }
+
+  phlex::experimental::identifier const& consumer::algorithm() const noexcept
+  {
+    return name_.algorithm();
+  }
 
   std::vector<std::string> const& consumer::when() const noexcept { return predicates_; }
 
