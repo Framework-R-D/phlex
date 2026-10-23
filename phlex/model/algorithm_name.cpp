@@ -36,15 +36,13 @@ namespace {
 }
 
 namespace phlex::experimental {
-  algorithm_name::algorithm_name() = default;
-
   algorithm_name::algorithm_name(char const* spec) : algorithm_name{std::string_view{spec}} {}
   algorithm_name::algorithm_name(std::string const& spec) : algorithm_name{std::string_view{spec}}
   {
   }
   algorithm_name::algorithm_name(std::string_view spec) { *this = create(spec); }
 
-  algorithm_name::algorithm_name(identifier plugin, identifier algorithm) :
+  algorithm_name::algorithm_name(identifier_or_empty plugin, identifier algorithm) :
     plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
   {
   }
@@ -63,13 +61,16 @@ namespace phlex::experimental {
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
   algorithm_name algorithm_name::create(std::string_view spec)
   {
-    // Empty spec means nothing is specified
     if (spec.empty()) {
-      return {};
+      throw std::runtime_error("An algorithm name must not be empty");
     }
 
     // Do we have a colon? If so, have both plugin and algorithm
     if (spec.contains(':')) {
+      if (spec.starts_with(':')) {
+        throw std::runtime_error(
+          fmt::format("The specification '{}' has an empty plugin name", spec));
+      }
       if (spec.ends_with(':')) {
         throw std::runtime_error("Cannot create an algorithm name that ends with a colon (':')");
       }
@@ -81,14 +82,14 @@ namespace phlex::experimental {
         throw std::runtime_error(
           fmt::format("The specification '{}' is not a valid algorithm name.", spec));
       }
-      return {identifier(plugin), identifier(algorithm)};
+      return {identifier_or_empty(plugin), identifier(algorithm)};
     }
 
-    // No colon -- could be plugin or algorithm
+    // No colon: the plugin component is explicitly empty
     if (!words_only(spec)) {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {"", identifier(spec)};
+    return {identifier_or_empty(empty_string{}), identifier(spec)};
   }
 }
