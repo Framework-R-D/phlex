@@ -16,6 +16,7 @@
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_tfile.hpp"
+#include "root_storage/root_thread_safety.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
 #endif
 
@@ -30,6 +31,13 @@
 namespace form::detail::experimental {
 
   using major = form::technology::major;
+
+  void ensure_backend_thread_safety()
+  {
+#ifdef USE_ROOT_STORAGE
+    ensure_root_thread_safety();
+#endif
+  }
 
   std::shared_ptr<i_storage_file> create_file(form::technology::id tech,
                                               std::string const& name,
