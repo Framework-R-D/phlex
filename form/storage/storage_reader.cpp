@@ -55,6 +55,7 @@ namespace {
 namespace form::detail::experimental {
   std::unique_ptr<i_storage_reader> create_storage_reader()
   {
+    ensure_backend_thread_safety();
     return std::unique_ptr<i_storage_reader>(new storage_reader());
   }
 }
