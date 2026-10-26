@@ -5,6 +5,7 @@ name: "CodeQL Analysis"
   push:
     branches: [main, "release/*"]
   pull_request:
+  merge_group:
   schedule:
     - cron: "0 3 * * 0" # weekly (UTC) — adjust as needed
   workflow_dispatch:

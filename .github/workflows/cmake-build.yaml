@@ -3,6 +3,7 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
 
 "on":
   pull_request:
+  merge_group:
   issue_comment:
     types: [created]
   push:
@@ -83,7 +84,8 @@ env:
 jobs:
   setup:
     if: >
-      github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' ||
+      github.event_name == 'pull_request' || github.event_name == 'push' ||
       github.event_name == 'schedule' || github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
@@ -123,7 +125,7 @@ jobs:
     needs: setup
     if: >
       needs.setup.result == 'success' && (
-        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
       )
@@ -166,7 +168,7 @@ jobs:
     needs: [setup, generate-matrix]
     if: >
       always() && needs.setup.result == 'success' && (
-        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' ||
         github.event_name == 'schedule' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
@@ -311,7 +313,8 @@ jobs:
   cmake-build-skipped:
     needs: [setup]
     if: >
-      needs.setup.result == 'success' && github.event_name != 'workflow_dispatch' && !inputs.skip-relevance-check &&
+      needs.setup.result == 'success' && github.event_name != 'workflow_dispatch' &&
+      github.event_name != 'merge_group' && !inputs.skip-relevance-check &&
       needs.setup.outputs.is_act != 'true' && needs.setup.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
