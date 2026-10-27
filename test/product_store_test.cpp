@@ -75,9 +75,17 @@ TEST_CASE("Product store lookup of specifications is exact", "[data model]")
 
   store->add_product(unqualified, 1);
 
+  // A parsed specification finds the same product once its type is supplied.
   CHECK(parsed == unqualified);
   CHECK(store->get_product<int>(gsl::make_not_null(&unqualified)) == 1);
   CHECK(store->get_product<int>(gsl::make_not_null(&parsed)) == 1);
+
+  // A missing type is not a wildcard for a typed storage key.
+  product_specification const untyped{"test_algorithm/hits"};
+  CHECK(untyped != unqualified);
+  CHECK_THROWS_WITH(store->get_product<int>(gsl::make_not_null(&untyped)),
+                    Catch::Matchers::ContainsSubstring(
+                      "No product exists with the specification 'test_algorithm/hits'."));
 
   // A different creator, even with the same algorithm and suffix, does not match.
   CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),
