@@ -73,18 +73,29 @@ TEST_CASE("Product store lookup of creator-less specifications is exact", "[data
   product_specification const with_creator{creator, "hits"_id, type};
   product_specification const other_creator{
     algorithm_name::create("reco:find_hits"), "hits"_id, type};
-  product_specification const parsed_creatorless{"/hits"};
+  product_specification parsed_creatorless{"/hits"};
+  product_specification parsed_suffix_only{"hits"};
+  parsed_creatorless.set_type(make_type_id<int>());
+  parsed_suffix_only.set_type(make_type_id<int>());
 
   store->add_product(creatorless, 1);
   store->add_product(with_creator, 2);
 
-  // Spellings of a creator-less specification all find the same product.
+  // Spellings of a creator-less specification find the same product once its type is supplied.
   CHECK(parsed_creatorless == creatorless);
-  CHECK(product_specification{"hits"} == creatorless);
+  CHECK(parsed_suffix_only == creatorless);
 
   CHECK(store->get_product<int>(gsl::make_not_null(&creatorless)) == 1);
   CHECK(store->get_product<int>(gsl::make_not_null(&parsed_creatorless)) == 1);
+  CHECK(store->get_product<int>(gsl::make_not_null(&parsed_suffix_only)) == 1);
   CHECK(store->get_product<int>(gsl::make_not_null(&with_creator)) == 2);
+
+  // A missing type is not a wildcard for a typed storage key.
+  product_specification const untyped{"hits"};
+  CHECK(untyped != creatorless);
+  CHECK_THROWS_WITH(
+    store->get_product<int>(gsl::make_not_null(&untyped)),
+    Catch::Matchers::ContainsSubstring("No product exists with the specification 'hits'."));
 
   // A creator-less specification is not a wildcard, nor does it match a different creator.
   CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),

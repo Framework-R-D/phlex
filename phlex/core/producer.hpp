@@ -9,6 +9,9 @@
 #include <oneapi/tbb/flow_graph.h>
 
 namespace phlex::detail {
+  /// Independent producer interface used by the catalog, including translators.
+  /// Outputs carry explicit empty or named `suffix_t` values; `name()` retains the creator's
+  /// plugin component. The producer must outlive edges using its borrowed output port.
   class PHLEX_CORE_EXPORT producer {
   public:
     virtual ~producer() = default;
