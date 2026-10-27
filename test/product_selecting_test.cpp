@@ -254,3 +254,102 @@ TEST_CASE("Querying products in different ways", "[graph]")
     CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
   }
 }
+
+TEST_CASE("Selecting empty, named, and omitted producer suffixes", "[graph]")
+{
+  constexpr int num_events = 3;
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {.parent_layer = "job", .count = num_events});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+  g.provide("provide_number", provide_idx, concurrency::unlimited)
+    .output_product("input", "number", "event");
+
+  auto const input = product_selector{.creator = "input", .suffix = "number"};
+  g.transform("both_suffixes", [](int const n) { return std::tuple{n + 1, n + 2}; })
+    .input_family(input)
+    .output_product_suffixes("", "number");
+
+  SECTION("Explicit empty suffix selects only the empty product")
+  {
+    g.observe("selected",
+              [](handle<int> const number) {
+                CHECK(number.creator().algorithm == "both_suffixes");
+                CHECK(number.suffix().empty());
+                CHECK(*number == static_cast<int>(number.data_cell_index().number()) + 1);
+              })
+      .input_family(
+        product_selector{.creator = "both_suffixes", .suffix = experimental::empty_string{}});
+    g.execute();
+    CHECK(g.execution_count("selected") == num_events);
+  }
+
+  SECTION("Named suffix selects only the named product")
+  {
+    g.observe("selected",
+              [](handle<int> const number) {
+                CHECK(number.creator().algorithm == "both_suffixes");
+                CHECK(number.suffix() == "number");
+                CHECK(*number == static_cast<int>(number.data_cell_index().number()) + 2);
+              })
+      .input_family(product_selector{.creator = "both_suffixes", .suffix = "number"});
+    g.execute();
+    CHECK(g.execution_count("selected") == num_events);
+  }
+
+  SECTION("Omitted suffix matches both empty and named products and is ambiguous")
+  {
+    g.observe("ambiguous_suffix", [](int const) {})
+      .input_family(product_selector{.creator = "both_suffixes"});
+    CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
+  }
+
+  SECTION("Omitted suffix selects a single default empty output")
+  {
+    g.transform("single_suffix", [](int const n) { return n; }).input_family(input);
+    g.observe("selected",
+              [](handle<int> const number) {
+                CHECK(number.creator().algorithm == "single_suffix");
+                CHECK(number.suffix().empty());
+                CHECK(*number == static_cast<int>(number.data_cell_index().number()));
+              })
+      .input_family(product_selector{.creator = "single_suffix"});
+    g.execute();
+    CHECK(g.execution_count("selected") == num_events);
+  }
+
+  SECTION("Omitted suffix selects a single named output")
+  {
+    g.transform("single_suffix", [](int const n) { return n; })
+      .input_family(input)
+      .output_product_suffixes("number");
+    g.observe("selected",
+              [](handle<int> const number) {
+                CHECK(number.creator().algorithm == "single_suffix");
+                CHECK(number.suffix() == "number");
+                CHECK(*number == static_cast<int>(number.data_cell_index().number()));
+              })
+      .input_family(product_selector{.creator = "single_suffix"});
+    g.execute();
+    CHECK(g.execution_count("selected") == num_events);
+  }
+
+  SECTION("Explicit empty suffix remains ambiguous across creators")
+  {
+    g.transform("another_suffix", [](int const n) { return n; })
+      .input_family(input)
+      .output_product_suffixes("");
+    g.observe("ambiguous_creator", [](int const) {}).input_family(product_selector{.suffix = ""});
+    CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
+  }
+
+  SECTION("Named suffix remains ambiguous across creators")
+  {
+    g.transform("another_suffix", [](int const n) { return n; })
+      .input_family(input)
+      .output_product_suffixes("number");
+    g.observe("ambiguous_creator", [](int const) {})
+      .input_family(product_selector{.suffix = "number"});
+    CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
+  }
+}
