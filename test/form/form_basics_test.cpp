@@ -102,6 +102,7 @@ namespace {
 
     std::map<std::string, std::vector<std::pair<std::string, std::string>>> descriptors;
     std::map<std::string, table> tables;
+    std::vector<std::string> created_containers;
     std::vector<std::string> filled_containers;
     std::string throw_on_fill;
 
@@ -110,6 +111,7 @@ namespace {
       form::experimental::config::tech_setting_config const& /*settings*/) override
     {
       for (auto const& [plcmnt, type] : containers) {
+        created_containers.push_back(plcmnt.container_name());
         auto const [top, column] = split(plcmnt.container_name());
         if (top.starts_with("nav_")) {
           tables[top].columns.push_back(column);
@@ -1411,6 +1413,24 @@ TEST_CASE("descriptor: its name is reserved against product row spaces", "[form]
     {placement{"d.root", std::string{descriptor_object_name} + "/hits", form::technology::id{}},
      &typeid(int)}};
   CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
+}
+
+TEST_CASE("descriptor: a rejected batch leaves no plan behind", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  auto* store = spy.get();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  std::vector<std::pair<placement, std::type_info const*>> const batch{
+    {placement{"rejected.root", "tracker/hits", form::technology::id{}}, &typeid(int)},
+    {placement{"rejected.root", std::string{navigation_prefix} + "_x/hits", form::technology::id{}},
+     &typeid(int)}};
+  CHECK_THROWS_AS(writer.create_containers(batch), std::runtime_error);
+
+  CHECK(store->created_containers.empty());
+
+  CHECK_NOTHROW(writer.finalize());
+  CHECK(store->descriptors.empty());
 }
 
 TEST_CASE("navigation: finalize is idempotent", "[form]")

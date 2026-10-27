@@ -60,10 +60,17 @@ void root_tfile_imp::write_descriptor(
     throw std::runtime_error("root_tfile_imp::write_descriptor no file attached for " + name());
   }
 
-  TList list;
-  list.SetOwner(true);
+  // TList::Add() takes a non-owning TObject*, so the entries are owned here and the list only
+  // borrows them. Reserving up front keeps those pointers stable while the list is filled.
+  std::vector<TNamed> named;
+  named.reserve(entries.size());
   for (auto const& [key, value] : entries) {
-    list.Add(new TNamed(key.c_str(), value.c_str()));
+    named.emplace_back(key.c_str(), value.c_str());
+  }
+
+  TList list;
+  for (auto& entry : named) {
+    list.Add(&entry);
   }
 
   if (file_->WriteObject(&list, std::string{descriptor_object_name}.c_str()) <= 0) {
