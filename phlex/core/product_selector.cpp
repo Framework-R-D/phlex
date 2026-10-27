@@ -38,7 +38,7 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_selector::match(experimental::product_specification const& spec) const
   {
-    if (creator && (!spec.creator() || !creator_match(*spec.creator()))) {
+    if (creator && (!spec.has_creator() || !creator_match(*spec.creator()))) {
       return false;
     }
     if (type.valid() && type != spec.type()) {
@@ -73,7 +73,7 @@ namespace phlex {
   bool product_selector::creator_match(experimental::algorithm_name const& alg) const
   {
     if (!creator) {
-      return true; // empty creator matches everything
+      return true; // an omitted creator criterion matches everything
     }
     experimental::identifier const& creator{*(this->creator)};
     return (alg.plugin().named() && *alg.plugin().named() == creator) || alg.algorithm() == creator;
