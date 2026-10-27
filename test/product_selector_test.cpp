@@ -7,6 +7,8 @@
 #include <fmt/format.h>
 
 #include <string>
+#include <string_view>
+#include <vector>
 
 using namespace phlex;
 
@@ -45,24 +47,115 @@ TEST_CASE("Product name with data layer", "[data model]")
   CHECK(*label.layer == "event"_idq);
   CHECK(label.suffix == "product"_id);
   // Mismatched creator
-  CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
-    product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
+  CHECK(!product_selector{.creator = "first", .layer = "event", .suffix = "prod"}.match(
+    product_selector{.creator = "second", .layer = "event", .suffix = "prod"}));
   // Missing creator matches any creator
   CHECK(product_selector{.layer = "event", .suffix = "prod"}.match(
-    product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
+    product_selector{.creator = "second", .layer = "event", .suffix = "prod"}));
   // Mismatched layer
-  CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
-    product_selector{.creator = "1", .layer = "event1", .suffix = "prod"}));
+  CHECK(!product_selector{.creator = "first", .layer = "event", .suffix = "prod"}.match(
+    product_selector{.creator = "first", .layer = "event1", .suffix = "prod"}));
   // Mismatched suffix
-  CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
-    product_selector{.creator = "1", .layer = "event", .suffix = "prod1"}));
+  CHECK(!product_selector{.creator = "first", .layer = "event", .suffix = "prod"}.match(
+    product_selector{.creator = "first", .layer = "event", .suffix = "prod1"}));
   // Mismatched stage
-  CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod", .stage = "stage"_id}
-           .match(product_selector{
-             .creator = "1", .layer = "event", .suffix = "prod", .stage = "stage1"_id}));
+  CHECK(
+    !product_selector{.creator = "first", .layer = "event", .suffix = "prod", .stage = "stage"_id}
+       .match(product_selector{
+         .creator = "first", .layer = "event", .suffix = "prod", .stage = "stage1"_id}));
   // Here for no reason other than to satisfy codecov
   CHECK(label == label);
   CHECK((label <=> label) == std::strong_ordering::equal);
+}
+
+TEST_CASE("Selector suffix construction preserves all three states", "[data model]")
+{
+  using experimental::empty_string;
+  using experimental::suffix_t;
+  std::string const named_text{"hits"};
+  std::string const empty_text;
+  std::vector<product_selector> const named{{.suffix = "hits"},
+                                            {.suffix = "hits"_id},
+                                            {.suffix = suffix_t{"hits"}},
+                                            {.suffix = suffix_t{named_text}},
+                                            {.suffix = suffix_t{std::string_view{named_text}}}};
+  std::vector<product_selector> const empty{{.suffix = ""},
+                                            {.suffix = empty_string{}},
+                                            {.suffix = suffix_t{}},
+                                            {.suffix = suffix_t{empty_text}},
+                                            {.suffix = suffix_t{std::string_view{empty_text}}}};
+  product_selector const omitted;
+  CHECK_FALSE(omitted.suffix.has_value());
+  for (auto const& selector : named) {
+    REQUIRE(selector.suffix.has_value());
+    CHECK(selector.suffix->text() == "hits");
+    CHECK(selector == named.front());
+    CHECK((selector <=> named.front()) == std::strong_ordering::equal);
+    CHECK(selector != empty.front());
+    CHECK(selector != omitted);
+  }
+  for (auto const& selector : empty) {
+    REQUIRE(selector.suffix.has_value());
+    CHECK(selector.suffix->empty());
+    CHECK(selector == empty.front());
+    CHECK((selector <=> empty.front()) == std::strong_ordering::equal);
+    CHECK(omitted < selector);
+    CHECK(selector < named.front());
+  }
+}
+
+TEST_CASE("Selector suffix matching and diagnostics preserve three states", "[data model]")
+{
+  using experimental::algorithm_name;
+  using experimental::empty_string;
+  using experimental::product_specification;
+  auto const creator = algorithm_name::create("reco:find_hits");
+  product_specification const empty_product{creator, empty_string{}, {}};
+  product_specification const named_product{creator, "hits", {}};
+  product_selector const omitted;
+  product_selector const empty{.suffix = ""};
+  product_selector const named{.suffix = "hits"};
+  product_selector const different{.suffix = "tracks"};
+  for (auto const& selector : {omitted, empty, named}) {
+    CHECK(selector.match(empty_product) == (!selector.suffix || selector.suffix->empty()));
+    CHECK(selector.match(named_product) == (!selector.suffix || selector.suffix->text() == "hits"));
+    for (auto const& other : {omitted, empty, named}) {
+      CHECK(selector.match(other) == (!selector.suffix || selector.suffix == other.suffix));
+    }
+  }
+  CHECK_FALSE(different.match(empty_product));
+  CHECK_FALSE(different.match(named_product));
+  CHECK(omitted.to_string() ==
+        "<suffix [ANY] (of type [UNSET TYPE]) by creator [ANY] (of stage [ANY]) in layer [ANY]>");
+  CHECK(empty.to_string() ==
+        "<suffix  (of type [UNSET TYPE]) by creator [ANY] (of stage [ANY]) in layer [ANY]>");
+  CHECK(named.to_string() ==
+        "<suffix hits (of type [UNSET TYPE]) by creator [ANY] (of stage [ANY]) in layer [ANY]>");
+}
+
+TEST_CASE("Selector creator criterion matches one name or is unrestricted", "[data model]")
+{
+  using experimental::algorithm_name;
+  using experimental::product_specification;
+  product_specification const qualified{algorithm_name::create("reco:find_hits"), "hits", {}};
+  product_specification const unqualified{algorithm_name::create("find_hits"), "hits", {}};
+  product_specification const absent{std::nullopt, "hits", {}};
+  product_selector const omitted{.suffix = "hits"};
+  product_selector const plugin{.creator = "reco", .suffix = "hits"};
+  product_selector const algorithm{.creator = "find_hits", .suffix = "hits"};
+  product_selector const different{.creator = "other", .suffix = "hits"};
+  for (auto const& spec : {qualified, unqualified, absent}) {
+    CHECK(omitted.match(spec));
+    CHECK_FALSE(different.match(spec));
+  }
+  CHECK(plugin.match(qualified));
+  CHECK_FALSE(plugin.match(unqualified));
+  CHECK_FALSE(plugin.match(absent));
+  CHECK(algorithm.match(qualified));
+  CHECK(algorithm.match(unqualified));
+  CHECK_FALSE(algorithm.match(absent));
+  CHECK(fmt::format("{}", plugin.creator) == "reco");
+  CHECK(fmt::format("{}", omitted.creator) == "[ANY]");
 }
 
 // Regression test for issue #707: the converting constructors of creator_name and

@@ -76,7 +76,7 @@ namespace {
   template <typename T>
   product_specification spec(algorithm_name const& creator)
   {
-    return {creator, ""_id, make_type_id<T>()};
+    return {creator, empty_string{}, make_type_id<T>()};
   }
 
   template <typename T>
@@ -128,7 +128,7 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   auto const& output_specs = transform.output();
   REQUIRE(output_specs.size() == 1u);
   CHECK(output_specs[0].creator() == algorithm_name{"double_value"});
-  CHECK(output_specs[0].suffix() == identifier{""});
+  CHECK(output_specs[0].suffix() == empty_string{});
   CHECK(output_specs[0].type() == make_type_id<output_type_1>());
 
   oneapi::tbb::flow::queue_node<message> sink{graph};

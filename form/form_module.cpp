@@ -175,7 +175,7 @@ namespace {
         std::cout << "  Product: " << product_spec.to_string() << "\n";
 
         // Create FORM product with metadata
-        products.emplace_back(product_spec.suffix().trans_get_string(), // label, from map key
+        products.emplace_back(std::string{product_spec.suffix().text()}, // label, from map key
                               product_ptr->address(), // data,  from phlex product_base
                               &product_ptr->type()    // type, from phlex product_base
         );

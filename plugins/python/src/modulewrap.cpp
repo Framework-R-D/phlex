@@ -116,7 +116,7 @@ namespace {
 
   inline std::string converted_suffix(product_selector const& sel)
   {
-    return "py_" + (sel.suffix ? std::string{static_cast<std::string_view>(*sel.suffix)} : "");
+    return "py_" + (sel.suffix ? std::string{sel.suffix->text()} : "");
   }
 
   inline PyObject* import_attr(char const* module, char const* attr)
@@ -1330,6 +1330,7 @@ namespace {
     auto observe_n_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
       constexpr size_t n = sizeof...(Is);
 
+
       auto insert_observe_for_callback = [&](auto& cb) {
         mod->ph_module->observe(cname, cb, nconcur)
           .input_family(converted_input_selector(cname, Is, input_selectors[Is])...);
@@ -1538,7 +1539,7 @@ namespace {
 
     algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
     identifier const layer = opq.value().layer;
-    identifier const suffix = opq.value().suffix.value_or("");
+    identifier const suffix{opq.value().suffix.value_or("").text()};
 
     // Provider callbacks retain the callable for the graph lifetime. A translator node
     // cannot be used here because sources do not have a module for adding one.
