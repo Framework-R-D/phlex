@@ -1,9 +1,9 @@
 #include "phlex/core/detail/repeater_node.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
+#include "test/data_cell_index_helpers.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -17,19 +17,16 @@
 #include <memory>
 #include <ranges>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
 using namespace oneapi;
 using namespace phlex::detail;
 using phlex::experimental::product_store;
+using phlex::test::make_run_index;
 
 namespace {
-  auto make_run_index(int run_number)
-  {
-    return phlex::data_cell_index::job()->make_child("run", run_number);
-  }
-
   auto make_run_with_product(int run_number, int value)
   {
     static auto const dummy_creator_name =

@@ -3,7 +3,6 @@
 #include "core/cell_index.hpp"
 #include "core/container_naming.hpp"
 #include "core/placement.hpp"
-#include "core/product_identity.hpp"
 #include "core/technology.hpp"
 #include "core/token.hpp"
 #include "form/config.hpp"
@@ -19,6 +18,7 @@
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
+#include "test/form/cell_helpers.hpp"
 #include "test/form/navigation_check.hpp"
 #include "test/form/test_helpers.hpp"
 #include "test/form/test_utils.hpp"
@@ -57,6 +57,9 @@ namespace {
   form::technology::id technology = form::technology::root_ttree; //Potentially overridden in main
   //Non-const global variable required by limitations of Catch2
 
+  using form::test::event_cell;
+  using form::test::event_segment_cell;
+  using form::test::product_of;
   using form::test::test_stage;
 
   std::string row_space(std::string const& creator,
@@ -75,28 +78,6 @@ namespace {
                            std::string const& stage = test_stage)
   {
     return placement{file_name, build_full_label(row_space(creator, stage, tech), label), tech};
-  }
-
-  product_identity identity(std::string const& creator,
-                            std::string const& label,
-                            std::string const& stage = test_stage)
-  {
-    return product_identity{.creator = creator, .stage = stage, .label = label};
-  }
-
-  cell_index make_cell(std::uint64_t event, std::uint64_t segment)
-  {
-    return cell_index{.id = "[event:" + std::to_string(event) +
-                            ", segment:" + std::to_string(segment) + "]",
-                      .hierarchy = {{"event", "segment"}},
-                      .layer_values = {event, segment}};
-  }
-
-  cell_index event_cell(std::uint64_t event)
-  {
-    return cell_index{.id = "[event:" + std::to_string(event) + "]",
-                      .hierarchy = {{"event"}},
-                      .layer_values = {event}};
   }
 
   // Each cell's payload is its own layer values, so a read-back shows which cell a row belongs to.
@@ -133,7 +114,7 @@ namespace {
     for (auto const& cell : cells) {
       auto const payload = payload_of(cell);
       writer->register_write(
-        identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
+        product_of(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
       writer->commit_place(prod_place, cell);
     }
     writer->finalize();
@@ -725,10 +706,10 @@ TEST_CASE("storage_reader read_descriptor: any minor of a mixed file's major rea
     auto const cell = event_cell(1);
     auto const payload = payload_of(cell);
     writer->register_write(
-      identity(creator, "ttree_prod"), ttree_place, &payload, typeid(std::vector<int>));
+      product_of(creator, "ttree_prod"), ttree_place, &payload, typeid(std::vector<int>));
     writer->commit_place(ttree_place, cell);
     writer->register_write(
-      identity(creator, "rntuple_prod"), rntuple_place, &payload, typeid(std::vector<int>));
+      product_of(creator, "rntuple_prod"), rntuple_place, &payload, typeid(std::vector<int>));
     writer->commit_place(rntuple_place, cell);
     writer->finalize();
   }
@@ -759,7 +740,7 @@ TEST_CASE("Persistence read: the technology comes from the descriptor, never fro
   std::string const file_name =
     "persistence_descriptor_minor_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "descriptor_creator";
-  std::vector<cell_index> const cells{make_cell(1, 1), make_cell(2, 0)};
+  std::vector<cell_index> const cells{event_segment_cell(1, 1), event_segment_cell(2, 0)};
   write_cells(file_name, creator, cells);
 
   // The configured technology is deliberately unset; reading must use the file's descriptor.
@@ -883,7 +864,8 @@ TEST_CASE("Persistence round-trip: every listed cell reads back its own payload"
   std::string const file_name =
     "persistence_roundtrip_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "roundtrip_creator";
-  std::vector<cell_index> const cells{make_cell(3, 1), make_cell(1, 2), make_cell(2, 0)};
+  std::vector<cell_index> const cells{
+    event_segment_cell(3, 1), event_segment_cell(1, 2), event_segment_cell(2, 0)};
   write_cells(file_name, creator, cells);
 
   item_config cfg;
@@ -933,7 +915,7 @@ TEST_CASE("storage_reader get_index: cells written out of order resolve to their
   SECTION("multiple layers")
   {
     check_cells("storage_reader_unordered_multi_" + tech + ".root",
-                {make_cell(3, 1), make_cell(1, 2), make_cell(2, 0)});
+                {event_segment_cell(3, 1), event_segment_cell(1, 2), event_segment_cell(2, 0)});
   }
 }
 
@@ -1037,12 +1019,12 @@ TEST_CASE("register_write returns a token locating the written product", "[form]
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
 
     token_first = writer->register_write(
-      identity(creator, "prod"), prod_place, &first, typeid(std::vector<int>));
-    writer->commit_place(prod_place, make_cell(1, 1));
+      product_of(creator, "prod"), prod_place, &first, typeid(std::vector<int>));
+    writer->commit_place(prod_place, event_segment_cell(1, 1));
 
     token_second = writer->register_write(
-      identity(creator, "prod"), prod_place, &second, typeid(std::vector<int>));
-    writer->commit_place(prod_place, make_cell(1, 2));
+      product_of(creator, "prod"), prod_place, &second, typeid(std::vector<int>));
+    writer->commit_place(prod_place, event_segment_cell(1, 2));
   }
 
   // The returned token carries the placement and the 0-based, monotonically increasing row
@@ -1093,7 +1075,7 @@ TEST_CASE("register_write throws when the backend does not address rows", "[form
   writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
 
   CHECK_THROWS_AS(writer->register_write(
-                    identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>)),
+                    product_of(creator, "prod"), prod_place, &payload, typeid(std::vector<int>)),
                   std::runtime_error);
 }
 
@@ -1102,7 +1084,7 @@ TEST_CASE("storage_reader get_index: ids not recorded in the index throw", "[for
   std::string const file_name =
     "storage_reader_index_branches_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "storage_reader_creator";
-  write_cells(file_name, creator, {make_cell(1, 2)});
+  write_cells(file_name, creator, {event_segment_cell(1, 2)});
 
   storage_reader reader;
   auto const index_token = index_token_of(file_name, creator);
@@ -1154,8 +1136,8 @@ TEST_CASE("storage_reader get_index: empty container and tech-table branches", "
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(
-      identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, make_cell(5, 6));
+      product_of(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(prod_place, event_segment_cell(5, 6));
   }
 
   tech_setting_config attr_settings;
@@ -1195,8 +1177,8 @@ TEST_CASE("storage_reader prime/list_indices/read_container: attribute and error
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(
-      identity(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, make_cell(9, 8));
+      product_of(creator, "prod"), prod_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(prod_place, event_segment_cell(9, 8));
   }
 
   storage_reader reader;
@@ -1366,13 +1348,13 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
         record.reserve(labels.size());
         for (std::size_t p = 0; p != labels.size(); ++p) {
           record.push_back(payload(s, p, event));
-          writer->register_write(identity(creator, labels[p], stage),
+          writer->register_write(product_of(creator, labels[p], stage),
                                  make_placement(file_name, creator, labels[p], technology, stage),
                                  &record.back(),
                                  *type);
         }
         writer->commit_place(make_placement(file_name, creator, labels.front(), technology, stage),
-                             make_cell(event, 0));
+                             event_segment_cell(event, 0));
       }
     }
     writer->finalize();
@@ -1388,7 +1370,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
       CHECK(reader->list_indices(creator, stage, labels[p]).size() == events[s].size());
       for (auto const event : events[s]) {
         void const* raw = nullptr;
-        reader->read(creator, stage, labels[p], make_cell(event, 0).id, &raw, *type);
+        reader->read(creator, stage, labels[p], event_segment_cell(event, 0).id, &raw, *type);
         std::unique_ptr<std::vector<int> const> const read_back{
           static_cast<std::vector<int> const*>(raw)};
         REQUIRE(read_back != nullptr);

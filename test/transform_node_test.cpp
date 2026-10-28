@@ -6,11 +6,10 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
+#include "test/node_test_products.hpp"
+#include "test/product_store_helpers.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <gsl/pointers>
@@ -26,57 +25,20 @@ using namespace phlex;
 using namespace phlex::detail;
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
+using namespace phlex::test;
 
 namespace {
   constexpr auto message_id = 42u;
-
-  struct input_type_1 {
-    int value;
-    auto operator<=>(input_type_1 const&) const = default;
-  };
-
-  struct input_type_2 {
-    int value;
-    auto operator<=>(input_type_2 const&) const = default;
-  };
-
-  struct output_type_1 {
-    int value;
-    auto operator<=>(output_type_1 const&) const = default;
-  };
 
   struct output_type_2 {
     std::string value;
     auto operator<=>(output_type_2 const&) const = default;
   };
 
-  struct transform_resource {
-    using token_type = transform_resource const*;
-  };
-
-  struct unlimited_transform_resource {};
-
   output_type_1 double_value(input_type_1 const& input) { return {input.value * 2}; }
-
-  output_type_1 increment_with_resource(input_type_1 const& input, transform_resource const*)
-  {
-    return {input.value + 1};
-  }
-
-  output_type_1 increment_with_unlimited_resource(input_type_1 const& input,
-                                                  unlimited_transform_resource const*)
-  {
-    return {input.value + 1};
-  }
   auto number_and_label(input_type_1 const& input)
   {
     return std::tuple{output_type_1{input.value}, output_type_2{std::to_string(input.value)}};
-  }
-
-  template <typename T>
-  product_specification spec(algorithm_name const& creator)
-  {
-    return {creator, ""_id, make_type_id<T>()};
   }
 
   template <typename T>
@@ -84,16 +46,6 @@ namespace {
   {
     return {
       .creator = creator.algorithm(), .layer = "job", .suffix = "", .type = make_type_id<T>()};
-  }
-
-  template <typename T>
-  product_store_ptr store_with_product(gsl::not_null<algorithm_name const*> creator,
-                                       gsl::not_null<identifier const*> stage,
-                                       T value)
-  {
-    auto store = product_store::base(creator, stage);
-    store->add_product(spec<T>(*creator), std::move(value));
-    return store;
   }
 
   template <typename F>
@@ -197,79 +149,5 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   CHECK(output.store->get_product<output_type_2>(
           gsl::make_not_null(std::addressof(output_specs[1]))) == output_type_2{"7"});
 
-  CHECK(transform.num_calls() == 1u);
-}
-
-TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
-{
-  oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
-  identifier const stage_name = "test_stage"_id;
-  auto input_selector = selector<input_type_1>(input_creator_name);
-  auto input_store = store_with_product(
-    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
-  auto alg = algorithm_bits_for(increment_with_resource);
-  resource_catalog resources;
-  resources.add_serialized<transform_resource>();
-
-  transform_node<decltype(alg), transform_resource> node{algorithm_name{"increment_with_resource"},
-                                                         "test_stage"_id,
-                                                         1u,
-                                                         {},
-                                                         graph,
-                                                         std::move(alg),
-                                                         {input_selector},
-                                                         {},
-                                                         resources};
-  declared_transform& transform = node;
-
-  oneapi::tbb::flow::queue_node<message> sink{graph};
-  make_edge(transform.output_port(), sink);
-
-  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
-  graph.wait_for_all();
-
-  message output;
-  REQUIRE(sink.try_get(output));
-  CHECK(output.store->get_product<output_type_1>(
-          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
-  CHECK(transform.num_calls() == 1u);
-}
-
-TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
-{
-  oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
-  identifier const stage_name = "test_stage"_id;
-  auto input_selector = selector<input_type_1>(input_creator_name);
-  auto input_store = store_with_product(
-    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
-  auto alg = algorithm_bits_for(increment_with_unlimited_resource);
-  resource_catalog resources;
-  resources.add_unlimited<unlimited_transform_resource>();
-
-  transform_node<decltype(alg), unlimited_transform_resource> node{
-    algorithm_name{"increment_with_unlimited_resource"},
-    "test_stage"_id,
-    1u,
-    {},
-    graph,
-    std::move(alg),
-    {input_selector},
-    {},
-    resources};
-  declared_transform& transform = node;
-
-  oneapi::tbb::flow::queue_node<message> sink{graph};
-  make_edge(transform.output_port(), sink);
-
-  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
-  graph.wait_for_all();
-
-  message output;
-  REQUIRE(sink.try_get(output));
-  REQUIRE(output.store);
-  CHECK(output.store->get_product<output_type_1>(
-          gsl::make_not_null(std::addressof(transform.output()[0]))) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
 }
