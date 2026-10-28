@@ -16,7 +16,19 @@ SCRIPTS = Path(__file__).parent.parent
 
 @pytest.fixture
 def tools(tmp_path: Path) -> tuple[Path, dict[str, str]]:
-    """Provide recording command doubles without a Spack installation or build."""
+    """Provide recording command doubles without a Spack installation or build.
+
+    The fixture creates a build directory containing spaces, a fake executable
+    that logs each invocation to ``COMMAND_LOG``, and symlinks named ``spack``,
+    ``cmake``, ``ctest`` and ``nproc`` that point to it.
+
+    Args:
+        tmp_path: Pytest-provided temporary directory for the doubles.
+
+    Returns:
+        A tuple of the fake build directory path and the environment mapping
+        to pass to the verification script.
+    """
     build = tmp_path / "build with spaces"
     build.mkdir()
     tool = tmp_path / "tool.py"
@@ -62,11 +74,30 @@ def tools(tmp_path: Path) -> tuple[Path, dict[str, str]]:
 
 
 def _commands(env: dict[str, str]) -> list[list]:
+    """Read the commands recorded by the fake tools.
+
+    Args:
+        env: Environment mapping containing the ``COMMAND_LOG`` path.
+
+    Returns:
+        One decoded JSON entry per invocation, each ``[phase, tool, args, ppid]``.
+        An empty list is returned if nothing was logged.
+    """
     log = Path(env["COMMAND_LOG"])
     return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
 
 
 def _verify(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]:
+    """Run ``scripts/verify.sh`` with the given arguments.
+
+    Args:
+        env: Environment mapping for the child process.
+        *args: Command-line arguments forwarded to ``verify.sh``.
+
+    Returns:
+        The completed process with captured text stdout and stderr. The return
+        code is not checked, so callers assert on it explicitly.
+    """
     return subprocess.run(
         ["bash", str(SCRIPTS / "verify.sh"), *args],
         env=env,
@@ -77,7 +108,18 @@ def _verify(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]
 
 
 def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[str, str]]) -> None:
-    """Discover, select, build, list and run in one shell without losing output."""
+    """Verify the MPD workflow runs discover, select, build, list and test in order.
+
+    All phases must share one parent shell, and each phase's stdout and stderr
+    must appear in the verification output.
+
+    Args:
+        tools: Build directory and environment from the ``tools`` fixture.
+
+    Raises:
+        AssertionError: If the return code, command order, arguments or output
+            differ from the expected MPD workflow.
+    """
     build, env = tools
     result = _verify(env, "--project", "phlex-work-dir", "--tests", "^identifier$", "--verbose")
     assert result.returncode == 0, result.stderr
@@ -106,7 +148,17 @@ def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[st
 
 
 def test_explicit_build_directory_needs_no_spack(tools: tuple[Path, dict[str, str]]) -> None:
-    """A standalone configured build is built and its entire suite is run."""
+    """Verify a standalone configured build is built and its full suite is run.
+
+    No Spack command may be invoked, and neither CTest call may include ``-R``.
+
+    Args:
+        tools: Build directory and environment from the ``tools`` fixture.
+
+    Raises:
+        AssertionError: If the return code or the recorded CMake/CTest
+            invocations differ from the expected sequence.
+    """
     build, env = tools
     result = _verify(env, "--build-dir", str(build))
     assert result.returncode == 0, result.stderr
@@ -121,7 +173,16 @@ def test_explicit_build_directory_needs_no_spack(tools: tuple[Path, dict[str, st
 def test_command_failure_stops_verification(
     tools: tuple[Path, dict[str, str]], phase: str
 ) -> None:
-    """Propagate each failing command's status and skip all subsequent commands."""
+    """Verify a failing phase stops verification and its status is propagated.
+
+    Args:
+        tools: Build directory and environment from the ``tools`` fixture.
+        phase: Phase whose fake command is forced to fail with status 23.
+
+    Raises:
+        AssertionError: If the return code is not 23 or any phase after the
+            failing one was executed.
+    """
     _, env = tools
     env[f"FAIL_{phase.upper()}"] = "23"
     result = _verify(env, "--project", "phlex-work-dir")
@@ -131,7 +192,15 @@ def test_command_failure_stops_verification(
 
 
 def test_misspelled_selection_fails(tools: tuple[Path, dict[str, str]]) -> None:
-    """CTest execution rejects a selection even when empty discovery succeeds."""
+    """Verify an empty test selection fails even when discovery succeeds.
+
+    Args:
+        tools: Build directory and environment from the ``tools`` fixture.
+
+    Raises:
+        AssertionError: If the return code is not 8 or the recorded phases
+            differ from build, list, test.
+    """
     build, env = tools
     result = _verify(env, "--build-dir", str(build), "--tests", "^misspelled$")
     assert result.returncode == 8
@@ -152,7 +221,16 @@ def test_misspelled_selection_fails(tools: tuple[Path, dict[str, str]]) -> None:
 def test_invalid_arguments_run_no_commands(
     tools: tuple[Path, dict[str, str]], args: tuple[str, ...]
 ) -> None:
-    """Invalid or ambiguous input fails before discovery, building or testing."""
+    """Verify invalid or ambiguous arguments fail before any command runs.
+
+    Args:
+        tools: Build directory and environment from the ``tools`` fixture.
+        args: Command-line arguments under test.
+
+    Raises:
+        AssertionError: If the script exits successfully or any command is
+            recorded.
+    """
     _, env = tools
     result = _verify(env, *args)
     assert result.returncode != 0
@@ -161,7 +239,20 @@ def test_invalid_arguments_run_no_commands(
 
 @pytest.mark.parametrize("scenario", ["pass", "empty", "test_failure", "build_failure"])
 def test_verification_with_real_cmake_and_ctest(tmp_path: Path, scenario: str) -> None:
-    """Validate success and failure paths using an actual miniature CMake project."""
+    """Verify success and failure paths against a real miniature CMake project.
+
+    The project defines one passing test, one failing test, and an optional
+    failing build target. The test is skipped if CMake or CTest is unavailable.
+
+    Args:
+        tmp_path: Pytest-provided temporary directory for the project and build.
+        scenario: One of ``pass``, ``empty``, ``test_failure`` or
+            ``build_failure``, which selects the test pattern and build option.
+
+    Raises:
+        AssertionError: If the exit status does not match the scenario, or a
+            build failure still reaches the test phase.
+    """
     if not shutil.which("cmake") or not shutil.which("ctest"):
         pytest.skip("CMake and CTest are required for the integration test")
     source = tmp_path / "source"
