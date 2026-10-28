@@ -94,7 +94,7 @@ PREKCOMMAND=$(command -v prek || command -v pre-commit || echo "")
 ## Build and Test
 
 For local verification, use [scripts/verify.sh](scripts/README.md#build-and-test-verification)
-by default. It builds first, lists the tests, and runs the same selection. It stops
+as a first resort. It builds first, lists the tests, and runs the same selection. It stops
 on failure and rejects an empty test selection. Use a normal configured build;
 local verification does not require coverage collection or a CI run.
 
