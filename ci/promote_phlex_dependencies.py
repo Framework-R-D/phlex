@@ -9,7 +9,11 @@ import sys
 
 
 def promote_dependencies(env) -> list[str]:
-    """Register existing link/run dependencies as abstract and concrete roots."""
+    """Register existing link/run dependencies as abstract and concrete roots.
+
+    Returns:
+        Names of dependencies newly promoted to roots.
+    """
     from spack.spec import Spec
 
     phlex_roots = [spec for spec in env.concrete_roots() if spec.name == "phlex"]

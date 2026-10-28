@@ -1,7 +1,7 @@
 """Test coverage for list input converters."""
 
 
-class double(float):  # noqa: N801
+class double(float):
     """Dummy class for C++ double type."""
 
     pass

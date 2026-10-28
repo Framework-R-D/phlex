@@ -4,7 +4,7 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, Protocol, cast
 
 from phlex import Variant
 
@@ -12,16 +12,13 @@ from phlex import Variant
 class AddableProtocol[T](Protocol):
     """Typer bound for any types that can be added."""
 
-    def __add__(self, other: T) -> T:  # noqa: D105
-        ...  # codeql[py/ineffectual-statement]
+    def __add__(self, other: T) -> T: ...  # codeql[py/ineffectual-statement]
 
-
-Addable = TypeVar("Addable", bound=AddableProtocol)
 
 _DEFAULT_ADDABLE = cast(Any, 42)
 
 
-def add(i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
+def add[Addable: AddableProtocol[Any]](i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together

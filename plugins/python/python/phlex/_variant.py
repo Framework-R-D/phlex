@@ -25,8 +25,12 @@ class MissingAnnotation(Exception):
         self.arg = arg
 
     def __str__(self):
-        """Report the argument that is missing an annotation."""
-        return "argument '%s' is not annotated" % self.arg
+        """Report the argument that is missing an annotation.
+
+        Returns:
+            A message naming the argument without an annotation.
+        """
+        return f"argument '{self.arg}' is not annotated"
 
 
 class Variant:
@@ -107,6 +111,9 @@ class Variant:
 
         Raises:
             AssertionError: To indicate incorrect usage, unless overridden.
+
+        Returns:
+            The wrapped callable's result when direct calls are enabled.
         """
         assert self._allow_call, (
             f"Variant '{self.__name__}' was called directly. "

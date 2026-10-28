@@ -7,7 +7,7 @@ class TestPYPHLEX:
     @classmethod
     def setup_class(cls):
         """Set up the test class."""
-        import phlexpy  # noqa: F401  # type: ignore[import-not-found]
+        import phlexpy  # type: ignore[import-not-found]  # noqa: F401
 
         __all__ = ["phlexpy"]  # noqa: F841  # For CodeQL
 

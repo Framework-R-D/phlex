@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
-import urllib.request
+import urllib.request  # noqa: F401  # patched by URL in these tests
 from io import BytesIO
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -31,7 +31,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # sys.path is set up by scripts/test/conftest.py.
-import codeql_reset_dismissed_alerts as M  # noqa: E402
+import codeql_reset_dismissed_alerts as M
 
 # ---------------------------------------------------------------------------
 # Helpers

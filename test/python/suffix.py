@@ -152,7 +152,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         )
         assert not "supposed to be here"
     except TypeError:
-        pass  # noqa
+        pass
 
     # observers with suffix
     m.observe(

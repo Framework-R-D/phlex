@@ -20,10 +20,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # sys.path is set up by scripts/test/conftest.py.
-import create_coverage_symlinks as ccs  # noqa: E402
-import export_llvm_lcov as ell  # noqa: E402
-import normalize_coverage_lcov as ncl  # noqa: E402
-import normalize_coverage_xml as ncx  # noqa: E402
+import create_coverage_symlinks as ccs
+import export_llvm_lcov as ell
+import normalize_coverage_lcov as ncl
+import normalize_coverage_xml as ncx
 
 # ===========================================================================
 # normalize_coverage_lcov

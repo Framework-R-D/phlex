@@ -1,7 +1,5 @@
 """Test mismatch between input labels and types."""
 
-from typing import Dict, List
-
 from phlex import Variant
 
 
@@ -13,7 +11,7 @@ def mismatch_func(a: int, b: int) -> int:
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""
     # test a range of possible errors in the annotation and product specifications
-    funky1 = List[int] | Dict[int, int]
+    funky1 = list[int] | dict[int, int]
     funky2 = b"\x80".decode("gbk", errors="surrogateescape")
     funky3 = ""  # empty string
 
