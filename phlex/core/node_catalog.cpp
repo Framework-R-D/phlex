@@ -1,8 +1,8 @@
 #include "phlex/core/node_catalog.hpp"
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/producer.hpp"
 #include "phlex/core/producer_catalog.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/source.hpp"
 
 #include <fmt/format.h>
@@ -16,15 +16,14 @@
 using namespace std::string_literals;
 
 namespace phlex::detail {
-  std::vector<products_consumer*> node_catalog::consumers() const
+  std::vector<consumer*> node_catalog::consumers() const
   {
     auto as_product_consumers = [](auto const& nodes) {
       return nodes | std::views::values |
-             std::views::transform(
-               [](auto const& node) -> products_consumer* { return node.get(); });
+             std::views::transform([](auto const& node) -> consumer* { return node.get(); });
     };
 
-    std::vector<products_consumer*> result;
+    std::vector<consumer*> result;
     result.append_range(as_product_consumers(predicates));
     result.append_range(as_product_consumers(observers));
     result.append_range(as_product_consumers(folds));

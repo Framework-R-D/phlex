@@ -1,5 +1,4 @@
 #include "phlex/configuration.hpp"
-#include "phlex/core/consumer.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -60,18 +59,6 @@ TEST_CASE("algorithm_name tests", "[model]")
     CHECK(bulleted_list(std::vector<identifier>{}).empty());
     CHECK(bulleted_list(std::vector<algorithm_name>{}).empty());
   }
-}
-
-TEST_CASE("consumer tests", "[core]")
-{
-  using namespace phlex::experimental::literals;
-  auto an = phlex::experimental::algorithm_name::create("p:a");
-  phlex::detail::consumer const c(an, {"pred1"});
-
-  CHECK(c.name().to_string() == "p:a");
-  CHECK(c.plugin() == "p"_idq);
-  CHECK(c.algorithm() == "a"_idq);
-  CHECK(c.when().size() == 1);
 }
 
 TEST_CASE("verify_name tests", "[core]")

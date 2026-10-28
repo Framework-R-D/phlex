@@ -1,10 +1,10 @@
 #include "phlex/core/filter.hpp"
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 
 #include <oneapi/tbb/flow_graph.h>
 
@@ -16,7 +16,7 @@ using namespace phlex::detail;
 using namespace oneapi::tbb;
 
 namespace phlex::detail {
-  filter::filter(flow::graph& g, products_consumer& consumer) :
+  filter::filter(flow::graph& g, consumer& consumer) :
     filter_base{g},
     decisions_{static_cast<unsigned int>(consumer.when().size())},
     data_{consumer.input()},
