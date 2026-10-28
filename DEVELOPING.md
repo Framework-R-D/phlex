@@ -14,7 +14,7 @@ Except in rare circumstances, changes to the `phlex` repository are proposed and
 
 ## Build and Test Verification
 
-Use [`scripts/verify.sh`](scripts/README.md#build-and-test-verification) to build
+[`scripts/verify.sh`](scripts/README.md#build-and-test-verification) can be used to build
 the project and then run all tests or only those matching a supplied test-name
 pattern. Tests run only after a successful build. The command returns a nonzero
 exit status if the build fails, no tests match the pattern, or any test fails.
@@ -31,7 +31,11 @@ Phlex supports comprehensive code coverage measurement using CMake's built-in co
 cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON /path/to/phlex/source
 
 # Build and run tests
-bash /path/to/phlex/scripts/verify.sh --build-dir .
+# either:
+/path/to/phlex/scripts/verify.sh --build-dir .
+# or:
+cmake --build . -j $(nproc)
+ctest -j $(nproc)
 
 # Generate coverage reports
 ninja coverage-xml    # XML report for CI/Codecov
