@@ -2,6 +2,7 @@
 #define PHLEX_CORE_MULTILAYER_JOIN_NODE_HPP
 
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
@@ -9,8 +10,7 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
-#include <optional>
-#include <ranges>
+#include <cstddef>
 #include <set>
 #include <string>
 #include <utility>
@@ -105,17 +105,17 @@ namespace phlex::detail {
       set_ports(std::make_index_sequence<NInputs>{});
     }
 
-    // Returns one named_index_port per repeater so that the index router can deliver
-    // flush and index messages to each repeater.  Returns an empty list when no repeaters
-    // were constructed (all inputs share the same layer).
-    std::vector<named_index_port> index_ports()
+    // Register the product-driven invocation domain and each repeater's receivers.
+    // No participants are needed when all inputs share the same layer.
+    join_registration index_ports()
     {
-      std::vector<named_index_port> result;
-      result.reserve(repeaters_.size());
-      for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
-        // Leave counting layer unset so the router balances this slot's flush token
-        // against the node's deepest layer.
-        result.emplace_back(layer, std::nullopt, &repeater->flush_port(), &repeater->index_port());
+      join_registration result{.input_layers = layers_, .participants = {}};
+      result.participants.reserve(repeaters_.size());
+      for (std::size_t i = 0; i != repeaters_.size(); ++i) {
+        result.participants.push_back({.layer = layers_[i],
+                                       .index_port = &repeaters_[i]->index_port(),
+                                       .completion_port = &repeaters_[i]->flush_port(),
+                                       .input_ordinal = i});
       }
       return result;
     }
@@ -134,7 +134,7 @@ namespace phlex::detail {
     // Stateless placeholder used instead of multilayer_join_node when a node has only a
     // single input (no joining is required).
     struct no_join {
-      static named_index_ports index_ports() { return {}; }
+      static join_registration index_ports() { return {}; }
     };
 
     // Maps the number of inputs to the appropriate join type: a real multilayer_join_node
