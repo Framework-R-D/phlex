@@ -1,6 +1,7 @@
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "test/ostream_logger.hpp"

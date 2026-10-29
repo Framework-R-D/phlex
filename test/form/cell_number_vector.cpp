@@ -58,7 +58,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   m.transform(
      "stamp",
      [](std::vector<int> const& values) {
-       thread_local std::mt19937 gen{std::random_device{}()};
+       static thread_local std::mt19937 gen{std::random_device{}()};
        std::this_thread::sleep_for(
          std::chrono::microseconds(std::uniform_int_distribution<int>(0, 2000)(gen)));
        return values;
