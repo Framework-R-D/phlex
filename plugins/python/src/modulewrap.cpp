@@ -709,20 +709,24 @@ namespace {
 
       // TODO: because of unresolved ownership issues, copy the full array contents
       if (PyArray_Check(pyobj)) {
-        PyArrayObject const* arr = reinterpret_cast<PyArrayObject*>(pyobj);
-
-        // TODO: flattening the array here seems to be the only workable solution
-        npy_intp const* dims = PyArray_DIMS(arr);
-        int const nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i) {
-          total *= static_cast<size_t>(dims[i]);
+        // insist on a C-contiguous, aligned array; in theory it could be copied
+        // element-by element, flattening the array, but this copy is already bad
+        // enough; can reconsider when we support a non-copying return
+        py_owned const carr{PyArray_FROMANY(pyobj, NpType, 0, 0, NPY_ARRAY_IN_ARRAY)};
+        if (!carr) {
+          std::string msg;
+          msg_from_py_error(msg, false);
+          Py_DECREF(pyobj);
+          throw std::runtime_error("Array conversion error for type " + std::string{Name.view()} +
+                                   ": " + msg);
         }
 
-        // copy the array info; note that this assumes C continuity
+        auto* arr = reinterpret_cast<PyArrayObject*>(carr.get());
+        auto const total = static_cast<size_t>(PyArray_SIZE(arr));
         auto* raw = static_cast<T*>(PyArray_DATA(arr));
         vec->reserve(total);
         vec->insert(vec->end(), raw, raw + total);
+
       } else if (PyList_Check(pyobj)) {
         Py_ssize_t const total = PyList_Size(pyobj);
         vec->reserve(total);
@@ -739,9 +743,12 @@ namespace {
         }
       } else {
         std::string msg;
-        if (msg_from_py_error(msg, true)) {
-          throw std::runtime_error("List conversion error: " + msg);
+        if (!msg_from_py_error(msg, true)) {
+          msg = std::string{"expected list or ndarray, got "} + Py_TYPE(pyobj)->tp_name;
         }
+        Py_DECREF(pyobj);
+        throw std::runtime_error("List conversion error for type " + std::string{Name.view()} +
+                                 ": " + msg);
       }
 
       Py_DECREF(pyobj);
@@ -931,6 +938,8 @@ namespace {
     if (output_suffixes.size() > 1) {
       PyErr_SetString(PyExc_TypeError, "only a single output supported");
       return nullptr;
+    } else if (output_suffixes.empty() && PyErr_Occurred()) {
+      return nullptr; // Python error already set
     }
 
     // retrieve C++ (matching) types if provided
