@@ -9,7 +9,6 @@
 #include "storage/istorage.hpp"
 
 #include <cstdint>
-#include <cstring>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -25,12 +24,7 @@ namespace form::detail::experimental {
   }
 }
 
-persistence_reader::persistence_reader() :
-  store_reader_(create_storage_reader()),
-  config_items_(),
-  tech_settings_() // constructor takes form config
-{
-}
+persistence_reader::persistence_reader() : store_reader_(create_storage_reader()) {}
 
 void persistence_reader::configure_tech_settings(
   form::experimental::config::tech_setting_config const& tech_config_settings)

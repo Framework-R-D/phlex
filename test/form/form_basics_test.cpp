@@ -1786,6 +1786,8 @@ TEST_CASE("stage: an empty stage is written like any other stage", "[form]")
 
 TEST_CASE("stage: different creators at different stages each get their own stream", "[form]")
 {
+  // False positive: staged_writer::form retains unique_ptr ownership; leak-sanitizer test passes.
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   auto writer = make_staged_writer({"hits", "showers"});
   int const payload = 0;
   auto& form = *writer.form;
