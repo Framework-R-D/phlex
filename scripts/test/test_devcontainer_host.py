@@ -782,6 +782,7 @@ def test_setup_spack_environment_sources_spack_root_when_command_is_missing(tmp_
     fixture.write_text(definitions)
     command_script = "\n".join(
         (
+            "unset -f spack",
             'source "$1"',
             '[[ -n "${SPACK_ROOT:-}" ]]',
             "if command -v spack >/dev/null 2>&1; then exit 99; fi",
@@ -792,8 +793,6 @@ def test_setup_spack_environment_sources_spack_root_when_command_is_missing(tmp_
     env = {
         key: value for key, value in os.environ.items() if not key.startswith(("PHLEX_", "SPACK_"))
     }
-    # Remove the inherited Spack function so restricting PATH makes spack unavailable.
-    env.pop("BASH_FUNC_spack%%", None)
     env.update(SPACK_ROOT=str(tmp_path), PATH="/usr/bin:/bin")
     result = subprocess.run(
         ["bash", "-c", command_script, "bash", str(fixture)],
