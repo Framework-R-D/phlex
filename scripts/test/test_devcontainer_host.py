@@ -782,6 +782,7 @@ def test_setup_spack_environment_sources_spack_root_when_command_is_missing(tmp_
     fixture.write_text(definitions)
     command_script = "\n".join(
         (
+            "unset -f spack",
             'source "$1"',
             '[[ -n "${SPACK_ROOT:-}" ]]',
             "if command -v spack >/dev/null 2>&1; then exit 99; fi",
