@@ -17,11 +17,13 @@
 #include <TTree.h>
 #include <gsl/pointers>
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
 
 using namespace form::detail::experimental;
 
@@ -86,7 +88,9 @@ void root_tbranch_read_container_imp::prime(std::type_info const& type)
   }
 }
 
-bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_info const& type)
+bool root_tbranch_read_container_imp::read(std::uint64_t id,
+                                           void const** data,
+                                           std::type_info const& type)
 {
   std::scoped_lock const guard(root_tbranch_read_mutex());
 
@@ -106,7 +110,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
   if (branch_ == nullptr) {
     throw std::runtime_error("root_tbranch_read_container_imp::read no branch found");
   }
-  if (id >= tree_->GetEntries()) {
+  if (std::cmp_greater_equal(id, tree_->GetEntries())) {
     return false;
   }
 
@@ -194,7 +198,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
       std::to_string(branch_status));
   }
 
-  Long64_t const tentry = tree_->LoadTree(id);
+  Long64_t const tentry = tree_->LoadTree(static_cast<Long64_t>(id));
   branch_->GetEntry(tentry);
   *data = branch_buffer;
 
@@ -204,7 +208,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
   return true;
 }
 
-int root_tbranch_read_container_imp::entries()
+std::uint64_t root_tbranch_read_container_imp::entries()
 {
   std::scoped_lock const guard(root_tbranch_read_mutex());
 
@@ -224,5 +228,5 @@ int root_tbranch_read_container_imp::entries()
   if (branch_ == nullptr) {
     throw std::runtime_error("root_tbranch_read_container_imp::entries no branch found");
   }
-  return static_cast<int>(tree_->GetEntries());
+  return static_cast<std::uint64_t>(tree_->GetEntries());
 }

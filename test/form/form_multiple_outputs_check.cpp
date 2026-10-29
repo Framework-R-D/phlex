@@ -95,7 +95,7 @@ namespace {
         checks.check(false, std::format("{} has a parsable data cell {}", what, id));
         continue;
       }
-      auto const row = static_cast<std::uint64_t>(storage.get_index(index, id, settings));
+      auto const row = storage.get_index(index, id, settings);
       token const location{
         file_name, build_full_label(row_space, product.product_name), technology, row};
       checks.check(matches_example(storage, location, product.product_name, *layers),

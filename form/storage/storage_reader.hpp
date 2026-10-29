@@ -6,6 +6,7 @@
 #include "istorage.hpp"
 #include "storage_utils.hpp"
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -19,9 +20,10 @@ namespace form::detail::experimental {
     storage_reader() = default;
     ~storage_reader() override = default;
 
-    int get_index(token const& token,
-                  std::string const& id,
-                  form::experimental::config::tech_setting_config const& settings) override;
+    std::uint64_t get_index(
+      token const& token,
+      std::string const& id,
+      form::experimental::config::tech_setting_config const& settings) override;
     void prime(token const& token,
                std::type_info const& type,
                form::experimental::config::tech_setting_config const& settings) override;
@@ -33,7 +35,7 @@ namespace form::detail::experimental {
                         form::experimental::config::tech_setting_config const& settings) override;
 
   private:
-    std::map<std::string, int> const& index_map(
+    std::map<std::string, std::uint64_t> const& index_map(
       token const& token, form::experimental::config::tech_setting_config const& settings);
 
     std::map<std::string, std::shared_ptr<i_storage_file>> files_;
@@ -41,7 +43,7 @@ namespace form::detail::experimental {
                        std::shared_ptr<i_storage_read_container>,
                        pair_hash>
       read_containers_;
-    std::map<std::pair<std::string, std::string>, std::map<std::string, int>> index_maps_;
+    std::map<std::pair<std::string, std::string>, std::map<std::string, std::uint64_t>> index_maps_;
   };
 
 } // namespace form::detail::experimental

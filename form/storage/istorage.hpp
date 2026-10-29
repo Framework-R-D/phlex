@@ -25,9 +25,10 @@ namespace form::detail::experimental {
     i_storage_reader() = default;
     virtual ~i_storage_reader() = default;
 
-    virtual int get_index(token const& token,
-                          std::string const& id,
-                          form::experimental::config::tech_setting_config const& settings) = 0;
+    virtual std::uint64_t get_index(
+      token const& token,
+      std::string const& id,
+      form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void prime(token const& token,
                        std::type_info const& type,
                        form::experimental::config::tech_setting_config const& settings) = 0;
@@ -99,8 +100,8 @@ namespace form::detail::experimental {
 
     virtual void set_file(std::shared_ptr<i_storage_file> file) = 0;
     virtual void prime(std::type_info const& type) = 0;
-    virtual bool read(int id, void const** data, std::type_info const& type) = 0;
-    virtual int entries() = 0;
+    virtual bool read(std::uint64_t id, void const** data, std::type_info const& type) = 0;
+    virtual std::uint64_t entries() = 0;
 
     virtual void set_attribute(std::string const& name, std::string const& value) = 0;
   };
