@@ -146,6 +146,58 @@ ninja -C build
 - This is informational - builds will still work
 - Install Ninja for faster builds: `apt install ninja-build`
 
+## Build and Test Verification
+
+### verify.sh
+
+Use this command by default for local verification, whether you or an agent runs
+the tests. Run it in an initialized build environment with a configured build.
+It builds first, lists the selected CTests, and executes the same selection with
+`--no-tests=error`. A failed discovery, project selection, build, listing, or test
+stops verification and preserves the failing command's exit status. Build and test
+output is passed through without truncation.
+
+Standalone builds and CTest execution request parallel jobs using the tools'
+defaults; no platform-specific core-count command is required.
+
+This command runs the selected CTests locally; it does not start a CI workflow.
+It does not enable coverage collection; use a normal configured build for local
+testing without coverage.
+
+```bash
+# MPD: discover the build directory and select/build in the same shell.
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^identifier$'
+
+# MPD: build and run the scripts unit test.
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit$'
+
+# Standalone: use an explicitly selected configured build directory.
+bash scripts/verify.sh --build-dir build --tests '^identifier$' --verbose
+
+# Omit --tests to build and run the entire suite.
+bash scripts/verify.sh --build-dir build
+```
+
+Use `--verbose` for detailed CTest evidence. A misspelled test pattern fails even
+though CTest's listing-only mode reports success for an empty selection. The MPD
+mode requires Spack on `PATH`; initialize its shell support before invoking the
+command.
+
+Use direct CTest or MPD test commands only for a deliberate test-only run when the
+build is already current. They do not rebuild. List the intended selection first,
+then execute the same selection with `--no-tests=error`:
+
+```bash
+# Standalone: test only, using a current build.
+ctest --test-dir build -R '^identifier$' -N && \
+  ctest --test-dir build -R '^identifier$' --output-on-failure --no-tests=error
+
+# MPD: select the project and run both commands in the same shell invocation.
+spack mpd select --project phlex-work-dir && \
+  spack mpd test -- -R '^scripts:unit$' -N && \
+  spack mpd test -- -R '^scripts:unit$' --output-on-failure --no-tests=error
+```
+
 ## Coverage Testing
 
 ### coverage.sh

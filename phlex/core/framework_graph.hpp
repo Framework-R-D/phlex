@@ -220,11 +220,11 @@ namespace phlex::detail {
     fixed_hierarchy fixed_hierarchy_;
     // The graph_ object uses the filters_, nodes_, resources_, and hierarchy_ objects implicitly.
     // These must be declared before graph_ so that they outlive it during destruction.
-    data_layer_hierarchy hierarchy_{};
+    data_layer_hierarchy hierarchy_;
     resource_catalog resources_;
     node_catalog nodes_;
     std::map<std::string, filter> filters_;
-    tbb::flow::graph graph_{};
+    tbb::flow::graph graph_;
     std::optional<framework_driver> driver_;
     std::vector<std::string> registration_errors_;
     data_cell_tracker cell_tracker_;

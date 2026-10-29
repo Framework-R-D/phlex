@@ -7,6 +7,7 @@
 #include "core/technology.hpp"
 #include "core/token.hpp"
 #include "form/config.hpp"
+#include "persistence/descriptor.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "persistence/persistence_reader.hpp"
@@ -24,6 +25,8 @@
 
 #include <TBranch.h>
 #include <TFile.h>
+#include <TList.h>
+#include <TNamed.h>
 #include <TTree.h>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
@@ -521,6 +524,58 @@ TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error"
 
   // Restore writability so container teardown (which writes the tree) does not error.
   raw_tfile->SetWritable(true);
+}
+
+TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "[form]")
+{
+  std::vector<std::pair<std::string, std::string>> const entries{
+    {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+    {std::string{descriptor_technologies_key}, "root_ttree,root_rntuple"}};
+
+  auto const suffix = form::technology::to_string(technology);
+
+  SECTION("no file attached")
+  {
+    root_tfile_imp file{"/nonexistent-directory-for-form-tests/x.root", 'o'};
+    CHECK_THROWS_AS(file.write_descriptor(entries), std::runtime_error);
+  }
+
+  SECTION("file is not writable")
+  {
+    root_tfile_imp file{"form_descriptor_readonly_" + suffix + ".root", 'o'};
+    auto raw = file.get_tfile();
+    REQUIRE(raw != nullptr);
+
+    raw->SetWritable(false);
+    CHECK_THROWS_AS(file.write_descriptor(entries), std::runtime_error);
+
+    raw->SetWritable(true);
+  }
+
+  SECTION("a writable file records the descriptor")
+  {
+    std::string const file_name = "form_descriptor_ok_" + suffix + ".root";
+    {
+      root_tfile_imp file{file_name, 'o'};
+      CHECK_NOTHROW(file.write_descriptor(entries));
+    } // closing the TFile flushes the descriptor to disk
+
+    std::unique_ptr<TFile> const reopened{TFile::Open(file_name.c_str(), "READ")};
+    REQUIRE(reopened != nullptr);
+    REQUIRE_FALSE(reopened->IsZombie());
+
+    std::unique_ptr<TList> const descriptor{
+      dynamic_cast<TList*>(reopened->Get(std::string{descriptor_object_name}.c_str()))};
+    REQUIRE(descriptor != nullptr);
+    descriptor->SetOwner(true); // the list owns the TNamed entries it just read back
+    CHECK(descriptor->GetSize() == static_cast<int>(entries.size()));
+
+    for (auto const& [key, value] : entries) {
+      auto const* named = dynamic_cast<TNamed const*>(descriptor->FindObject(key.c_str()));
+      REQUIRE(named != nullptr);
+      CHECK(std::string{named->GetTitle()} == value);
+    }
+  }
 }
 
 TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")

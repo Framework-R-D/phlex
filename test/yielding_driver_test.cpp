@@ -1,4 +1,5 @@
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/index_generator.hpp"
 #include "phlex/utilities/resumable_driver.hpp"
 

@@ -26,6 +26,8 @@ namespace {
   // NOLINTNEXTLINE(performance-unnecessary-value-param)
   std::vector<layer_path> unique_paths(std::vector<layer_path> paths)
   {
+    // clang-tidy doesn't recognize the following line as a move, so it produces a false positive.
+    // NOLINTNEXTLINE(misc-const-correctness)
     std::set<layer_path> unique{std::from_range, std::move(paths)};
     return {std::from_range, std::move(unique)};
   }

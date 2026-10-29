@@ -10,9 +10,7 @@
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
-#include <memory>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 

@@ -2,14 +2,19 @@
 
 #include "root_tfile.hpp"
 
+#include "persistence/descriptor.hpp"
 #include "storage/storage_file.hpp"
 
 #include <Compression.h>
 #include <TFile.h>
+#include <TList.h>
+#include <TNamed.h>
 
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace form::detail::experimental;
 root_tfile_imp::root_tfile_imp(std::string const& name, char mode) :
@@ -45,6 +50,32 @@ void root_tfile_imp::set_attribute(std::string const& key, std::string const& va
     file_->SetCompressionAlgorithm(compression);
   } else {
     throw std::runtime_error("root_tfile_imp does not recognize an attribute named " + key);
+  }
+}
+
+void root_tfile_imp::write_descriptor(
+  std::vector<std::pair<std::string, std::string>> const& entries)
+{
+  if (file_ == nullptr) {
+    throw std::runtime_error("root_tfile_imp::write_descriptor no file attached for " + name());
+  }
+
+  // TList::Add() takes a non-owning TObject*, so the entries are owned here and the list only
+  // borrows them. Reserving up front keeps those pointers stable while the list is filled.
+  std::vector<TNamed> named;
+  named.reserve(entries.size());
+  for (auto const& [key, value] : entries) {
+    named.emplace_back(key.c_str(), value.c_str());
+  }
+
+  TList list;
+  for (auto& entry : named) {
+    list.Add(&entry);
+  }
+
+  if (file_->WriteObject(&list, std::string{descriptor_object_name}.c_str()) <= 0) {
+    throw std::runtime_error("root_tfile_imp::write_descriptor failed to write the descriptor to " +
+                             name());
   }
 }
 

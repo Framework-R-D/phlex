@@ -128,6 +128,17 @@ std::uint64_t storage_writer::fill_container(placement const& plcmnt,
   return cont->second->fill(data);
 }
 
+void storage_writer::write_descriptor(
+  std::string const& file_name, std::vector<std::pair<std::string, std::string>> const& entries)
+{
+  auto const file = files_.find(file_name);
+  if (file == files_.end()) {
+    throw std::runtime_error("storage_writer::write_descriptor no file named '" + file_name +
+                             "' was created; refusing to leave it undescribed");
+  }
+  file->second->write_descriptor(entries);
+}
+
 void storage_writer::commit_containers(placement const& plcmnt)
 {
   auto cont = write_containers_.find(plcmnt);

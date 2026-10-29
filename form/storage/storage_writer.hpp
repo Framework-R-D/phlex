@@ -26,6 +26,8 @@ namespace form::detail::experimental {
                                  void const* data,
                                  std::type_info const& type) override;
     void commit_containers(placement const& plcmnt) override;
+    void write_descriptor(std::string const& file_name,
+                          std::vector<std::pair<std::string, std::string>> const& entries) override;
 
   private:
     std::map<std::string, std::shared_ptr<i_storage_file>> files_;

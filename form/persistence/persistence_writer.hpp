@@ -145,6 +145,7 @@ namespace form::detail::experimental {
 
     void write_navigation_tables();
     void write_product_dictionaries();
+    void write_descriptors();
 
     /// Create one container for each table column and return their placements in column order.
     std::vector<placement> create_table_columns(std::string const& file_name,
@@ -167,6 +168,9 @@ namespace form::detail::experimental {
 
     /// Navigation tables grouped by destination and hierarchy.
     std::map<navigation_key, navigation_table> navigation_tables_;
+
+    /// Technologies planned for each output file.
+    std::map<std::string, std::set<technology::id>> planned_technologies_;
 
     /// (file, technology, container name) -> the hierarchy holding that name.
     std::map<std::tuple<std::string, technology::id, std::string>, cell_hierarchy>
