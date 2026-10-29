@@ -147,13 +147,11 @@ namespace {
     form::experimental::config::tech_setting_config const settings{};
     auto const row = reader.get_index(index_token_of(file_name, creator), id, settings);
     void const* raw = nullptr;
-    reader.read_container(token{file_name,
-                                build_full_label(row_space(creator), "prod"),
-                                technology,
-                                static_cast<std::uint64_t>(row)},
-                          &raw,
-                          typeid(std::vector<int>),
-                          settings);
+    reader.read_container(
+      token{file_name, build_full_label(row_space(creator), "prod"), technology, row},
+      &raw,
+      typeid(std::vector<int>),
+      settings);
     std::unique_ptr<std::vector<int> const> const payload{
       static_cast<std::vector<int> const*>(raw)};
     REQUIRE(payload != nullptr);
@@ -621,8 +619,7 @@ TEST_CASE("storage_reader get_index: cells written out of order resolve to their
     form::experimental::config::tech_setting_config const settings{};
     CHECK(reader.list_indices(index_token_of(file_name, creator), settings) == ids_of(cells));
     for (std::size_t row = 0; row != cells.size(); ++row) {
-      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) ==
-            static_cast<int>(row));
+      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) == row);
       CHECK(read_cell(reader, file_name, creator, cells[row].id) == payload_of(cells[row]));
     }
   };
@@ -670,8 +667,7 @@ TEST_CASE("storage_reader get_index: index maps are kept per file", "[form]")
   for (std::size_t row = 0; row != first_cells.size(); ++row) {
     for (auto const& [file_name, cells] :
          {std::pair{first_file, first_cells}, std::pair{second_file, second_cells}}) {
-      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) ==
-            static_cast<int>(row));
+      CHECK(reader.get_index(index_token_of(file_name, creator), cells[row].id, settings) == row);
       CHECK(read_cell(reader, file_name, creator, cells[row].id) == payload_of(cells[row]));
     }
   }

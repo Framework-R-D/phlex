@@ -33,6 +33,43 @@ namespace {
     static std::mutex m;
     return m;
   }
+
+  // Allocates a buffer for a fundamental branch type; the caller owns it.
+  gsl::owner<void*> new_fundamental(Int_t data_type, std::type_info const& type)
+  {
+    switch (data_type) {
+    case kChar_t:
+      return new Char_t;
+    case kUChar_t:
+      return new UChar_t;
+    case kShort_t:
+      return new Short_t;
+    case kUShort_t:
+      return new UShort_t;
+    case kInt_t:
+      return new Int_t;
+    case kUInt_t:
+      return new UInt_t;
+    case kLong_t:
+      return new Long_t;
+    case kULong_t:
+      return new ULong_t;
+    case kLong64_t:
+      return new Long64_t;
+    case kULong64_t:
+      return new ULong64_t;
+    case kFloat_t:
+      return new Float_t;
+    case kDouble_t:
+      return new Double_t;
+    case kBool_t:
+      return new Bool_t;
+    default:
+      throw std::runtime_error(
+        std::string{"root_tbranch_read_container_imp::read unsupported fundamental type: "} +
+        demangle_name(type));
+    }
+  }
 }
 
 root_tbranch_read_container_imp::root_tbranch_read_container_imp(std::string const& name) :
@@ -127,51 +164,7 @@ bool root_tbranch_read_container_imp::read(std::uint64_t id,
   if (dict_info->Property() & EProperty::kIsFundamental) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto* fund_info = static_cast<TDataType*>(dict_info); // Already checked to be fundamental
-    switch (fund_info->GetType()) {
-    case kChar_t:
-      branch_buffer = new Char_t;
-      break;
-    case kUChar_t:
-      branch_buffer = new UChar_t;
-      break;
-    case kShort_t:
-      branch_buffer = new Short_t;
-      break;
-    case kUShort_t:
-      branch_buffer = new UShort_t;
-      break;
-    case kInt_t:
-      branch_buffer = new Int_t;
-      break;
-    case kUInt_t:
-      branch_buffer = new UInt_t;
-      break;
-    case kLong_t:
-      branch_buffer = new Long_t;
-      break;
-    case kULong_t:
-      branch_buffer = new ULong_t;
-      break;
-    case kLong64_t:
-      branch_buffer = new Long64_t;
-      break;
-    case kULong64_t:
-      branch_buffer = new ULong64_t;
-      break;
-    case kFloat_t:
-      branch_buffer = new Float_t;
-      break;
-    case kDouble_t:
-      branch_buffer = new Double_t;
-      break;
-    case kBool_t:
-      branch_buffer = new Bool_t;
-      break;
-    default:
-      throw std::runtime_error(
-        std::string{"root_tbranch_read_container_imp::read unsupported fundamental type: "} +
-        demangle_name(type));
-    };
+    branch_buffer = new_fundamental(fund_info->GetType(), type);
     branch_status = tree_->SetBranchAddress(
       col_name().c_str(), branch_buffer, nullptr, EDataType(fund_info->GetType()), false);
   } else {
@@ -198,8 +191,8 @@ bool root_tbranch_read_container_imp::read(std::uint64_t id,
       std::to_string(branch_status));
   }
 
-  Long64_t const tentry = tree_->LoadTree(static_cast<Long64_t>(id));
-  branch_->GetEntry(tentry);
+  // ROOT addresses entries as Long64_t; id < GetEntries() was checked above.
+  branch_->GetEntry(tree_->LoadTree(static_cast<Long64_t>(id)));
   *data = branch_buffer;
 
   // Reset the branch address to avoid unwanted ownership issues.
