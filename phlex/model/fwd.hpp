@@ -29,6 +29,8 @@ namespace phlex::detail {
 }
 
 namespace phlex::experimental {
+  class data_product_concept;
+  class data_product_concept_registry;
   class product_store;
 
   using product_store_const_ptr = std::shared_ptr<product_store const>;
