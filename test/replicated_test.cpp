@@ -21,7 +21,7 @@ namespace {
 
     auto increment(unsigned int i)
     {
-      thread_counter c{counter};
+      thread_counter const c{counter};
       ++processed_messages;
       return i;
     }

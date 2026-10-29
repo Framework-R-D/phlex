@@ -27,6 +27,7 @@ Checks:
   - '-modernize-use-nodiscard'
   - 'performance-*'
   - 'portability-*'
+  - '-portability-template-virtual-member-function'
   - 'readability-*'
   - '-readability-function-cognitive-complexity'
   - '-readability-identifier-length'
@@ -114,6 +115,7 @@ CheckOptions:
   - key: misc-include-cleaner.IgnoreHeaders
     value: >-
       __[^/]+/.*;
+      bits/.*;
       .*python[0-9.]+/.*;
       boost/mp11/detail/.*;
       boost/program_options/.*

@@ -7,6 +7,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 // NOLINTBEGIN(readability-identifier-naming)
 // Forward declarations of ROOT classes
@@ -21,6 +23,8 @@ namespace form::detail::experimental {
     ~root_tfile_imp() override;
 
     void set_attribute(std::string const& key, std::string const& value) override;
+
+    void write_descriptor(std::vector<std::pair<std::string, std::string>> const& entries) override;
 
     std::shared_ptr<TFile> get_tfile();
 

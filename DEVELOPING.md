@@ -12,6 +12,16 @@ Except in rare circumstances, changes to the `phlex` repository are proposed and
 > - Both external contributors and framework developers are expected to abide by this contribution policy.
 > - Even if you are a contributor with merge privileges, your PR should be reviewed by someone else before being merged into the `main` branch.
 
+## Build and Test Verification
+
+[`scripts/verify.sh`](scripts/README.md#build-and-test-verification) can be used to build
+the project and then run all tests or only those matching a supplied test-name
+pattern. Tests run only after a successful build. The command returns a nonzero
+exit status if the build fails, no tests match the pattern, or any test fails.
+For an MPD project, it discovers the build directory automatically; for a
+standalone build, supply the build directory explicitly. Test-only runs do not
+establish build freshness; use them only when the build is already current.
+
 ## Building with Coverage
 
 Phlex supports comprehensive code coverage measurement using CMake's built-in coverage support:
@@ -21,6 +31,9 @@ Phlex supports comprehensive code coverage measurement using CMake's built-in co
 cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON /path/to/phlex/source
 
 # Build and run tests
+# either:
+/path/to/phlex/scripts/verify.sh --build-dir .
+# or:
 cmake --build . -j $(nproc)
 ctest -j $(nproc)
 
