@@ -988,8 +988,7 @@ namespace {
       // to be properly types, so every option is made explicit
 
       std::string const& pyname = input_converter_name(cname, i);
-      std::string const output =
-        "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
+      std::string const output = "py_" + (inp_pq.suffix ? std::string{inp_pq.suffix->text()} : "");
 
       if (inp_type == "bool") {
         insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
@@ -1194,7 +1193,7 @@ namespace {
                                             product_selector const& selector)
   {
     std::string const suffix =
-      "py_" + (selector.suffix ? std::string{static_cast<std::string_view>(*selector.suffix)} : "");
+      "py_" + (selector.suffix ? std::string{selector.suffix->text()} : "");
     return {.creator = identifier(input_converter_name(name, index)),
             .layer = selector.layer,
             .suffix = identifier(suffix)};
@@ -1382,8 +1381,7 @@ namespace {
       auto make_product_selector = [&](size_t i) {
         auto const& pq = input_selectors[i];
         std::string const c = input_converter_name(cname, i);
-        std::string const suff =
-          "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
+        std::string const suff = "py_" + (pq.suffix ? std::string{pq.suffix->text()} : "");
 
         // make a copy of "layer" so we can move it without involving a temporary
         // identifier (which will fail, if no layer was specified)
@@ -1670,7 +1668,7 @@ namespace {
 
     algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
     identifier const layer = opq.value().layer;
-    identifier const suffix = opq.value().suffix.value_or("");
+    identifier const suffix{opq.value().suffix.value_or("").text()};
 
     // Provider callbacks retain the callable for the graph lifetime. A translator node
     // cannot be used here because sources do not have a module for adding one.

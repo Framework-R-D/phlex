@@ -1,5 +1,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/consumer.hpp"
+#include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -18,21 +19,33 @@ TEST_CASE("algorithm_name tests", "[model]")
   using namespace phlex::detail;
   using namespace phlex::experimental;
 
-  SECTION("Default constructor")
+  SECTION("Empty creator name is rejected")
   {
-    algorithm_name const an;
-    CHECK(an.to_string().empty());
+    CHECK_THROWS_AS(algorithm_name::create(""), std::runtime_error);
+    CHECK_THROWS_AS(algorithm_name(""), std::runtime_error);
   }
   SECTION("Create from string with colon")
   {
+    using namespace phlex::experimental::literals;
     auto an = algorithm_name::create("plugin:algo");
     CHECK(an.to_string() == "plugin:algo");
+    CHECK(an.plugin().text() == "plugin");
+    CHECK(an.algorithm() == "algo"_id);
   }
-  SECTION("Create from string without colon")
+  SECTION("Create from string without colon has an explicitly empty plugin")
   {
+    using namespace phlex::experimental::literals;
     auto an = algorithm_name::create("algo");
     // For 'either' cases, the word is stored as algorithm_
     CHECK(an.to_string() == "algo");
+    CHECK(an.plugin().empty());
+    CHECK(an.algorithm() == "algo"_id);
+  }
+  SECTION("Create rejects invalid components")
+  {
+    CHECK_THROWS_AS(algorithm_name::create(":find_hits"), std::runtime_error);
+    CHECK_THROWS_AS(algorithm_name::create("reco:"), std::runtime_error);
+    CHECK_THROWS_AS(algorithm_name::create(":"), std::runtime_error);
   }
   SECTION("Create from char pointer")
   {
@@ -65,13 +78,72 @@ TEST_CASE("algorithm_name tests", "[model]")
 TEST_CASE("consumer tests", "[core]")
 {
   using namespace phlex::experimental::literals;
-  auto an = phlex::experimental::algorithm_name::create("p:a");
-  phlex::detail::consumer const c(an, {"pred1"});
 
-  CHECK(c.name().to_string() == "p:a");
-  CHECK(c.plugin() == "p"_idq);
-  CHECK(c.algorithm() == "a"_idq);
-  CHECK(c.when().size() == 1);
+  SECTION("Qualified creator has a present plugin")
+  {
+    auto an = phlex::experimental::algorithm_name::create("p:a");
+    phlex::detail::consumer const c(an, {"pred1"});
+
+    CHECK(c.name().to_string() == "p:a");
+    CHECK_FALSE(c.plugin().empty());
+    CHECK(c.plugin().text() == "p");
+    CHECK(c.algorithm() == "a"_idq);
+    CHECK(c.when().size() == 1);
+  }
+
+  SECTION("Unqualified creator has an explicitly empty plugin")
+  {
+    auto an = phlex::experimental::algorithm_name::create("a");
+    phlex::detail::consumer const c(an, {});
+
+    CHECK(c.name().to_string() == "a");
+    CHECK(c.plugin().empty());
+    CHECK(c.plugin() == phlex::experimental::identifier_or_empty{});
+    CHECK(c.algorithm() == "a"_idq);
+    CHECK(c.when().empty());
+  }
+}
+
+TEST_CASE("make_algorithm_name tests", "[core]")
+{
+  using namespace phlex::experimental;
+  using namespace phlex::experimental::literals;
+  using phlex::experimental::internal::make_algorithm_name;
+
+  SECTION("A null configuration gives an absent plugin")
+  {
+    auto const name = make_algorithm_name(nullptr, "algo");
+    CHECK(name.plugin().empty());
+    CHECK(name.algorithm() == "algo"_id);
+    CHECK(name.to_string() == "algo");
+  }
+
+  SECTION("A configured module label is the plugin")
+  {
+    boost::json::object obj;
+    obj["module_label"] = "my_module";
+    phlex::configuration const config{obj};
+
+    auto const name = make_algorithm_name(&config, "algo");
+    CHECK_FALSE(name.plugin().empty());
+    CHECK(name.plugin().text() == "my_module");
+    CHECK(name.algorithm() == "algo"_id);
+    CHECK(name.to_string() == "my_module:algo");
+  }
+
+  SECTION("A configuration without a module label is an error, not an absent plugin")
+  {
+    phlex::configuration const config{boost::json::object{}};
+    CHECK_THROWS_AS(make_algorithm_name(&config, "algo"), std::runtime_error);
+  }
+
+  SECTION("A configured empty module label is an error, not an absent plugin")
+  {
+    boost::json::object obj;
+    obj["module_label"] = "";
+    phlex::configuration const config{obj};
+    CHECK_THROWS_AS(make_algorithm_name(&config, "algo"), std::runtime_error);
+  }
 }
 
 TEST_CASE("verify_name tests", "[core]")

@@ -15,6 +15,7 @@
 #include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
 #include "storage/factories.hpp"
@@ -686,6 +687,110 @@ TEST_CASE("form_writer_interface creates containers once across events", "[form]
   CHECK(spy_raw->create_calls == 1);
   CHECK(spy_raw->written_containers.size() == 2);
   CHECK(spy_raw->commit_calls == 2);
+}
+
+TEST_CASE("FORM writer persists explicit empty and named suffix text", "[form]")
+{
+  using namespace form::experimental::config;
+  using namespace phlex::experimental;
+
+  product_specification const empty{
+    algorithm_name{"tracker"}, empty_string{}, make_type_id<std::string>()};
+  product_specification const named{
+    algorithm_name{"tracker"}, identifier{"Hits_2"}, make_type_id<std::string>()};
+  std::string const empty_payload{"empty suffix payload"};
+  std::string const named_payload{"named suffix payload"};
+  std::vector<form::experimental::product_with_name> const products{
+    {std::string{empty.suffix().text()}, &empty_payload, &typeid(std::string)},
+    {std::string{named.suffix().text()}, &named_payload, &typeid(std::string)}};
+
+  std::string const file_name = "form_suffix_text.root";
+  item_config cfg;
+  cfg.add_item("", file_name, form::technology::root_ttree);
+  cfg.add_item("Hits_2", file_name, form::technology::root_ttree);
+
+  SECTION("finalized dictionary preserves both labels and the existing layout without ROOT")
+  {
+    auto spy = std::make_unique<spy_storage_writer>();
+    auto* store = spy.get();
+    form::experimental::form_writer_interface writer{
+      cfg,
+      tech_setting_config{},
+      std::make_unique<form::detail::experimental::persistence_writer>(std::move(spy))};
+    writer.write("tracker", test_stage, event_cell(1), products);
+    writer.write("tracker", test_stage, event_cell(2), products);
+    writer.finalize();
+
+    CHECK(std::ranges::count(store->filled_containers, "root_ttree__tracker__test_stage/") == 2);
+    CHECK(std::ranges::count(store->filled_containers, "root_ttree__tracker__test_stage/Hits_2") ==
+          2);
+    auto const& dictionary = store->tables.at("nav_root_ttree_products");
+    CHECK(dictionary.columns == std::vector<std::string>{"product_name",
+                                                         "creator",
+                                                         "stage",
+                                                         "container_name",
+                                                         "hierarchy_key",
+                                                         "navigation_container",
+                                                         "navigation_column"});
+    using row = std::vector<std::string>;
+    CHECK(dictionary.rows == std::vector<row>{{"",
+                                               "tracker",
+                                               test_stage,
+                                               "root_ttree__tracker__test_stage/",
+                                               "event",
+                                               "nav_root_ttree_cells_event",
+                                               "tracker__test_stage_row"},
+                                              {"Hits_2",
+                                               "tracker",
+                                               test_stage,
+                                               "root_ttree__tracker__test_stage/Hits_2",
+                                               "event",
+                                               "nav_root_ttree_cells_event",
+                                               "tracker__test_stage_row"}});
+  }
+
+#ifdef USE_ROOT_STORAGE
+  SECTION("ROOT TTree stores the exact suffix text and reads both payloads back")
+  {
+    {
+      form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
+      writer.write("tracker", test_stage, event_cell(0), products);
+      writer.finalize();
+    }
+
+    // Reopen the finalized file and inspect persisted labels, not just in-memory conversions.
+    auto storage = create_storage_reader();
+    auto const check_text =
+      [&](std::string const& column, std::uint64_t row, std::string const& expected) {
+        void const* raw = nullptr;
+        storage->read_container(
+          token{file_name, "nav_root_ttree_products/" + column, form::technology::root_ttree, row},
+          &raw,
+          typeid(std::string),
+          tech_setting_config{});
+        std::unique_ptr<std::string const> const text{static_cast<std::string const*>(raw)};
+        REQUIRE(text != nullptr);
+        CHECK(*text == expected);
+      };
+    check_text("product_name", 0, "");
+    check_text("product_name", 1, "Hits_2");
+    check_text("container_name", 0, "root_ttree__tracker__test_stage/");
+    check_text("container_name", 1, "root_ttree__tracker__test_stage/Hits_2");
+
+    form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
+    for (auto product : products) {
+      CHECK(reader.indices("tracker", test_stage, product.label) ==
+            std::vector<std::string>{event_cell(0).id});
+      auto const expected = *static_cast<std::string const*>(product.data);
+      product.data = nullptr;
+      reader.read("tracker", test_stage, event_cell(0).id, product);
+      std::unique_ptr<std::string const> const payload{
+        static_cast<std::string const*>(product.data)};
+      REQUIRE(payload != nullptr);
+      CHECK(*payload == expected);
+    }
+  }
+#endif
 }
 
 TEST_CASE("form_writer_interface fans a product out to multiple destinations", "[form]")

@@ -28,7 +28,7 @@ namespace {
   using named_output_port = producer_catalog::named_output_port;
 
   bool providers_only(product_selector const& query,
-                      std::multimap<product_suffix_t, named_output_port> const& producers,
+                      std::multimap<suffix_t, named_output_port> const& producers,
                       identifier const& stage)
   {
     if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq &&
@@ -84,7 +84,7 @@ namespace {
 
   void check_postconditions(product_selector const& query,
                             std::vector<named_output_port const*> const& candidates,
-                            std::set<identifier> const& suffixes,
+                            std::set<suffix_t> const& suffixes,
                             std::set<algorithm_name> const& creators,
                             std::set<type_id> const& types)
   {
@@ -167,12 +167,12 @@ namespace phlex::detail {
     if (b == e) {
       spdlog::debug(
         "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
-        query.suffix.value_or("*"_id));
+        query.suffix ? query.suffix->text() : "*");
       return {};
     }
     std::vector<named_output_port const*> candidates;
 
-    std::set<experimental::identifier> suffixes;
+    std::set<experimental::suffix_t> suffixes;
     if (query.suffix.has_value()) {
       suffixes.insert(*query.suffix);
     }

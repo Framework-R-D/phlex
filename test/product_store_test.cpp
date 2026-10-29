@@ -13,6 +13,7 @@
 #include <gsl/pointers>
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -59,6 +60,75 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(*h == many_numbers);
   CHECK(h.suffix() == "numbers");
   CHECK(store->get_product<std::vector<int>>(gsl::make_not_null(&numbers_spec)) == many_numbers);
+}
+
+TEST_CASE("Product store lookup of creator-less specifications is exact", "[data model]")
+{
+  auto const creator = algorithm_name::create("test_algorithm");
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
+
+  auto const type = make_type_id<int>();
+  product_specification const creatorless{std::nullopt, "hits"_id, type};
+  product_specification const with_creator{creator, "hits"_id, type};
+  product_specification const other_creator{
+    algorithm_name::create("reco:find_hits"), "hits"_id, type};
+  product_specification parsed_creatorless{"/hits"};
+  product_specification parsed_suffix_only{"hits"};
+  parsed_creatorless.set_type(make_type_id<int>());
+  parsed_suffix_only.set_type(make_type_id<int>());
+
+  store->add_product(creatorless, 1);
+  store->add_product(with_creator, 2);
+
+  // Spellings of a creator-less specification find the same product once its type is supplied.
+  CHECK(parsed_creatorless == creatorless);
+  CHECK(parsed_suffix_only == creatorless);
+
+  CHECK(store->get_product<int>(gsl::make_not_null(&creatorless)) == 1);
+  CHECK(store->get_product<int>(gsl::make_not_null(&parsed_creatorless)) == 1);
+  CHECK(store->get_product<int>(gsl::make_not_null(&parsed_suffix_only)) == 1);
+  CHECK(store->get_product<int>(gsl::make_not_null(&with_creator)) == 2);
+
+  // A missing type is not a wildcard for a typed storage key.
+  product_specification const untyped{"hits"};
+  CHECK(untyped != creatorless);
+  CHECK_THROWS_WITH(
+    store->get_product<int>(gsl::make_not_null(&untyped)),
+    Catch::Matchers::ContainsSubstring("No product exists with the specification 'hits'."));
+
+  // A creator-less specification is not a wildcard, nor does it match a different creator.
+  CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),
+                    Catch::Matchers::ContainsSubstring(
+                      "No product exists with the specification 'reco:find_hits/hits'."));
+  CHECK(store->get_handle<int>(gsl::make_not_null(&creatorless)).suffix() == "hits");
+}
+
+TEST_CASE("Product store with the default source creator", "[data model]")
+{
+  auto const source = product_store::default_source();
+  CHECK(source.to_string() == "phlex_source");
+  CHECK(source.plugin() == empty_string{});
+  CHECK(source.algorithm() == "phlex_source"_id);
+  CHECK(source == algorithm_name::create("phlex_source"));
+
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&source), gsl::make_not_null(&stage));
+  CHECK(store->source() == source);
+
+  // Insertion of a product created by the source, and exact lookup by its specification.
+  auto const type = make_type_id<int>();
+  product_specification const from_source{source, "hits"_id, type};
+  product_specification const other_creator{
+    algorithm_name::create("test_algorithm"), "hits"_id, type};
+  store->add_product(from_source, 7);
+
+  CHECK(store->size() == 1ull);
+  CHECK(store->get_product<int>(gsl::make_not_null(&from_source)) == 7);
+  CHECK(store->get_handle<int>(gsl::make_not_null(&from_source)).suffix() == "hits");
+  CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&other_creator)),
+                    Catch::Matchers::ContainsSubstring(
+                      "No product exists with the specification 'test_algorithm/hits'."));
 }
 
 TEST_CASE("Product retrieval requires exactly one match", "[data model]")
