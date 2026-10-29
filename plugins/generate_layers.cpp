@@ -19,7 +19,6 @@
 #include "phlex/driver.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include <memory>
 #include <string>
 
 PHLEX_REGISTER_DRIVER(d, config)

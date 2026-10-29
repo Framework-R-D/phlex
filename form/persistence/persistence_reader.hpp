@@ -53,7 +53,7 @@ namespace form::detail::experimental {
 
     std::unique_ptr<i_storage_reader> store_reader_;
     form::experimental::config::item_config config_items_;
-    form::experimental::config::tech_setting_config tech_settings_;
+    form::experimental::config::tech_setting_config tech_settings_{};
   };
 
 } // namespace form::detail::experimental

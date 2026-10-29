@@ -353,7 +353,7 @@ namespace {
         break;
       }
 
-      Py_ssize_t sz = PyUnicode_GetLength(item);
+      Py_ssize_t const sz = PyUnicode_GetLength(item);
       cargs.emplace_back(p, static_cast<std::string::size_type>(sz));
     }
 
