@@ -95,4 +95,19 @@ args+=(--build-arg "PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}")
 echo "${args[*]}"
 
 cd "${PROJECT_SOURCE}/ci"
-exec "${args[@]}" .
+"${args[@]}" .
+
+# The devcontainer defaults to the published registry image; a locally built
+# image is only used when VS Code is launched with PHLEX_DEV_IMAGE set.
+if [ "$PHLEX_PODMAN_TARGET" = dev ]; then
+  cat <<EOF
+
+Built localhost/${PHLEX_TAG_LOCAL} for native ${PHLEX_SPACK_TARGET} development.
+To develop in this image instead of ${PHLEX_TAG_REMOTE}${PHLEX_TAG_BASE}:latest, fully quit
+VS Code and relaunch it from the repository root with:
+
+  PHLEX_DEV_IMAGE=localhost/${PHLEX_TAG_LOCAL} code .
+
+Then run "Dev Containers: Rebuild and Reopen in Container".
+EOF
+fi
