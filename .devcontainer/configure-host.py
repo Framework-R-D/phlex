@@ -11,34 +11,52 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Match the base image default in .devcontainer/Dockerfile and the CI workflows.
+# Match the base image default in .devcontainer/Dockerfile.
 DEFAULT_IMAGE = "ghcr.io/framework-r-d/phlex-dev:latest"
 NATIVE_PLATFORM = "linux/arm64"
 INSPECT_PLATFORM = ["podman", "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}"]
 
 
-def local_image_platform(image: str) -> str | None:
-    """Return the os/arch of a locally stored image, or None when it is not stored."""
-    try:
-        # A missing image is an expected outcome here, so keep Podman's error off stderr.
-        return subprocess.check_output(
-            [*INSPECT_PLATFORM, image], text=True, stderr=subprocess.DEVNULL
-        ).strip()
-    except subprocess.CalledProcessError:
-        return None
+def subprocess_cause(exc: subprocess.CalledProcessError) -> str:
+    """Keep captured diagnostics, with an exit-status fallback for silent failures."""
+    return (exc.stderr or "").strip() or f"exit status {exc.returncode}"
+
+
+def local_image_platform(image: str) -> str:
+    """Return the local os/arch, retaining failed inspection diagnostics for the caller."""
+    return subprocess.check_output(
+        [*INSPECT_PLATFORM, image], text=True, stderr=subprocess.PIPE
+    ).strip()
 
 
 def ensure_native_image(image: str) -> None:
     """Make a linux/arm64 member of the image available locally without emulation."""
-    image_platform = local_image_platform(image)
+    image_platform: str | None
+    inspection_error = None
+    try:
+        image_platform = local_image_platform(image)
+    except subprocess.CalledProcessError as exc:
+        image_platform = None
+        inspection_error = exc
     if image_platform is None and not image.startswith("localhost/"):
         # A local manifest list is not enough: Compose needs the native member in storage.
         # Pinning the platform prevents the engine from selecting an emulated amd64 member.
-        print(f"Pulling {NATIVE_PLATFORM} member of {image} ...", file=sys.stderr)
-        subprocess.check_output(
-            ["podman", "pull", "--platform", NATIVE_PLATFORM, image], text=True
-        )
-        image_platform = local_image_platform(image)
+        print(f"Pulling {NATIVE_PLATFORM} member of {image} ...")
+        try:
+            subprocess.check_output(
+                ["podman", "pull", "--platform", NATIVE_PLATFORM, image],
+                text=True,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise ValueError(
+                f"pull failed for {image}: {subprocess_cause(exc)}; "
+                f"run: podman pull --platform {NATIVE_PLATFORM} {image}"
+            ) from exc
+        try:
+            image_platform = local_image_platform(image)
+        except subprocess.CalledProcessError as exc:
+            inspection_error = exc
     if image_platform is None:
         if image.startswith("localhost/"):
             advice = (
@@ -47,7 +65,11 @@ def ensure_native_image(image: str) -> None:
             )
         else:
             advice = f"run: podman pull --platform {NATIVE_PLATFORM} {image}"
-        raise ValueError(f"{image} is not available in local Podman storage; {advice}")
+        cause = subprocess_cause(inspection_error) if inspection_error else "unresolved reference"
+        raise ValueError(
+            f"{image} is not available in local Podman storage; "
+            f"local inspection failed: {cause}; {advice}"
+        )
     if image_platform != NATIVE_PLATFORM:
         raise ValueError(
             f"{image} resolves to {image_platform}, not {NATIVE_PLATFORM}; "
@@ -68,6 +90,7 @@ def host_service(system: str, home: Path) -> dict:
                 "{{.Host.Arch}} {{.Host.Security.Rootless}} {{.Host.RemoteSocket.Path}}",
             ],
             text=True,
+            stderr=subprocess.PIPE,
         ).split()
         if len(info) != 3 or info[:2] != ["arm64", "true"]:
             raise ValueError(
@@ -108,7 +131,10 @@ def main() -> None:
         service = host_service(platform.system(), Path.home())
     except (ValueError, subprocess.CalledProcessError) as exc:
         # The Dev Containers log shows stderr; a one-line cause beats a traceback.
-        print(f"ERROR: {exc}", file=sys.stderr)
+        message = str(exc)
+        if isinstance(exc, subprocess.CalledProcessError):
+            message = f"{message}: {subprocess_cause(exc)}"
+        print(f"ERROR: {' '.join(message.split())}", file=sys.stderr)
         sys.exit(1)
     # JSON is also YAML, and safely quotes paths containing spaces or punctuation.
     fd, temporary = tempfile.mkstemp(prefix=".compose-host-", dir=target.parent)
