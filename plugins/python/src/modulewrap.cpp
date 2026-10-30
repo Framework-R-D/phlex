@@ -938,7 +938,8 @@ namespace {
     if (output_suffixes.size() > 1) {
       PyErr_SetString(PyExc_TypeError, "only a single output supported");
       return nullptr;
-    } else if (output_suffixes.empty() && PyErr_Occurred()) {
+    }
+    if (output_suffixes.empty() && PyErr_Occurred()) {
       return nullptr; // Python error already set
     }
 
