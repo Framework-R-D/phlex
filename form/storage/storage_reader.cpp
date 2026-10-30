@@ -9,6 +9,7 @@
 #include "storage/istorage.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -60,9 +61,10 @@ namespace form::detail::experimental {
   }
 }
 
-int storage_reader::get_index(token const& token,
-                              std::string const& id,
-                              form::experimental::config::tech_setting_config const& settings)
+std::uint64_t storage_reader::get_index(
+  token const& token,
+  std::string const& id,
+  form::experimental::config::tech_setting_config const& settings)
 {
   auto const& index = index_map(token, settings);
   auto const found = index.find(id);
@@ -113,7 +115,7 @@ std::vector<std::string> storage_reader::list_indices(
   return result;
 }
 
-std::map<std::string, int> const& storage_reader::index_map(
+std::map<std::string, std::uint64_t> const& storage_reader::index_map(
   token const& token, form::experimental::config::tech_setting_config const& settings)
 {
   auto const cont_key = std::make_pair(token.file_name(), token.container_name());
@@ -143,9 +145,9 @@ std::map<std::string, int> const& storage_reader::index_map(
     cont->second->set_file(file->second);
   }
 
-  std::map<std::string, int> index;
+  std::map<std::string, std::uint64_t> index;
   auto const& type = typeid(std::string);
-  int row = 0;
+  std::uint64_t row = 0;
   void const* raw_data = nullptr;
   while (cont->second->read(row, &raw_data, type)) {
     std::unique_ptr<std::string const> const id(static_cast<std::string const*>(raw_data));
@@ -189,6 +191,5 @@ void storage_reader::read_container(token const& token,
       cont->second->set_attribute(key, value);
     }
   }
-  // TODO: token::id() is a 64-bit row; the read container interface still takes an int entry. Narrow explicitly here (exact for all realistic row counts). Widening the read path to 64-bit is a follow-up PR.
-  cont->second->read(static_cast<int>(token.id()), data, type);
+  cont->second->read(token.id(), data, type);
 }

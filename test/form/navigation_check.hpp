@@ -117,7 +117,7 @@ namespace form::test {
     {
     }
 
-    std::optional<int> rows(std::string const& container)
+    std::optional<std::uint64_t> rows(std::string const& container)
     {
       try {
         return container_for(container)->entries();
@@ -134,7 +134,7 @@ namespace form::test {
       std::vector<T> values;
       try {
         auto const cont = container_for(container);
-        for (int row = 0, total = cont->entries(); row < total; ++row) {
+        for (std::uint64_t row = 0, total = cont->entries(); row < total; ++row) {
           void const* raw = nullptr;
           if (!cont->read(row, &raw, typeid(T))) {
             break;

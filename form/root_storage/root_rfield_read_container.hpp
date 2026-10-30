@@ -5,6 +5,7 @@
 
 #include "storage/storage_read_container.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -36,8 +37,8 @@ namespace form::detail::experimental {
 
     void set_file(std::shared_ptr<i_storage_file> file) override;
     void prime(std::type_info const& type) override;
-    bool read(int id, void const** data, std::type_info const& type) override;
-    int entries() override;
+    bool read(std::uint64_t id, void const** data, std::type_info const& type) override;
+    std::uint64_t entries() override;
 
   private:
     std::shared_ptr<TFile> tfile_;

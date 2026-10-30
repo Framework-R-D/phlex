@@ -8,6 +8,7 @@
 #include "persistence_utils.hpp"
 #include "storage/istorage.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -98,7 +99,7 @@ std::unique_ptr<token> persistence_reader::get_token(std::string const& creator,
   std::string const full_label = build_full_label(row_space, label);
   std::string const index_label = build_full_label(row_space, "index");
 
-  int const row_id = store_reader_->get_index(
+  std::uint64_t const row_id = store_reader_->get_index(
     token{config_item->file_name, index_label, config_item->technology}, id, tech_settings_);
   return std::make_unique<token>(
     config_item->file_name, full_label, config_item->technology, row_id);

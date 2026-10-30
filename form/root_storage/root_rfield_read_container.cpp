@@ -17,13 +17,13 @@
 #include <TFile.h> // IWYU pragma: keep
 
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
-#include <utility>
 
 namespace {
   std::mutex& root_rfield_read_mutex()
@@ -87,7 +87,9 @@ namespace form::detail::experimental {
     }
   }
 
-  bool root_rfield_read_container_imp::read(int id, void const** data, std::type_info const& type)
+  bool root_rfield_read_container_imp::read(std::uint64_t id,
+                                            void const** data,
+                                            std::type_info const& type)
   {
     std::scoped_lock const guard(root_rfield_read_mutex());
     try {
@@ -117,7 +119,7 @@ namespace form::detail::experimental {
     return true;
   }
 
-  int root_rfield_read_container_imp::entries()
+  std::uint64_t root_rfield_read_container_imp::entries()
   {
     std::scoped_lock const guard(root_rfield_read_mutex());
 
@@ -140,7 +142,7 @@ namespace form::detail::experimental {
                                " does not exist");
     }
 
-    return static_cast<int>(reader_->GetNEntries());
+    return static_cast<std::uint64_t>(reader_->GetNEntries());
   }
 
   void root_rfield_read_container_imp::create_view(std::type_info const& type)

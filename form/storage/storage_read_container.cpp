@@ -5,6 +5,7 @@
 #include "core/container_naming.hpp"
 #include "storage/istorage.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -27,14 +28,14 @@ void storage_read_container::set_file(std::shared_ptr<i_storage_file> file) { fi
 
 void storage_read_container::prime(std::type_info const& /*type*/) {}
 
-bool storage_read_container::read(int /* id*/,
+bool storage_read_container::read(std::uint64_t /* id*/,
                                   void const** /*data*/,
                                   std::type_info const& /* type*/)
 {
   return false;
 }
 
-int storage_read_container::entries() { return 0; }
+std::uint64_t storage_read_container::entries() { return 0; }
 
 void storage_read_container::set_attribute(std::string const& /*name*/,
                                            std::string const& /*value*/)
