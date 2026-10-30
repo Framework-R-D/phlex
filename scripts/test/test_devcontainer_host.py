@@ -25,11 +25,25 @@ def clean_image_override(monkeypatch):
     monkeypatch.delenv("PHLEX_ENABLE_NESTED_PODMAN", raising=False)
 
 
+REGISTRY_IMAGE = "ghcr.io/framework-r-d/phlex-dev:latest"
+PODMAN_INFO = "arm64 true unix:///run/user/550/podman/podman.sock"
+INSPECT_FAILURE = subprocess.CalledProcessError(125, "podman image inspect")
+
+
+def inspect_command(image):
+    """Expected platform inspection for one image reference."""
+    return ["podman", "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", image]
+
+
+def pull_command(image):
+    """Expected platform-pinned pull for one image reference."""
+    return ["podman", "pull", "--platform", "linux/arm64", image]
+
+
 def test_darwin_native_defaults(tmp_path):
-    """Use pasta and a local arm64 image without engine access or registry pulls."""
+    """Use pasta and the published image when its arm64 member is already stored locally."""
     with patch(
-        "subprocess.check_output",
-        side_effect=["arm64 true unix:///run/user/550/podman/podman.sock\n", "linux/arm64\n"],
+        "subprocess.check_output", side_effect=[PODMAN_INFO + "\n", "linux/arm64\n"]
     ) as command:
         service = HOST_SERVICE("Darwin", tmp_path)
     assert service["network_mode"] == "pasta"
@@ -37,24 +51,16 @@ def test_darwin_native_defaults(tmp_path):
     assert service["volumes"] == []
     assert "security_opt" not in service
     assert "environment" not in service
-    assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == "localhost/phlex-dev:latest"
-    assert command.call_args_list[1].args[0] == [
-        "podman",
-        "image",
-        "inspect",
-        "--format",
-        "{{.Os}}/{{.Architecture}}",
-        "localhost/phlex-dev:latest",
-    ]
+    assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == REGISTRY_IMAGE
+    assert command.call_count == 2
+    assert command.call_args_list[1].args[0] == inspect_command(REGISTRY_IMAGE)
+    assert command.call_args_list[1].kwargs["stderr"] == subprocess.PIPE
 
 
 def test_darwin_nested_podman_is_explicit(tmp_path, monkeypatch):
     """Only explicit opt-in grants engine access and disables SELinux labeling."""
     monkeypatch.setenv("PHLEX_ENABLE_NESTED_PODMAN", "1")
-    with patch(
-        "subprocess.check_output",
-        side_effect=["arm64 true /run/user/550/podman/podman.sock", "linux/arm64"],
-    ):
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, "linux/arm64"]):
         service = HOST_SERVICE("Darwin", tmp_path)
     assert service["volumes"] == ["/run/user/550/podman/podman.sock:/tmp/podman.sock:ro"]
     assert service["security_opt"] == ["label=disable"]
@@ -62,15 +68,13 @@ def test_darwin_nested_podman_is_explicit(tmp_path, monkeypatch):
 
 
 def test_darwin_explicit_native_image(tmp_path, monkeypatch):
-    """An override must be inspected locally before it is selected for macOS."""
+    """A locally built override is inspected and selected without any registry access."""
     monkeypatch.setenv("PHLEX_DEV_IMAGE", "localhost/phlex-dev:custom")
-    with patch(
-        "subprocess.check_output",
-        side_effect=["arm64 true /run/user/550/podman/podman.sock", "linux/arm64"],
-    ) as command:
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, "linux/arm64"]) as command:
         service = HOST_SERVICE("Darwin", tmp_path)
     assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == "localhost/phlex-dev:custom"
-    assert command.call_args.args[0][-1] == "localhost/phlex-dev:custom"
+    assert command.call_count == 2
+    assert command.call_args.args[0] == inspect_command("localhost/phlex-dev:custom")
 
 
 @pytest.mark.parametrize(
@@ -93,28 +97,23 @@ def test_darwin_rejects_wrong_backend(tmp_path, info):
 @pytest.mark.parametrize("image_platform", ["linux/amd64", "windows/arm64", "", "arm64"])
 def test_darwin_rejects_wrong_image_platform(tmp_path, image_platform):
     """Reject both incompatible OS/architecture and malformed inspection results."""
-    with patch(
-        "subprocess.check_output",
-        side_effect=["arm64 true /run/user/550/podman/podman.sock", image_platform],
-    ):
-        with pytest.raises(ValueError, match="does not resolve to a local linux/arm64 image"):
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, image_platform]) as command:
+        with pytest.raises(ValueError, match="not linux/arm64"):
             HOST_SERVICE("Darwin", tmp_path)
+    assert command.call_count == 2
 
 
 @pytest.mark.parametrize(
     "image",
     [
-        "ghcr.io/framework-r-d/phlex-dev:latest",
+        REGISTRY_IMAGE,
         "ghcr.io/framework-r-d/phlex-dev@sha256:" + "a" * 64,
     ],
 )
 def test_darwin_multiarch_reference_uses_local_native_member(tmp_path, monkeypatch, image):
     """A registry tag or index digest works when Podman resolves its native member locally."""
     monkeypatch.setenv("PHLEX_DEV_IMAGE", image)
-    with patch(
-        "subprocess.check_output",
-        side_effect=["arm64 true /run/user/550/podman/podman.sock", "linux/arm64"],
-    ) as command:
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, "linux/arm64"]) as command:
         service = HOST_SERVICE("Darwin", tmp_path)
     assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == image
     assert service["platform"] == "linux/arm64"
@@ -123,20 +122,77 @@ def test_darwin_multiarch_reference_uses_local_native_member(tmp_path, monkeypat
 
 
 @pytest.mark.parametrize("image", [None, "ghcr.io/framework-r-d/phlex-dev:multiarch"])
-def test_missing_image_does_not_fall_back(tmp_path, monkeypatch, image):
-    """An absent native image must not cause an automatic registry pull."""
+def test_missing_registry_member_pulls_native_platform(tmp_path, monkeypatch, image):
+    """A registry image absent from local storage is pulled with the platform pinned."""
     if image is not None:
         monkeypatch.setenv("PHLEX_DEV_IMAGE", image)
+    expected = image or REGISTRY_IMAGE
     with patch(
         "subprocess.check_output",
-        side_effect=[
-            "arm64 true /run/user/550/podman/podman.sock",
-            subprocess.CalledProcessError(125, "podman image inspect"),
-        ],
+        side_effect=[PODMAN_INFO, INSPECT_FAILURE, "", "linux/arm64"],
     ) as command:
-        with pytest.raises(subprocess.CalledProcessError):
-            HOST_SERVICE("Darwin", tmp_path)
+        service = HOST_SERVICE("Darwin", tmp_path)
+    assert service["build"]["args"]["PHLEX_DEV_IMAGE"] == expected
+    assert [call.args[0] for call in command.call_args_list[1:]] == [
+        inspect_command(expected),
+        pull_command(expected),
+        inspect_command(expected),
+    ]
+
+
+def test_failed_pull_reports_manual_command(tmp_path, monkeypatch, capsys):
+    """A failed pull surfaces the exact manual pull command rather than a traceback."""
+    with patch(
+        "subprocess.check_output",
+        side_effect=[PODMAN_INFO, INSPECT_FAILURE, subprocess.CalledProcessError(125, "pull")],
+    ) as command:
+        captured = _check_host_main_failure(
+            tmp_path,
+            monkeypatch,
+            capsys,
+            command,
+            f"run: podman pull --platform linux/arm64 {REGISTRY_IMAGE}",
+        )
+    assert command.call_count == 3
+    assert command.call_args.args[0] == pull_command(REGISTRY_IMAGE)
+    assert "pull failed" in captured.err
+    assert "exit status 125" in captured.err
+
+
+def test_pulled_image_still_missing_reports_manual_command(tmp_path, monkeypatch, capsys):
+    """An inspect failure after a pull fails closed with the manual pull command."""
+    with patch(
+        "subprocess.check_output",
+        side_effect=[PODMAN_INFO, INSPECT_FAILURE, "", INSPECT_FAILURE],
+    ) as command:
+        captured = _check_host_main_failure(
+            tmp_path,
+            monkeypatch,
+            capsys,
+            command,
+            f"run: podman pull --platform linux/arm64 {REGISTRY_IMAGE}",
+        )
+    assert command.call_count == 4
+    assert [call.args[0] for call in command.call_args_list[1:]] == [
+        inspect_command(REGISTRY_IMAGE),
+        pull_command(REGISTRY_IMAGE),
+        inspect_command(REGISTRY_IMAGE),
+    ]
+    assert "local inspection failed: exit status 125" in captured.err
+
+
+def test_missing_local_image_never_pulls(tmp_path, monkeypatch, capsys):
+    """A localhost/ reference cannot be pulled; advise a native build instead."""
+    monkeypatch.setenv("PHLEX_DEV_IMAGE", "localhost/phlex-dev:2026-01-01-aarch64")
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, INSPECT_FAILURE]) as command:
+        captured = _check_host_main_failure(
+            tmp_path, monkeypatch, capsys, command, "scripts/generate-image dev"
+        )
     assert command.call_count == 2
+    assert command.call_args.args[0] == inspect_command("localhost/phlex-dev:2026-01-01-aarch64")
+    assert all("pull" not in call.args[0] for call in command.call_args_list)
+    assert "PHLEX_DEV_IMAGE value it reports" in captured.err
+    assert "local inspection failed: exit status 125" in captured.err
 
 
 def test_linux_keeps_base_defaults(tmp_path):
@@ -180,6 +236,31 @@ def _patch_host_main(monkeypatch, target, home):
     monkeypatch.setattr(main_globals["Path"], "home", staticmethod(lambda: home))
 
 
+def _check_host_main_failure(tmp_path, monkeypatch, capsys, command, advice):
+    """Check the complete initializer failure contract, including captured Podman stderr."""
+    target = tmp_path / "docker-compose.host.yml"
+    previous = b"previous override\r\n# fixture: \xc3\xa9\n"
+    target.write_bytes(previous)
+    _patch_host_main(monkeypatch, target, tmp_path / "home")
+    monkeypatch.setattr(HOST_MAIN.__globals__["platform"], "system", lambda: "Darwin")
+    with pytest.raises(SystemExit) as status:
+        HOST_MAIN()
+    assert status.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.count("\n") == 1
+    assert captured.err.startswith("ERROR: ")
+    assert advice in captured.err
+    assert "Traceback" not in captured.err
+    assert target.read_bytes() == previous
+    assert list(target.parent.glob(".compose-host-*")) == []
+    for call in command.call_args_list:
+        assert call.kwargs["stderr"] == subprocess.PIPE
+        assert call.kwargs["text"] is True
+    pulls = [call.args[0] for call in command.call_args_list if call.args[0][1] == "pull"]
+    assert captured.out == (f"Pulling linux/arm64 member of {pulls[0][-1]} ...\n" if pulls else "")
+    return captured
+
+
 def test_main_atomically_writes_compose_override(tmp_path, monkeypatch):
     """The generated override replaces stale content and removes its same-dir temp file."""
     target = tmp_path / "checkout with spaces" / "docker-compose.host.yml"
@@ -219,6 +300,83 @@ def test_main_preserves_override_and_cleans_temp_on_replace_failure(tmp_path, mo
 
     assert target.read_text() == "previous override\n"
     assert list(target.parent.glob(".compose-host-*")) == []
+
+
+@pytest.mark.parametrize(
+    "info,advice",
+    [
+        ("invalid", "macOS development requires a running native arm64 rootless Podman VM"),
+        ("amd64 true /run/user/550/podman/podman.sock", "running native arm64 rootless Podman VM"),
+        ("arm64 false /run/podman/podman.sock", "running native arm64 rootless Podman VM"),
+        ("arm64 true /Users/someone/podman.sock", "Unexpected rootless VM socket"),
+    ],
+)
+def test_main_reports_selection_errors_without_traceback(
+    tmp_path, monkeypatch, capsys, info, advice
+):
+    """Initializer failures are a single stderr line and leave any prior override intact."""
+    with patch("subprocess.check_output", return_value=info) as command:
+        _check_host_main_failure(tmp_path, monkeypatch, capsys, command, advice)
+    assert command.call_count == 1
+
+
+@pytest.mark.parametrize("after_pull", [False, True])
+@pytest.mark.parametrize(
+    "image_platform", ["linux/amd64", "windows/arm64", "", "arm64", "linux/\namd64"]
+)
+def test_main_rejects_wrong_image_platform(
+    tmp_path, monkeypatch, capsys, after_pull, image_platform
+):
+    """Reject incompatible or malformed platforms both before and after a successful pull."""
+    outputs = (
+        [PODMAN_INFO, INSPECT_FAILURE, "", image_platform]
+        if after_pull
+        else [PODMAN_INFO, image_platform]
+    )
+    with patch("subprocess.check_output", side_effect=outputs) as command:
+        captured = _check_host_main_failure(
+            tmp_path, monkeypatch, capsys, command, "select a native image with PHLEX_DEV_IMAGE"
+        )
+    assert command.call_count == (4 if after_pull else 2)
+    assert [call.args[0] for call in command.call_args_list[1:]] == (
+        [
+            inspect_command(REGISTRY_IMAGE),
+            pull_command(REGISTRY_IMAGE),
+            inspect_command(REGISTRY_IMAGE),
+        ]
+        if after_pull
+        else [inspect_command(REGISTRY_IMAGE)]
+    )
+    assert "not linux/arm64" in captured.err
+
+
+@pytest.mark.parametrize("stage", ["info", "pull", "reinspection", "localhost"])
+def test_main_normalizes_captured_podman_diagnostics(tmp_path, monkeypatch, capsys, stage):
+    """Retain multiline Podman causes without leaking diagnostics onto extra stderr lines."""
+    failure = subprocess.CalledProcessError(
+        125, ["podman", stage], stderr="Error: fixture failure\r\n  diagnostic detail\n"
+    )
+    if stage == "info":
+        outputs = [failure]
+        advice = "podman"
+        expected_count = 1
+    elif stage == "pull":
+        outputs = [PODMAN_INFO, INSPECT_FAILURE, failure]
+        advice = f"run: podman pull --platform linux/arm64 {REGISTRY_IMAGE}"
+        expected_count = 3
+    elif stage == "reinspection":
+        outputs = [PODMAN_INFO, INSPECT_FAILURE, "", failure]
+        advice = f"run: podman pull --platform linux/arm64 {REGISTRY_IMAGE}"
+        expected_count = 4
+    else:
+        monkeypatch.setenv("PHLEX_DEV_IMAGE", "localhost/phlex-dev:missing")
+        outputs = [PODMAN_INFO, failure]
+        advice = "scripts/generate-image dev"
+        expected_count = 2
+    with patch("subprocess.check_output", side_effect=outputs) as command:
+        captured = _check_host_main_failure(tmp_path, monkeypatch, capsys, command, advice)
+    assert command.call_count == expected_count
+    assert "Error: fixture failure diagnostic detail" in captured.err
 
 
 def test_auth_seed_preserves_other_providers(tmp_path, monkeypatch):
@@ -456,6 +614,8 @@ bash "$1" dev
         assert result.returncode == 0, result.stderr
         assert f"--tag phlex-dev:fixture-{expected}" in result.stdout
         assert f"--build-arg PHLEX_SPACK_TARGET={expected}" in result.stdout
+        assert f"PHLEX_DEV_IMAGE=localhost/phlex-dev:fixture-{expected} code ." in result.stdout
+        assert "ghcr.io/framework-r-d/phlex-dev:latest" in result.stdout
 
 
 @pytest.mark.parametrize("template", ["packages.yaml", "spack.yaml"])
