@@ -7,8 +7,52 @@ import json
 import os
 import platform
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+# Match the base image default in .devcontainer/Dockerfile and the CI workflows.
+DEFAULT_IMAGE = "ghcr.io/framework-r-d/phlex-dev:latest"
+NATIVE_PLATFORM = "linux/arm64"
+INSPECT_PLATFORM = ["podman", "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}"]
+
+
+def local_image_platform(image: str) -> str | None:
+    """Return the os/arch of a locally stored image, or None when it is not stored."""
+    try:
+        # A missing image is an expected outcome here, so keep Podman's error off stderr.
+        return subprocess.check_output(
+            [*INSPECT_PLATFORM, image], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def ensure_native_image(image: str) -> None:
+    """Make a linux/arm64 member of the image available locally without emulation."""
+    image_platform = local_image_platform(image)
+    if image_platform is None and not image.startswith("localhost/"):
+        # A local manifest list is not enough: Compose needs the native member in storage.
+        # Pinning the platform prevents the engine from selecting an emulated amd64 member.
+        print(f"Pulling {NATIVE_PLATFORM} member of {image} ...", file=sys.stderr)
+        subprocess.check_output(
+            ["podman", "pull", "--platform", NATIVE_PLATFORM, image], text=True
+        )
+        image_platform = local_image_platform(image)
+    if image_platform is None:
+        if image.startswith("localhost/"):
+            advice = (
+                "build it natively with scripts/generate-image dev and launch VS Code with the "
+                "PHLEX_DEV_IMAGE value it reports"
+            )
+        else:
+            advice = f"run: podman pull --platform {NATIVE_PLATFORM} {image}"
+        raise ValueError(f"{image} is not available in local Podman storage; {advice}")
+    if image_platform != NATIVE_PLATFORM:
+        raise ValueError(
+            f"{image} resolves to {image_platform}, not {NATIVE_PLATFORM}; "
+            "select a native image with PHLEX_DEV_IMAGE"
+        )
 
 
 def host_service(system: str, home: Path) -> dict:
@@ -32,18 +76,9 @@ def host_service(system: str, home: Path) -> dict:
         socket = info[2].removeprefix("unix://")
         if not socket.startswith("/run/user/") or not socket.endswith("/podman/podman.sock"):
             raise ValueError(f"Unexpected rootless VM socket: {socket}")
-        image = image or "localhost/phlex-dev:latest"
-        # Podman resolves local manifest lists to their native-platform member.
-        image_platform = subprocess.check_output(
-            ["podman", "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", image],
-            text=True,
-        ).strip()
-        if image_platform != "linux/arm64":
-            raise ValueError(
-                f"{image} does not resolve to a local linux/arm64 image; "
-                "build natively or explicitly pull its linux/arm64 member first"
-            )
-        service["platform"] = "linux/arm64"
+        image = image or DEFAULT_IMAGE
+        ensure_native_image(image)
+        service["platform"] = NATIVE_PLATFORM
         service["network_mode"] = "pasta"
         if os.environ.get("PHLEX_ENABLE_NESTED_PODMAN") == "1":
             # Explicitly opt in to engine control and reduced SELinux isolation.
@@ -69,7 +104,12 @@ def host_service(system: str, home: Path) -> dict:
 def main() -> None:
     """Atomically replace the generated, gitignored Compose override."""
     target = Path(__file__).with_name("docker-compose.host.yml")
-    service = host_service(platform.system(), Path.home())
+    try:
+        service = host_service(platform.system(), Path.home())
+    except (ValueError, subprocess.CalledProcessError) as exc:
+        # The Dev Containers log shows stderr; a one-line cause beats a traceback.
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
     # JSON is also YAML, and safely quotes paths containing spaces or punctuation.
     fd, temporary = tempfile.mkstemp(prefix=".compose-host-", dir=target.parent)
     try:
