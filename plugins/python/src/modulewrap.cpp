@@ -685,16 +685,22 @@ namespace {
       }
       std::array<npy_intp, 1> dims{static_cast<npy_intp>(v->size())};
       PyObject* np_view = PyArray_SimpleNewFromData(1, dims.data(), NpType, v->data());
+      // LCOV_EXCL_START
+      // would only fail on out-of-memory, which is hard to force in a test
       if (!np_view) {
         throw std::runtime_error("failed to allocate numpy view object");
       }
+      // LCOV_EXCL_STOP
       PyArray_CLEARFLAGS(reinterpret_cast<PyArrayObject*>(np_view), NPY_ARRAY_WRITEABLE);
       auto* pyll = reinterpret_cast<py_lifeline_t*>(
         phlex_lifeline_type.tp_new(&phlex_lifeline_type, nullptr, nullptr));
+      // LCOV_EXCL_START
+      // would only fail on out-of-memory, which is hard to force in a test
       if (!pyll) {
         Py_DECREF(np_view);
         throw std::runtime_error("failed to allocate lifeline object");
       }
+      // LCOV_EXCL_STOP
       pyll->source = v;
       pyll->view = np_view; // steals reference
       return dcarg{pyll};
