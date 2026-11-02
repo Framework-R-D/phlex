@@ -34,9 +34,7 @@ Fields
    algorithm.
    An algorithm that does not call ``output_product_suffixes(...)`` creates
    its products with the empty suffix.
-   Set a suffix whenever the other fields would match more than one product
-   of the right type, whether those products come from one creator or, when
-   ``creator`` is also unset, from several.
+   Use ``suffix`` to disambiguate products that could not otherwise be disambiguated with other fields, for example when a ``transform`` creates two products of the same type (or compatible types).
 
 ``stage``
    The stage that created the product; ``"CURRENT"`` means the job's own
