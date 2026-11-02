@@ -14,9 +14,7 @@ Every field is optional, and an unset field matches any value.
 The product type is not written in the selector: Phlex takes it from the
 type of the corresponding algorithm parameter.
 Types are compared by their structure rather than by name, so two distinct
-C++ types can be treated as the same; set ``suffix`` (or ``creator``) when
-products of different types could otherwise match the same selector.
-
+C++ types can match a selector. Use additional fields if this causes an ambiguity.
 Fields
 ------
 
