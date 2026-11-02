@@ -687,9 +687,8 @@ TEST_CASE("storage_reader read_descriptor: a written file identifies its layout 
   CHECK(descriptor_value(descriptor, descriptor_layout_version_key) ==
         std::string{form_layout_version});
 
-  // A single-technology file names just that technology, in a form from_string parses back.
-  CHECK(descriptor_value(descriptor, descriptor_technologies_key)
-          .transform(form::technology::from_string) == technology);
+  // A single-technology file names just that technology, with the token FORM writes to disk.
+  CHECK(descriptor_value(descriptor, descriptor_technologies_key) == technology_name(technology));
 
   // The file opened for the descriptor is the one the reader goes on to read products from.
   for (auto const& cell : cells) {

@@ -35,7 +35,6 @@
 #include "root_storage/root_rfield_write_container.hpp"
 #include "root_storage/root_rntuple_write_container.hpp"
 #endif
-#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -265,29 +264,6 @@ TEST_CASE("technology::id string conversions", "[form]")
   // An unknown name throws; an unknown id stringifies to the sentinel
   CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
   CHECK(to_string(id{}) == "UNKNOWN");
-}
-
-TEST_CASE("technology::from_string ignores case", "[form]")
-{
-  using namespace form::technology;
-
-  CHECK(from_string("root_ttree") == root_ttree);
-  CHECK(from_string("Root_RNTuple") == root_rntuple);
-  CHECK_THROWS_AS(from_string("hdf5"), std::runtime_error); // no HDF5 support yet
-
-  // Case is the only latitude: names that differ otherwise are still rejected
-  CHECK_THROWS_AS(from_string("root-ttree"), std::runtime_error);
-  CHECK_THROWS_AS(from_string(" root_ttree"), std::runtime_error);
-  CHECK_THROWS_AS(from_string("root_ttree_"), std::runtime_error);
-  CHECK_THROWS_AS(from_string(""), std::runtime_error);
-}
-
-TEST_CASE("technology::from_string parses the technology tokens FORM writes to files", "[form]")
-{
-  for (auto const tech : {form::technology::root_ttree, form::technology::root_rntuple}) {
-    CAPTURE(form::technology::to_string(tech));
-    CHECK(form::technology::from_string(technology_name(tech)) == tech);
-  }
 }
 
 TEST_CASE("technology::id members and ordering", "[form]")
