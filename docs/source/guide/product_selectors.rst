@@ -52,6 +52,7 @@ The layer may be omitted only for a single-input transform, observer or
 predicate.
 The selector then matches the product in whichever layer it is created;
 for a product supplied by a provider, the provider's layer is used.
+For transforms, outputs are dynamically placed into the same layer as the input product (i.e. the output layer may change from iteration to iteration).
 For algorithms with more than one input, and for every fold and unfold,
 each selector must name a layer; otherwise registration fails with
 ``Must specify layers in the product selectors for node ...``.
