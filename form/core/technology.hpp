@@ -42,13 +42,17 @@ namespace form::technology {
   // Parse technology names case-insensitively.
   inline id from_string(std::string_view name)
   {
-    // Locale-independent ASCII case-insensitive comparison.
-    auto const matches = [name](std::string_view canonical) {
-      auto const lower = [](char c) {
-        return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-      };
-      return std::ranges::equal(
-        name, canonical, [&lower](char a, char b) { return lower(a) == lower(b); });
+    // ASCII-only and locale-independent case-insensitive comparison.
+    constexpr std::string_view upper_letters{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+    constexpr std::string_view lower_letters{"abcdefghijklmnopqrstuvwxyz"};
+    auto const ascii_lower = [upper_letters, lower_letters](char c) {
+      auto const letter = upper_letters.find(c);
+      return letter == std::string_view::npos ? c : lower_letters[letter];
+    };
+    auto const matches = [name, &ascii_lower](std::string_view canonical) {
+      return std::ranges::equal(name, canonical, [&ascii_lower](char a, char b) {
+        return ascii_lower(a) == ascii_lower(b);
+      });
     };
 
     if (matches("ROOT_TTREE")) {
