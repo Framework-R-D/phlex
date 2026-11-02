@@ -14,7 +14,9 @@ Every field is optional, and an unset field matches any value.
 The product type is not written in the selector: Phlex takes it from the
 type of the corresponding algorithm parameter.
 Types are compared by their structure rather than by name, so two distinct
-C++ types can match a selector. Use additional fields if this causes an ambiguity.
+C++ types can match a selector.
+Use additional fields if this causes an ambiguity.
+
 Fields
 ------
 
@@ -34,7 +36,9 @@ Fields
    algorithm.
    An algorithm that does not call ``output_product_suffixes(...)`` creates
    its products with the empty suffix.
-   Use ``suffix`` to disambiguate products that could not otherwise be disambiguated with other fields, for example when a ``transform`` creates two products of the same type (or compatible types).
+   Use ``suffix`` to disambiguate products that could not otherwise be
+   disambiguated with other fields, for example when a ``transform``
+   creates two products of the same type (or compatible types).
 
 ``stage``
    The stage that created the product; ``"CURRENT"`` means the job's own
@@ -50,7 +54,9 @@ The layer may be omitted only for a single-input transform, observer or
 predicate.
 The selector then matches the product in whichever layer it is created;
 for a product supplied by a provider, the provider's layer is used.
-For transforms, outputs are dynamically placed into the same layer as the input product (i.e. the output layer may change from iteration to iteration).
+For transforms, outputs are dynamically placed into the same layer as the
+input product (i.e. the output layer may change from iteration to
+iteration).
 For algorithms with more than one input, and for every fold and unfold,
 each selector must name a layer; otherwise registration fails with
 ``Must specify layers in the product selectors for node ...``.
@@ -72,8 +78,10 @@ If a selector matches products created by algorithms in the job, and specifying 
 suffix, creator or type would narrow the matches, the selector is ambiguous.
 Graph construction then fails with ``Ambiguous product selector -- see errors``.
 The preceding log messages list the candidates and name the field to add.
-Matching products that differ only in their layer are allowed: each is
-delivered only for data cells of its own layer.
+Matching products that differ only in their layer are allowed.
+The algorithm then runs for every data cell that holds a matching product:
+only cells of the selector's layer if it names one, otherwise cells of any
+of those layers.
 
 Providers are stricter.
 If a selector matches more than one explicit provider, graph construction
@@ -114,8 +122,9 @@ A JSON array of selector objects can be read as
 Only the first ``N`` elements are read: extra elements are ignored without
 an error, and an array with fewer than ``N`` elements makes ``get`` throw.
 Missing keys leave the corresponding fields unset.
-Other keys are ignored without an error, so a misspelled key (``suffx``)
-silently widens the selector.
+Other keys are currently ignored without an error, so a misspelled key
+(``suffx``) silently widens the selector
+(`issue #1035 <https://github.com/Framework-R-D/phlex/issues/1035>`_).
 
 Designated initializers
 -----------------------
