@@ -133,71 +133,6 @@ if(HAS_NUMPY)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
   add_test(
-    NAME py:callback3
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet --stage test
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
-
-  # Expect failure for these tests (check for error propagation and type
-  # checking)
-  add_test(
-    NAME py:raise
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:raise
-    PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
-
-  add_test(
-    NAME py:badbool
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:badbool
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
-
-  add_test(
-    NAME py:badint
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:badint
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type long: int/long conversion expects a signed integer object"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
-
-  add_test(
-    NAME py:baduint
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:baduint
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type uint: can't convert negative value to unsigned long"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
-
-  add_test(
-    NAME py:mismatch_variant
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:mismatch_variant
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
-
-  add_test(
     NAME py:veclists
     COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet --stage test
   )
@@ -241,6 +176,70 @@ if(HAS_NUMPY)
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:faulty_types:${FAULTY_CASE})
   endforeach()
 endif()
+
+add_test(
+  NAME py:callback3
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet --stage test
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
+
+# Expect failure for these tests (check for error propagation and type checking)
+add_test(
+  NAME py:raise
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet --stage test
+)
+set_tests_properties(
+  py:raise
+  PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
+
+add_test(
+  NAME py:badbool
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet --stage test
+)
+set_tests_properties(
+  py:badbool
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
+
+add_test(
+  NAME py:badint
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet --stage test
+)
+set_tests_properties(
+  py:badint
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type long: int/long conversion expects a signed integer object"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
+
+add_test(
+  NAME py:baduint
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet --stage test
+)
+set_tests_properties(
+  py:baduint
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type uint: can't convert negative value to unsigned long"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
+
+add_test(
+  NAME py:mismatch_variant
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet --stage test
+)
+set_tests_properties(
+  py:mismatch_variant
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
 
 # C++ helper to provide a driver
 add_library(cppsource4py MODULE source.cpp)
