@@ -151,7 +151,7 @@ TEST_CASE("identifier_or_empty text() returns the held text", "[identifier]")
   identifier_or_empty const empty{};
   identifier_or_empty const named{"hits"_id};
 
-  CHECK(empty.text() == ""sv);
+  CHECK(empty.text().empty());
   CHECK(named.text() == "hits"sv);
 }
 
@@ -360,7 +360,7 @@ TEMPLATE_TEST_CASE("Empty-capable values explicitly accept string objects",
   STATIC_CHECK(std::is_convertible_v<identifier, TestType>);
   STATIC_CHECK(std::is_nothrow_default_constructible_v<TestType>);
 
-  std::string empty_text;
+  std::string const empty_text;
   std::string const hits_text{"hits"};
   std::array<TestType, 4> const empty_values{
     TestType{empty_text}, TestType{std::string{}}, TestType{std::string_view{}}, TestType{""sv}};
