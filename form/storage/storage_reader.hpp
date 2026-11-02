@@ -9,9 +9,11 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility> // for std::pair
+#include <vector>
 
 namespace form::detail::experimental {
 
@@ -33,8 +35,16 @@ namespace form::detail::experimental {
                         void const** data,
                         std::type_info const& type,
                         form::experimental::config::tech_setting_config const& settings) override;
+    std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor(
+      std::string const& file_name,
+      form::technology::id technology,
+      form::experimental::config::tech_setting_config const& settings) override;
 
   private:
+    std::shared_ptr<i_storage_file> const& open_file(
+      std::string const& file_name,
+      form::technology::id technology,
+      form::experimental::config::tech_setting_config const& settings);
     std::map<std::string, std::uint64_t> const& index_map(
       token const& token, form::experimental::config::tech_setting_config const& settings);
 

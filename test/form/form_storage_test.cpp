@@ -27,19 +27,23 @@
 #include <TFile.h>
 #include <TList.h>
 #include <TNamed.h>
+#include <TObjString.h>
 #include <TTree.h>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <numbers>
 #include <numeric>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -131,6 +135,22 @@ namespace {
       writer->commit_place(prod_place, cell);
     }
     writer->finalize();
+  }
+
+  // Returns the value stored under key in a descriptor read back from a file, if both exist.
+  std::optional<std::string> descriptor_value(
+    std::optional<std::vector<std::pair<std::string, std::string>>> const& descriptor,
+    std::string_view key)
+  {
+    if (!descriptor.has_value()) {
+      return std::nullopt;
+    }
+    auto const found = std::ranges::find(
+      *descriptor, key, [](auto const& entry) { return std::string_view{entry.first}; });
+    if (found == descriptor->end()) {
+      return std::nullopt;
+    }
+    return found->second;
   }
 
   token index_token_of(std::string const& file_name, std::string const& creator)
@@ -574,6 +594,153 @@ TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "
       CHECK(std::string{named->GetTitle()} == value);
     }
   }
+}
+
+TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[form]")
+{
+  std::vector<std::pair<std::string, std::string>> const entries{
+    {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+    {std::string{descriptor_technologies_key}, "root_ttree,root_rntuple"}};
+  std::string const object_name{descriptor_object_name};
+  auto const suffix = form::technology::to_string(technology);
+
+  SECTION("no file attached")
+  {
+    root_tfile_imp file{"/nonexistent-directory-for-form-tests/x.root", 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+
+  SECTION("a file without a descriptor reads as none, not as an empty one")
+  {
+    std::string const file_name = "form_descriptor_absent_" + suffix + ".root";
+    {
+      root_tfile_imp const file{file_name, 'o'};
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_FALSE(file.read_descriptor().has_value());
+  }
+
+  SECTION("the entries read back in the order they were written")
+  {
+    std::string const file_name = "form_descriptor_read_" + suffix + ".root";
+    {
+      root_tfile_imp file{file_name, 'o'};
+      file.write_descriptor(entries);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK(file.read_descriptor() == entries);
+  }
+
+  SECTION("an empty descriptor is still a descriptor")
+  {
+    std::string const file_name = "form_descriptor_empty_" + suffix + ".root";
+    {
+      root_tfile_imp file{file_name, 'o'};
+      file.write_descriptor({});
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
+  }
+
+  SECTION("an object of the wrong type under the descriptor name is rejected")
+  {
+    std::string const file_name = "form_descriptor_wrong_type_" + suffix + ".root";
+    {
+      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
+      REQUIRE(raw != nullptr);
+      TNamed const impostor{object_name.c_str(), "not a list"};
+      REQUIRE(raw->WriteObject(&impostor, object_name.c_str()) > 0);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+
+  SECTION("a descriptor entry that is not a key/value pair is rejected")
+  {
+    std::string const file_name = "form_descriptor_bad_entry_" + suffix + ".root";
+    {
+      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
+      REQUIRE(raw != nullptr);
+      TObjString entry{"form_layout_version=1.0"};
+      TList list;
+      list.Add(&entry);
+      REQUIRE(raw->WriteObject(&list, object_name.c_str()) > 0);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+}
+
+TEST_CASE("storage_reader read_descriptor: a written file identifies its layout and technology",
+          "[form]")
+{
+  std::string const file_name =
+    "storage_reader_descriptor_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "descriptor_creator";
+  std::vector<cell_index> const cells{event_cell(4), event_cell(2)};
+  write_cells(file_name, creator, cells);
+
+  storage_reader reader;
+  auto const descriptor = reader.read_descriptor(file_name, technology, {});
+  REQUIRE(descriptor.has_value());
+
+  CHECK(descriptor_value(descriptor, descriptor_layout_version_key) ==
+        std::string{form_layout_version});
+
+  // A single-technology file names just that technology, with the token FORM writes to disk.
+  CHECK(descriptor_value(descriptor, descriptor_technologies_key) == technology_name(technology));
+
+  // The file opened for the descriptor is the one the reader goes on to read products from.
+  for (auto const& cell : cells) {
+    CHECK(read_cell(reader, file_name, creator, cell.id) == payload_of(cell));
+  }
+}
+
+#ifdef USE_RNTUPLE_STORAGE
+TEST_CASE("storage_reader read_descriptor: any minor of a mixed file's major reads its descriptor",
+          "[form]")
+{
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+
+  std::string const file_name =
+    "storage_reader_descriptor_mixed_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "mixed_creator";
+  {
+    auto writer = create_persistence_writer();
+    REQUIRE(writer != nullptr);
+    writer->configure_tech_settings(form::experimental::config::tech_setting_config{});
+    auto const ttree_place = make_placement(file_name, creator, "ttree_prod", root_ttree);
+    auto const rntuple_place = make_placement(file_name, creator, "rntuple_prod", root_rntuple);
+    writer->create_containers(
+      {{ttree_place, &typeid(std::vector<int>)}, {rntuple_place, &typeid(std::vector<int>)}});
+    auto const cell = event_cell(1);
+    auto const payload = payload_of(cell);
+    writer->register_write(
+      identity(creator, "ttree_prod"), ttree_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(ttree_place, cell);
+    writer->register_write(
+      identity(creator, "rntuple_prod"), rntuple_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(rntuple_place, cell);
+    writer->finalize();
+  }
+
+  for (auto const tech : {root_ttree, root_rntuple}) {
+    CAPTURE(form::technology::to_string(tech));
+    storage_reader reader;
+    auto const descriptor = reader.read_descriptor(file_name, tech, {});
+    CHECK(descriptor_value(descriptor, descriptor_technologies_key) ==
+          std::string{"root_ttree,root_rntuple"});
+  }
+}
+#endif
+
+TEST_CASE("storage_reader read_descriptor: a file that cannot be opened is an error", "[form]")
+{
+  storage_reader reader;
+  CHECK_THROWS_AS(
+    reader.read_descriptor("/nonexistent-directory-for-form-tests/x.root", technology, {}),
+    std::runtime_error);
 }
 
 TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")

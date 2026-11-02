@@ -495,13 +495,20 @@ TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
 TEST_CASE("storage_file: the generic backend keeps the descriptor it is given", "[form]")
 {
   storage_file file{"generic.dat", 'o'};
-  CHECK(file.descriptor().empty());
+  CHECK_FALSE(file.read_descriptor().has_value());
 
   std::vector<std::pair<std::string, std::string>> const entries{
     {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
     {std::string{descriptor_technologies_key}, "generic"}};
   file.write_descriptor(entries);
-  CHECK(file.descriptor() == entries);
+  CHECK(file.read_descriptor() == entries);
+}
+
+TEST_CASE("storage_file: an empty descriptor is still a descriptor", "[form]")
+{
+  storage_file file{"generic_empty.dat", 'o'};
+  file.write_descriptor({});
+  CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
 }
 
 TEST_CASE("persistence_reader basic operations", "[form]")

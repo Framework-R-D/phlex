@@ -7,10 +7,14 @@
 
 #include <Compression.h>
 #include <TFile.h>
+#include <TKey.h>
 #include <TList.h>
 #include <TNamed.h>
+#include <TObject.h>
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -77,6 +81,46 @@ void root_tfile_imp::write_descriptor(
     throw std::runtime_error("root_tfile_imp::write_descriptor failed to write the descriptor to " +
                              name());
   }
+}
+
+std::optional<std::vector<std::pair<std::string, std::string>>> root_tfile_imp::read_descriptor()
+{
+  if (file_ == nullptr) {
+    throw std::runtime_error("root_tfile_imp::read_descriptor no file attached for " + name());
+  }
+
+  // Look the key up first so an absent descriptor is told apart from one that fails to read.
+  // GetKey returns the highest cycle and the key stays owned by the file.
+  std::string const object_name{descriptor_object_name};
+  TKey* key = file_->GetKey(object_name.c_str());
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  // ReadObj hands ownership of the TList to the caller; SetOwner below extends it to the entries.
+  std::unique_ptr<TObject> const object{key->ReadObj()};
+  if (!object) {
+    throw std::runtime_error("root_tfile_imp::read_descriptor failed to read object '" +
+                             object_name + "' from " + name());
+  }
+  auto* list = dynamic_cast<TList*>(object.get());
+  if (list == nullptr) {
+    throw std::runtime_error("root_tfile_imp::read_descriptor object '" + object_name + "' in " +
+                             name() + " is not a TList");
+  }
+  list->SetOwner(true);
+
+  std::vector<std::pair<std::string, std::string>> entries;
+  entries.reserve(static_cast<std::size_t>(list->GetSize()));
+  for (TObject const* entry : *list) {
+    auto const* named = dynamic_cast<TNamed const*>(entry);
+    if (named == nullptr) {
+      throw std::runtime_error("root_tfile_imp::read_descriptor object '" + object_name + "' in " +
+                               name() + " holds an entry that is not a TNamed");
+    }
+    entries.emplace_back(named->GetName(), named->GetTitle());
+  }
+  return entries;
 }
 
 std::shared_ptr<TFile> root_tfile_imp::get_tfile() { return file_; }

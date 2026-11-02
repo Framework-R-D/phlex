@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
@@ -61,6 +62,30 @@ namespace form::detail::experimental {
   }
 }
 
+std::shared_ptr<i_storage_file> const& storage_reader::open_file(
+  std::string const& file_name,
+  form::technology::id technology,
+  form::experimental::config::tech_setting_config const& settings)
+{
+  if (auto const found = files_.find(file_name); found != files_.end()) {
+    return found->second;
+  }
+  // Cache the file only after all file settings have been applied successfully.
+  auto opened = create_file(technology, file_name, 'i');
+  for (auto const& [key, value] : get_file_table(settings, technology, file_name)) {
+    opened->set_attribute(key, value);
+  }
+  return files_.emplace(file_name, std::move(opened)).first->second;
+}
+
+std::optional<std::vector<std::pair<std::string, std::string>>> storage_reader::read_descriptor(
+  std::string const& file_name,
+  form::technology::id technology,
+  form::experimental::config::tech_setting_config const& settings)
+{
+  return open_file(file_name, technology, settings)->read_descriptor();
+}
+
 std::uint64_t storage_reader::get_index(
   token const& token,
   std::string const& id,
@@ -82,20 +107,11 @@ void storage_reader::prime(token const& token,
   auto cont_key = std::make_pair(token.file_name(), token.container_name());
   auto cont = read_containers_.find(cont_key);
   if (cont == read_containers_.end()) {
-    auto file = files_.find(token.file_name());
-    if (file == files_.end()) {
-      file =
-        files_.insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
-          .first;
-      for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.file_name())) {
-        file->second->set_attribute(key, value);
-      }
-    }
+    auto const& file = open_file(token.file_name(), token.technology(), settings);
     cont = read_containers_
              .insert({cont_key, create_read_container(token.technology(), token.container_name())})
              .first;
-    cont->second->set_file(file->second);
+    cont->second->set_file(file);
     for (auto const& [key, value] :
          get_container_table(settings, token.technology(), token.container_name())) {
       cont->second->set_attribute(key, value);
@@ -125,16 +141,7 @@ std::map<std::string, std::uint64_t> const& storage_reader::index_map(
 
   auto cont = read_containers_.find(cont_key);
   if (cont == read_containers_.end()) {
-    auto file = files_.find(token.file_name());
-    if (file == files_.end()) {
-      file =
-        files_.insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
-          .first;
-      for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.file_name())) {
-        file->second->set_attribute(key, value);
-      }
-    }
+    auto const& file = open_file(token.file_name(), token.technology(), settings);
     cont = read_containers_
              .insert({cont_key, create_read_container(token.technology(), token.container_name())})
              .first;
@@ -142,7 +149,7 @@ std::map<std::string, std::uint64_t> const& storage_reader::index_map(
          get_container_table(settings, token.technology(), token.container_name())) {
       cont->second->set_attribute(key, value);
     }
-    cont->second->set_file(file->second);
+    cont->second->set_file(file);
   }
 
   std::map<std::string, std::uint64_t> index;
@@ -172,20 +179,11 @@ void storage_reader::read_container(token const& token,
   auto cont_key = std::make_pair(token.file_name(), token.container_name());
   auto cont = read_containers_.find(cont_key);
   if (cont == read_containers_.end()) {
-    auto file = files_.find(token.file_name());
-    if (file == files_.end()) {
-      file =
-        files_.insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
-          .first;
-      for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.file_name())) {
-        file->second->set_attribute(key, value);
-      }
-    }
+    auto const& file = open_file(token.file_name(), token.technology(), settings);
     cont = read_containers_
              .insert({cont_key, create_read_container(token.technology(), token.container_name())})
              .first;
-    cont->second->set_file(file->second);
+    cont->second->set_file(file);
     for (auto const& [key, value] :
          get_container_table(settings, token.technology(), token.container_name())) {
       cont->second->set_attribute(key, value);
