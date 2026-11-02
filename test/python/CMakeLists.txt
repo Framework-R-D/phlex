@@ -211,24 +211,32 @@ if(HAS_NUMPY)
 
   # tests for faulty run-time returns
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
-            ${Python_EXECUTABLE} -c
-            "import faulty_types; print(';'.join(c.tag for c in faulty_types.FAULTY_CASES), end='')"
+    COMMAND
+      ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH} ${Python_EXECUTABLE} -c
+      "import faulty_types; print(';'.join(c.tag for c in faulty_types.FAULTY_CASES), end='')"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PYFAULTY_CASES
     COMMAND_ERROR_IS_FATAL ANY
   )
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-               ${CMAKE_CURRENT_SOURCE_DIR}/faulty_types.py)
+  set_property(
+    DIRECTORY
+    APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/faulty_types.py
+  )
 
   foreach(FAULTY_CASE IN LISTS PYFAULTY_CASES)
     set(cfg ${CMAKE_CURRENT_BINARY_DIR}/pyfaulty_${FAULTY_CASE}.jsonnet)
     configure_file(pyfaulty.jsonnet.in ${cfg} @ONLY)
-    add_test(NAME py:faulty_types:${FAULTY_CASE} COMMAND phlex::phlex -c ${cfg} --stage test)
-    set_tests_properties(py:faulty_types:${FAULTY_CASE} PROPERTIES
-      WILL_FAIL TRUE
-      # Don't let unrelated breakage masquerade as "correctly rejected garbage"
-      FAIL_REGULAR_EXPRESSION "ModuleNotFoundError;ImportError;KeyError: 'case'"
+    add_test(
+      NAME py:faulty_types:${FAULTY_CASE}
+      COMMAND phlex::phlex -c ${cfg} --stage test
+    )
+    set_tests_properties(
+      py:faulty_types:${FAULTY_CASE}
+      PROPERTIES
+        WILL_FAIL TRUE
+        # Don't let unrelated breakage masquerade as "correctly rejected garbage"
+        FAIL_REGULAR_EXPRESSION "ModuleNotFoundError;ImportError;KeyError: 'case'"
     )
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:faulty_types:${FAULTY_CASE})
   endforeach()
