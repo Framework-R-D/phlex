@@ -56,6 +56,32 @@ check_python_module_version("numba" "0.61.0" HAS_NUMBA)
 check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
 check_python_module_version("pytest_cov" "4.0.0" HAS_PYTEST_COV)
 
+# Environment variables required:
+set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+# Add the python plugin source directory to PYTHONPATH so tests can use phlex
+# package
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
+
+# Always add site-packages to PYTHONPATH for tests, as embedded python might not
+# find them especially in spack environments where they are in non-standard
+# locations
+if(Python_SITELIB)
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
+endif()
+if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
+endif()
+
+if(DEFINED ENV{VIRTUAL_ENV})
+  # Keep this for backward compatibility or if it adds something else
+endif()
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+
+set(
+  PYTHON_TEST_ENVIRONMENT
+  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+)
+
 # Explicitly define Python executable variable to ensure it is visible in the
 # test environment
 set(PYTHON_TEST_EXECUTABLE ${Python_EXECUTABLE})
@@ -182,6 +208,30 @@ if(HAS_NUMPY)
     COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet --stage test
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
+
+  # tests for faulty run-time returns
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
+            ${Python_EXECUTABLE} -c
+            "import faulty_types; print(';'.join(c.tag for c in faulty_types.FAULTY_CASES), end='')"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PYFAULTY_CASES
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+               ${CMAKE_CURRENT_SOURCE_DIR}/faulty_types.py)
+
+  foreach(FAULTY_CASE IN LISTS PYFAULTY_CASES)
+    set(cfg ${CMAKE_CURRENT_BINARY_DIR}/pyfaulty_${FAULTY_CASE}.jsonnet)
+    configure_file(pyfaulty.jsonnet.in ${cfg} @ONLY)
+    add_test(NAME py:faulty_types:${FAULTY_CASE} COMMAND phlex::phlex -c ${cfg} --stage test)
+    set_tests_properties(py:faulty_types:${FAULTY_CASE} PROPERTIES
+      WILL_FAIL TRUE
+      # Don't let unrelated breakage masquerade as "correctly rejected garbage"
+      FAIL_REGULAR_EXPRESSION "ModuleNotFoundError;ImportError;KeyError: 'case'"
+    )
+    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:faulty_types:${FAULTY_CASE})
+  endforeach()
 endif()
 
 # C++ helper to provide a driver
@@ -259,32 +309,7 @@ set_tests_properties(
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
-set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-# Add the python plugin source directory to PYTHONPATH so tests can use phlex
-# package
-set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
-
-# Always add site-packages to PYTHONPATH for tests, as embedded python might not
-# find them especially in spack environments where they are in non-standard
-# locations
-if(Python_SITELIB)
-  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
-endif()
-if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
-  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
-endif()
-
-if(DEFINED ENV{VIRTUAL_ENV})
-  # Keep this for backward compatibility or if it adds something else
-endif()
-set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-
-# Environment variables required:
-set(
-  PYTHON_TEST_ENVIRONMENT
-  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-)
-
+# Add test environment to all active tests
 set_tests_properties(${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
 
 # phlex-based test to ensure that sys.path is sanely set for virtual environment

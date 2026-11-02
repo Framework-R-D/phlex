@@ -25,7 +25,7 @@ from typing import Any, Callable
 
 import numpy as np
 import numpy.typing as npt
-
+from phlex import Variant
 
 # supported types table
 @dataclass(frozen=True)
@@ -116,14 +116,6 @@ def _check_unique_names():
 _check_unique_names()
 
 
-def _named(fn, name: str, annotations: dict, doc: str):
-    """Give a generated function a unique name, annotations, and docstring."""
-    fn.__name__ = fn.__qualname__ = name
-    fn.__annotations__ = annotations
-    fn.__doc__ = doc
-    return fn
-
-
 def _same_values(got, want, rel_tol: float) -> bool:
     """Compare scalars, numpy arrays, and lists element-wise."""
     got = np.atleast_1d(np.asarray(got)).tolist()
@@ -138,11 +130,10 @@ def _make_transform(name, spec, kind, out_annotation):
     def transform(a, b):
         return kind.build(spec, a, b)
 
-    return _named(
+    return Variant(
         transform,
-        name,
         {"a": spec.annotation, "b": spec.annotation, "return": out_annotation},
-        f"Combine two {spec.tag} inputs into a {kind.tag} output.",
+        name,
     )
 
 
@@ -154,11 +145,10 @@ def _make_verify(name, spec, kind, out_annotation):
                 f"{name}: inputs ({a!r}, {b!r}) gave {result!r}, expected {expected!r}"
             )
 
-    return _named(
+    return Variant(
         verify,
-        name,
         {"a": spec.annotation, "b": spec.annotation, "result": out_annotation},
-        f"Verify the {kind.tag} output for {spec.tag} inputs.",
+        name,
     )
 
 
