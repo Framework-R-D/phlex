@@ -68,10 +68,10 @@ If an algorithm unexpectedly does not run, check its layers, and run with
 Ambiguous selectors
 -------------------
 
-If a selector matches products created by algorithms in the job that
-differ in suffix, creator or type, graph construction fails with
-``Ambiguous product selector -- see errors``.
-The preceding log messages list the candidates and say which field to add.
+If a selector matches products created by algorithms in the job, and specifying a
+suffix, creator or type would narrow the matches, the selector is ambiguous.
+Graph construction then fails with ``Ambiguous product selector -- see errors``.
+The preceding log messages list the candidates and name the field to add.
 Matching products that differ only in their layer are allowed: each is
 delivered only for data cells of its own layer.
 
