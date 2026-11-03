@@ -2,13 +2,13 @@
 #define PHLEX_CORE_UNFOLD_NODE_HPP
 
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/node_builder.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"

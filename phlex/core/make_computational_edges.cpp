@@ -1,5 +1,6 @@
 #include "phlex/core/make_computational_edges.hpp"
 
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/index_router.hpp"
@@ -7,7 +8,6 @@
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/producer_catalog.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/provider_node.hpp"
 #include "phlex/core/source.hpp"
 #include "phlex/model/identifier.hpp"
@@ -187,7 +187,7 @@ namespace phlex::detail {
     index_router::head_ports_t edges_within_computational_graph(
       producer_catalog const& producers,
       std::map<std::string, filter>& filters,
-      std::span<products_consumer* const> consumers,
+      std::span<consumer* const> consumers,
       phlex::experimental::identifier const& stage)
     {
       index_router::head_ports_t result;
@@ -215,8 +215,7 @@ namespace phlex::detail {
       return result;
     }
 
-    std::map<std::string, named_index_ports> multilayer_ports(
-      std::span<products_consumer* const> consumers)
+    std::map<std::string, named_index_ports> multilayer_ports(std::span<consumer* const> consumers)
     {
       std::map<std::string, named_index_ports> result;
       for (auto* node : consumers) {
