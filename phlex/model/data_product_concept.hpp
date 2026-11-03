@@ -5,6 +5,7 @@
 #include "phlex/phlex_model_export.hpp"
 
 #include <any>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <typeindex>
@@ -27,7 +28,7 @@ namespace phlex::experimental {
   // borrowed conversion must keep the source alive. This cannot be deduced and
   // must be declared at registration. This declaration is recorded but not
   // enforced by this class.
-  enum class result_storage { owned, borrowed };
+  enum class result_storage : std::uint8_t { owned, borrowed };
 
   // A conversion function registered with a data product concept, together
   // with the information a translator node needs in order to use it.
