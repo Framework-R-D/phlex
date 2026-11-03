@@ -22,11 +22,19 @@ namespace phlex::experimental {
   // multiple hit types (HitV1, HitV2, etc.).
   //
   // Each data_product_concept has:
-  // - A unique name
+  // - A unique name, which can not be modified
   // - A set of concrete types that model this concept
   class PHLEX_MODEL_EXPORT data_product_concept {
   public:
     explicit data_product_concept(std::string name);
+
+    // Copying preserves the source. Moving could remove types from a registered
+    // concept, and assignment could replace its identity or type associations.
+    data_product_concept(data_product_concept const&) = default;
+    data_product_concept(data_product_concept&&) = delete;
+    data_product_concept& operator=(data_product_concept const&) = delete;
+    data_product_concept& operator=(data_product_concept&&) = delete;
+    ~data_product_concept() = default;
 
     std::string const& name() const noexcept;
 
@@ -41,7 +49,9 @@ namespace phlex::experimental {
     bool operator==(data_product_concept const&) const = default;
 
   private:
-    std::string name_;
+    // The name must remain consistent with the registry key.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::string const name_;
     std::unordered_set<concrete_product_id> concrete_types_;
   };
 

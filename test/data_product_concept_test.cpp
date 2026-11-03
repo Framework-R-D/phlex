@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 using namespace phlex::experimental;
 
@@ -22,6 +23,15 @@ TEST_CASE("data_product_concept construction records the right name", "[data_pro
 {
   data_product_concept const con{"my_concept"};
   CHECK(con.name() == "my_concept");
+}
+
+TEST_CASE("data_product_concept supports copying but not moving or assignment",
+          "[data_product_concept]")
+{
+  static_assert(std::is_copy_constructible_v<data_product_concept>);
+  static_assert(not std::is_move_constructible_v<data_product_concept>);
+  static_assert(not std::is_copy_assignable_v<data_product_concept>);
+  static_assert(not std::is_move_assignable_v<data_product_concept>);
 }
 
 TEST_CASE("data_product_concept starts with no concrete types", "[data_product_concept]")
@@ -51,9 +61,12 @@ TEST_CASE("data_product_concept equality", "[data_product_concept]")
   data_product_concept concept1{"same_name"};
   data_product_concept concept2{"same_name"};
   data_product_concept concept3{"different_name"};
+  data_product_concept concept4{"same_name"};
+  concept4.add_concrete_type(typeid(int));
 
   CHECK(concept1 == concept2);
   CHECK(concept1 != concept3);
+  CHECK(concept1 != concept4);
 }
 
 TEST_CASE("data_product_concept with multiple primitive types", "[data_product_concept]")
@@ -94,6 +107,21 @@ TEST_CASE("add_concrete_types adds the union of an overlapping set", "[data_prod
   con.add_concrete_type(typeid(test_type_1));
 
   con.add_concrete_types({typeid(test_type_1), typeid(test_type_2)});
+
+  CHECK(con.concrete_types().size() == 2ull);
+  CHECK(con.has_concrete_type(typeid(test_type_1)));
+  CHECK(con.has_concrete_type(typeid(test_type_2)));
+}
+
+TEST_CASE("add_concrete_types accepts its own set", "[data_product_concept]")
+{
+  data_product_concept con{"concept_A"};
+  con.add_concrete_types(con.concrete_types());
+  CHECK(con.concrete_types().empty());
+
+  con.add_concrete_type(typeid(test_type_1));
+  con.add_concrete_type(typeid(test_type_2));
+  con.add_concrete_types(con.concrete_types());
 
   CHECK(con.concrete_types().size() == 2ull);
   CHECK(con.has_concrete_type(typeid(test_type_1)));
