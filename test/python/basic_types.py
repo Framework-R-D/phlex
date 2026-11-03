@@ -25,7 +25,9 @@ from typing import Any, Callable
 
 import numpy as np
 import numpy.typing as npt
+
 from phlex import Variant
+
 
 # supported types table
 @dataclass(frozen=True)
@@ -170,7 +172,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-
     for spec, kind, out, product in _test_cases():
         inputs = [_input(config, s) for s in spec.inputs]
         m.transform(
