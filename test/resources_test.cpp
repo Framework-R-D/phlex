@@ -44,6 +44,16 @@ namespace {
 
   struct default_unlimited_resource {};
 
+  struct counted_unlimited_resource {
+    explicit counted_unlimited_resource(int& constructions) { ++constructions; }
+  };
+
+  struct counted_serialized_resource {
+    using token_type = counted_serialized_resource const*;
+
+    explicit counted_serialized_resource(int& constructions) { ++constructions; }
+  };
+
   struct invalid_serialized_resource {
     using token_type = int*;
   };
@@ -276,18 +286,28 @@ TEST_CASE("resource catalog", "[resource]")
 
   SECTION("duplicate serialized registrations throw")
   {
-    catalog.add_serialized<catch2_resource>();
-    CHECK_THROWS_WITH(catalog.add_serialized<catch2_resource>(),
+    int constructions = 0;
+    catalog.add_serialized<counted_serialized_resource>(constructions);
+    auto& limiter = catalog.limiter_for<counted_serialized_resource>();
+    CHECK(constructions == 1);
+    CHECK_THROWS_WITH(catalog.add_serialized<counted_serialized_resource>(constructions),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has already been registered"));
+    CHECK(constructions == 1);
+    CHECK(&catalog.limiter_for<counted_serialized_resource>() == &limiter);
   }
 
   SECTION("duplicate unlimited registrations throw")
   {
-    catalog.add_unlimited<unlimited_resource_type>(42);
-    CHECK_THROWS_WITH(catalog.add_unlimited<unlimited_resource_type>(43),
+    int constructions = 0;
+    catalog.add_unlimited<counted_unlimited_resource>(constructions);
+    auto const resource = catalog.access_for<counted_unlimited_resource>();
+    CHECK(constructions == 1);
+    CHECK_THROWS_WITH(catalog.add_unlimited<counted_unlimited_resource>(constructions),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has already been registered"));
+    CHECK(constructions == 1);
+    CHECK(catalog.access_for<counted_unlimited_resource>() == resource);
   }
 
   SECTION("missing resources throw")
