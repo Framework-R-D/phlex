@@ -1,9 +1,10 @@
 #include "catch2/catch_test_macros.hpp"
+#include "phlex/model/data_product_concept.hpp"
 #include "phlex/model/data_product_concept_registry.hpp"
 
 #include <memory>
+#include <stdexcept>
 #include <string>
-#include <typeinfo>
 #include <utility>
 
 using namespace phlex::experimental;
@@ -22,7 +23,7 @@ namespace {
 
 TEST_CASE("newly constructed registry has no concept names", "[data_product_concept_registry]")
 {
-  data_product_concept_registry registry;
+  data_product_concept_registry const registry;
   CHECK(registry.all_concept_names().empty());
 }
 
@@ -31,7 +32,8 @@ TEST_CASE("register_concept registers a new concept", "[data_product_concept_reg
   data_product_concept_registry registry;
 
   auto con = std::make_unique<data_product_concept>("test_concept");
-  CHECK(registry.register_concept(std::move(con)) == true);
+  auto const registered = registry.register_concept(std::move(con));
+  CHECK(registered == true);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
@@ -236,7 +238,7 @@ TEST_CASE("type_matches_concept is false for an unassociated type",
 
 TEST_CASE("type_matches_concept is false for an unknown concept", "[data_product_concept_registry]")
 {
-  data_product_concept_registry registry;
+  data_product_concept_registry const registry;
   CHECK(registry.type_matches_concept("nonexistent", typeid(int)) == false);
 }
 
@@ -268,7 +270,7 @@ TEST_CASE("get_concept_for_type returns the associated concept", "[data_product_
 TEST_CASE("get_concept_for_type returns nullptr for an unknown type",
           "[data_product_concept_registry]")
 {
-  data_product_concept_registry registry;
+  data_product_concept_registry const registry;
   CHECK(registry.get_concept_for_type(typeid(int)) == nullptr);
 }
 
