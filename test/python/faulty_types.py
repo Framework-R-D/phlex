@@ -23,7 +23,9 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 from basic_types import TYPES
+
 from phlex import Variant
+
 
 # faulty cases that should be detected
 @dataclass(frozen=True)
