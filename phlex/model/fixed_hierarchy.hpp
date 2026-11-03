@@ -66,7 +66,7 @@ namespace phlex {
 
   class PHLEX_MODEL_EXPORT fixed_hierarchy {
   public:
-    fixed_hierarchy() = default;
+    fixed_hierarchy();
     // Using an std::initializer_list removes one set of braces that the
     // user must provide; leaving it explicit preserves clarity of
     // expression for callers.
