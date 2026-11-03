@@ -1,5 +1,7 @@
+#include "phlex/core/fold_join_node.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
@@ -10,7 +12,13 @@
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <array>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -73,6 +81,8 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   auto& left_port = receiver_for<0ull, 2>(join, 0u);
   auto& right_port = receiver_for<0ull, 2>(join, 1u);
 
+  CHECK_THROWS_AS(receiver_for<0ull>(join, 2u), std::runtime_error);
+
   REQUIRE(left_port.try_put({.store = left_store, .id = message_id}));
   graph.wait_for_all();
 
@@ -85,6 +95,10 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
 
   auto index_ports = join.index_ports();
   REQUIRE(index_ports.size() == 2u);
+  CHECK(index_ports[0].layer == "left_layer"_id);
+  CHECK(index_ports[1].layer == "right_layer"_id);
+  CHECK_FALSE(index_ports[0].counting_layer.has_value());
+  CHECK_FALSE(index_ports[1].counting_layer.has_value());
   REQUIRE(index_ports[0].index_port->try_put(
     {.index = left_store->index(), .msg_id = message_id, .cache = true}));
   graph.wait_for_all();
@@ -109,4 +123,76 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   REQUIRE(index_ports[0].token_port->try_put({.index = left_store->index(), .count = 1}));
   REQUIRE(index_ports[1].token_port->try_put({.index = right_store->index(), .count = 1}));
   graph.wait_for_all();
+}
+
+TEST_CASE("Same-layer joins wait for all inputs and preserve selector order", "[join]")
+{
+  tbb::flow::graph graph;
+  multilayer_join_node<3> join{graph, "same_layer_join", {"event"_id, "event"_id, "event"_id}};
+  CHECK(join.index_ports().empty());
+
+  auto const left_creator = algorithm_name::create("left");
+  auto const middle_creator = algorithm_name::create("middle");
+  auto const right_creator = algorithm_name::create("right");
+
+  product_selectors const selectors{{.creator = left_creator.to_string()},
+                                    {.creator = middle_creator.to_string()},
+                                    {.creator = right_creator.to_string()}};
+  auto const stage = "test"_id;
+  std::array const stores{product_store::base(&left_creator, &stage),
+                          product_store::base(&middle_creator, &stage),
+                          product_store::base(&right_creator, &stage)};
+  tbb::flow::queue_node<message_tuple<3>> sink{graph};
+
+  auto try_put_for_receiver = [&join, &selectors, &stores](std::size_t const index) {
+    return internal::receiver_for<3>(join, selectors, selectors[index])
+      .try_put({.store = stores.at(index), .id = message_id});
+  };
+
+  using internal::receiver_for;
+  make_edge(output_port<0>(join), sink);
+  REQUIRE(try_put_for_receiver(2));
+  REQUIRE(try_put_for_receiver(0));
+  graph.wait_for_all();
+  message_tuple<3> output;
+  CHECK_FALSE(sink.try_get(output));
+  REQUIRE(try_put_for_receiver(1));
+  graph.wait_for_all();
+  REQUIRE(sink.try_get(output));
+  CHECK(std::get<0>(output).id == message_id);
+  CHECK(std::get<1>(output).id == message_id);
+  CHECK(std::get<2>(output).id == message_id);
+  CHECK(std::get<0>(output).store == stores[0]);
+  CHECK(std::get<1>(output).store == stores[1]);
+  CHECK(std::get<2>(output).store == stores[2]);
+  CHECK_FALSE(sink.try_get(output));
+  CHECK_THROWS_AS(receiver_for<3>(join, selectors, {.creator = "missing"_id}), std::runtime_error);
+}
+
+TEST_CASE("Fold join data receivers exclude the partition port", "[join]")
+{
+  tbb::flow::graph graph;
+  auto const name = algorithm_name::create("fold_join_test");
+  fold_join_node<int, 2> join{graph,
+                              name,
+                              "test_stage"_id,
+                              "job"_id,
+                              {"event"_id, "run"_id},
+                              product_specifications(1),
+                              [](data_cell_index const&) { return std::make_unique<int>(0); }};
+  CHECK_THROWS_AS(receiver_for<1ull>(join, 2u), std::runtime_error);
+  CHECK_THROWS_AS(receiver_for<1ull>(join, std::numeric_limits<std::size_t>::max()),
+                  std::runtime_error);
+  product_selectors const selectors{{.creator = "left"_id}, {.creator = "right"_id}};
+  CHECK(&receiver_for(join, selectors, selectors[0]) == &input_port<1>(join));
+  CHECK(&receiver_for(join, selectors, selectors[1]) == &input_port<2>(join));
+
+  auto const ports = join.index_ports();
+  REQUIRE(ports.size() == 3);
+  CHECK(ports[0].layer == "job"_id);
+  CHECK(ports[0].counting_layer == "event"_id);
+  CHECK(ports[1].layer == "event"_id);
+  CHECK(ports[1].counting_layer == "event"_id);
+  CHECK(ports[2].layer == "run"_id);
+  CHECK(ports[2].counting_layer == "run"_id);
 }
