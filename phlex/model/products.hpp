@@ -75,7 +75,7 @@ namespace phlex::detail {
     template <typename T>
     void add(phlex::experimental::product_specification const& spec, T t)
     {
-      products_.emplace_back(spec, phlex::experimental::product_for(std::move(t)));
+      insert(spec, phlex::experimental::product_for(std::move(t)));
     }
 
     template <typename Ts>
@@ -113,6 +113,9 @@ namespace phlex::detail {
     bool empty() const noexcept;
 
   private:
+    void insert(phlex::experimental::product_specification const& spec,
+                phlex::experimental::product_ptr product);
+
     // Throws if no product matches the specification; the returned pointer is therefore
     // never null.
     gsl::not_null<phlex::experimental::product_base const*> find_product(

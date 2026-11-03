@@ -8,11 +8,53 @@
 #include <fmt/format.h>
 
 #include <compare>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 
 namespace phlex {
+  namespace detail {
+    creator_name::creator_name(std::optional<experimental::identifier>&& content) :
+      content_{std::move(content)}
+    {
+      if (content_ && content_.value().empty()) {
+        throw std::runtime_error("Cannot specify product with empty creator name.");
+      }
+    }
+
+    experimental::identifier format_as(creator_name const& me) noexcept
+    {
+      return me.content_.value_or("[ANY]");
+    }
+
+    layer_name::layer_name(std::optional<experimental::identifier>&& content) :
+      content_{std::move(content)}
+    {
+      if (content_ && content_.value().empty()) {
+        throw std::runtime_error("Cannot specify the empty string as a data layer.");
+      }
+    }
+
+    layer_name::operator experimental::identifier const&() const
+    {
+      if (!content_.has_value()) {
+        throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
+      }
+      return *content_;
+    }
+
+    layer_name::operator std::string_view() const noexcept
+    {
+      using namespace std::string_view_literals;
+      return content_
+        .transform([](experimental::identifier const& id) { return std::string_view(id); })
+        .value_or("[ANY]"sv);
+    }
+  }
+
   // Check that all products selected by /other/ would satisfy this query
   bool product_selector::match(product_selector const& other) const
   {

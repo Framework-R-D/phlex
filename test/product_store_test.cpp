@@ -1,5 +1,4 @@
 #include "phlex/core/input_arguments.hpp"
-#include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
@@ -61,19 +60,19 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(store->get_product<std::vector<int>>(gsl::make_not_null(&numbers_spec)) == many_numbers);
 }
 
-TEST_CASE("Product retrieval requires exactly one match", "[data model]")
+TEST_CASE("Product resolution requires exactly one match", "[data model]")
 {
   using Catch::Matchers::ContainsSubstring;
+  using phlex::detail::internal::resolve_product;
 
   auto const creator = algorithm_name::create("test_algorithm");
   auto const stage = "test_stage"_id;
   auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
-  phlex::detail::message const msg{.store = store};
-  phlex::detail::retriever<int> const input{.query = {.type = make_type_id<int>()}};
+  phlex::product_selector const query{.type = make_type_id<int>()};
 
   SECTION("No match in an empty store")
   {
-    CHECK_THROWS_WITH(input.retrieve(msg), ContainsSubstring("No products found"));
+    CHECK_THROWS_WITH(resolve_product(query, *store), ContainsSubstring("No products found"));
   }
 
   product_specification const first{creator, "first"_id, make_type_id<int>()};
@@ -84,30 +83,28 @@ TEST_CASE("Product retrieval requires exactly one match", "[data model]")
 
   SECTION("No match lists the available products and store identity")
   {
-    phlex::detail::retriever<int> const missing{
-      .query = {.suffix = "missing"_id, .type = make_type_id<int>()}};
+    phlex::product_selector const missing{.suffix = "missing"_id, .type = make_type_id<int>()};
     CHECK_THROWS_WITH(
-      missing.retrieve(msg),
-      ContainsSubstring("No products found matching the query " + missing.query.to_string()) &&
+      resolve_product(missing, *store),
+      ContainsSubstring("No products found matching the query " + missing.to_string()) &&
         ContainsSubstring(store->index()->to_string()) && ContainsSubstring(creator.to_string()) &&
         ContainsSubstring(first.to_string()) && ContainsSubstring(unrelated.to_string()));
   }
 
-  SECTION("A unique match returns the matching product handle")
+  SECTION("A unique match resolves to the stored specification")
   {
-    auto const retrieved = input.retrieve(msg);
-    REQUIRE(retrieved);
-    CHECK(*retrieved == 17);
-    CHECK(retrieved.suffix() == "first");
+    auto const resolved = resolve_product(query, *store);
+    CHECK(*resolved == first);
+    CHECK(store->get_product<int>(resolved) == 17);
   }
 
   SECTION("Ambiguous matches list only the matching products")
   {
     store->add_product(second, 25);
-    CHECK_THROWS_AS(input.retrieve(msg), std::runtime_error);
+    CHECK_THROWS_AS(resolve_product(query, *store), std::runtime_error);
     CHECK_THROWS_WITH(
-      input.retrieve(msg),
-      ContainsSubstring("Multiple products found matching the query " + input.query.to_string()) &&
+      resolve_product(query, *store),
+      ContainsSubstring("Multiple products found matching the query " + query.to_string()) &&
         ContainsSubstring(first.to_string()) && ContainsSubstring(second.to_string()) &&
         !ContainsSubstring(unrelated.to_string()));
   }

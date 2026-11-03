@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_MULTILAYER_JOIN_NODE_HPP
 #define PHLEX_CORE_MULTILAYER_JOIN_NODE_HPP
 
-#include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/detail/join_support.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
@@ -9,9 +9,6 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <cassert>
-#include <optional>
-#include <ranges>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -69,37 +66,25 @@ namespace phlex::detail {
 
   public:
     multilayer_join_node(tbb::flow::graph& g,
-                         std::string node_name,
-                         std::vector<phlex::experimental::identifier> layer_names) :
+                         std::string const& node_name,
+                         std::vector<phlex::experimental::identifier> const& layer_names) :
       base_t{g},
-      join_{make_join(g, std::make_index_sequence<NInputs>{})},
-      name_{std::move(node_name)},
-      layers_{std::move(layer_names)}
+      support_{g, node_name, layer_names},
+      join_{make_join(g, std::make_index_sequence<NInputs>{})}
     {
-      assert(NInputs == layers_.size());
-      // Collapse to the set of distinct layer names.  More than one distinct layer means
-      // at least one input crosses a layer boundary and therefore every input stream
-      // needs a repeater_node.
-      std::set const collapsed_layers(layers_.begin(), layers_.end());
-
-      // Add repeaters only if the inputs span more than one distinct layer.
-      if (collapsed_layers.size() > 1) {
-        repeaters_.reserve(NInputs);
-        for (auto const& layer : layers_) {
-          repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
-        }
-      }
+      assert(NInputs == layer_names.size());
 
       auto set_ports = [this]<std::size_t... Is>(std::index_sequence<Is...>) {
-        if (repeaters_.empty()) {
+        if (!support_.has_repeaters()) {
           // No repeating behavior necessary if all specified layer names are the same
           // Just use TBB's join_node.
           this->set_external_ports(input_t{input_port<Is>(join_)...}, output_t{join_});
         } else {
-          this->set_external_ports(input_t{repeaters_[Is]->data_port()...}, output_t{join_});
+          this->set_external_ports(input_t{support_.repeater(Is).data_port()...}, output_t{join_});
           // Connect repeaters to join
-          (make_edge(*repeaters_[Is], input_port<Is>(join_)), ...);
+          (make_edge(support_.repeater(Is), input_port<Is>(join_)), ...);
         }
+        receivers_ = {&input_port<Is>(*this)...};
       };
 
       set_ports(std::make_index_sequence<NInputs>{});
@@ -108,26 +93,18 @@ namespace phlex::detail {
     // Returns one named_index_port per repeater so that the index router can deliver
     // flush and index messages to each repeater.  Returns an empty list when no repeaters
     // were constructed (all inputs share the same layer).
-    std::vector<named_index_port> index_ports()
+    std::vector<named_index_port> index_ports() { return support_.index_ports(); }
+
+    tbb::flow::receiver<message>& receiver(std::size_t index)
     {
-      std::vector<named_index_port> result;
-      result.reserve(repeaters_.size());
-      for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
-        // Leave counting layer unset so the router balances this slot's flush token
-        // against the node's deepest layer.
-        result.emplace_back(layer, std::nullopt, &repeater->flush_port(), &repeater->index_port());
-      }
-      return result;
+      return phlex::detail::receiver_for(receivers_, index);
     }
 
   private:
-    std::vector<std::unique_ptr<internal::repeater_node>> repeaters_;
+    // Destroy the join before the support that owns its upstream repeaters.
+    internal::join_support support_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
-    // Immutable after construction; tbb::flow::join_node is already non-movable.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::string const name_;
-    std::vector<phlex::experimental::identifier> const layers_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::vector<tbb::flow::receiver<message>*> receivers_;
   };
 
   namespace internal {
@@ -167,19 +144,11 @@ namespace phlex::detail {
     }
   }
 
-  // Translates a runtime port index into a reference to the corresponding compile-time
-  // input port by recursively incrementing the compile-time parameter I until it matches
-  // the runtime index.
-  template <std::size_t I, std::size_t N>
+  // Uses the cached external data receivers to resolve a runtime port index.
+  template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(multilayer_join_node<N>& join, std::size_t const index)
   {
-    if constexpr (I < N) {
-      if (I != index) {
-        return receiver_for<I + 1ull, N>(join, index);
-      }
-      return input_port<I>(join);
-    }
-    throw std::runtime_error("Should never get here");
+    return join.receiver(index);
   }
 
   namespace internal {
@@ -192,7 +161,7 @@ namespace phlex::detail {
     {
       static_assert(N > 1ull, "receiver_for should not be called for N=1");
       auto const index = port_index_for(input_products, input_product);
-      return receiver_for<0ull, N>(join, index);
+      return join.receiver(index);
     }
   }
 

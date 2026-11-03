@@ -11,6 +11,7 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -21,73 +22,44 @@ using namespace phlex::experimental::literals;
 
 namespace phlex {
   namespace detail {
-    class creator_name {
+    class PHLEX_CORE_EXPORT creator_name {
     public:
       creator_name() = default;
-      creator_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
-      {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify product with empty creator name.");
-        }
-      }
+      creator_name(std::optional<experimental::identifier>&& content);
       template <typename U>
         requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      creator_name(U&& rhs) : content_(std::forward<U>(rhs))
+      creator_name(U&& rhs) :
+        creator_name(std::optional<experimental::identifier>{std::in_place, std::forward<U>(rhs)})
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify product with empty creator name.");
-        }
       }
 
       operator bool() const noexcept { return content_.has_value(); }
       experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      friend experimental::identifier format_as(creator_name const& me) noexcept
-      {
-        return me.content_.value_or("[ANY]");
-      }
+      friend PHLEX_CORE_EXPORT experimental::identifier format_as(creator_name const& me) noexcept;
       auto operator<=>(creator_name const&) const noexcept = default;
 
     private:
       std::optional<experimental::identifier> content_;
     };
 
-    class layer_name {
+    class PHLEX_CORE_EXPORT layer_name {
     public:
       layer_name() = default;
-      layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
-      {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
-      }
+      layer_name(std::optional<experimental::identifier>&& content);
       template <typename U>
         requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      layer_name(U&& rhs) : content_(std::forward<U>(rhs))
+      layer_name(U&& rhs) :
+        layer_name(std::optional<experimental::identifier>{std::in_place, std::forward<U>(rhs)})
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator experimental::identifier const&() const
-      {
-        if (!content_.has_value()) {
-          throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
-        }
-        return *content_;
-      }
+      operator experimental::identifier const&() const;
 
       experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      explicit operator std::string_view() const noexcept
-      {
-        using namespace std::string_view_literals;
-        return content_
-          .transform([](experimental::identifier const& id) { return std::string_view(id); })
-          .value_or("[ANY]"sv);
-      }
+      explicit operator std::string_view() const noexcept;
       operator bool() const noexcept { return content_.has_value(); }
       auto operator<=>(layer_name const&) const noexcept = default;
 
