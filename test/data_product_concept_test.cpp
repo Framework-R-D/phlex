@@ -3,7 +3,6 @@
 
 #include <stdexcept>
 #include <string>
-#include <typeinfo>
 
 using namespace phlex::experimental;
 
@@ -21,13 +20,13 @@ namespace {
 
 TEST_CASE("data_product_concept construction records the right name", "[data_product_concept]")
 {
-  data_product_concept con{"my_concept"};
+  data_product_concept const con{"my_concept"};
   CHECK(con.name() == "my_concept");
 }
 
 TEST_CASE("data_product_concept starts with no concrete types", "[data_product_concept]")
 {
-  data_product_concept con{"empty_concept"};
+  data_product_concept const con{"empty_concept"};
   CHECK(con.concrete_types().empty());
 }
 

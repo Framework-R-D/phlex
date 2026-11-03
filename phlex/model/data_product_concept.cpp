@@ -1,7 +1,9 @@
 #include "phlex/model/data_product_concept.hpp"
 
 #include <stdexcept>
-#include <typeinfo>
+#include <string>
+#include <unordered_set>
+#include <utility>
 
 namespace phlex::experimental {
 
@@ -33,7 +35,7 @@ namespace phlex::experimental {
 
   bool data_product_concept::has_concrete_type(concrete_product_id type) const
   {
-    return concrete_types_.find(type) != concrete_types_.end();
+    return concrete_types_.contains(type);
   }
 
 } // namespace phlex::experimental
