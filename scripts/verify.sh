@@ -62,16 +62,14 @@ fi
 
 if [[ -n "$project" ]]; then
     test_command=(spack mpd test --)
-    selection=()
 else
-    test_command=(ctest)
-    selection=(--test-dir "$build_dir")
+    test_command=(ctest --test-dir "$build_dir")
 fi
 if [[ -n "$pattern" ]]; then
-    selection+=(-R "$pattern")
+    test_command+=(-R "$pattern")
 fi
-"${test_command[@]}" "${selection[@]}" -N
+"${test_command[@]}" -N
 if [[ "$verbose" == 1 ]]; then
-    selection+=(-V)
+    test_command+=(-V)
 fi
-"${test_command[@]}" "${selection[@]}" --parallel --output-on-failure --no-tests=error
+"${test_command[@]}" --parallel --output-on-failure --no-tests=error

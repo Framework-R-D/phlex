@@ -107,7 +107,11 @@ def _verify(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]
     )
 
 
-def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[str, str]]) -> None:
+@pytest.mark.parametrize("pattern", [None, "^identifier$"])
+@pytest.mark.parametrize("verbose", [False, True])
+def test_mpd_build_precedes_identical_test_selections(
+    tools: tuple[Path, dict[str, str]], pattern: str | None, verbose: bool
+) -> None:
     """Verify the MPD workflow runs discover, select, build, list and test in order.
 
     All phases must share one parent shell, and each phase's stdout and stderr
@@ -115,13 +119,20 @@ def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[st
 
     Args:
         tools: Build directory and environment from the ``tools`` fixture.
+        pattern: Optional test-selection regex; ``None`` runs the full suite.
+        verbose: Whether to request verbose test output.
 
     Raises:
         AssertionError: If the return code, command order, arguments or output
             differ from the expected MPD workflow.
     """
-    build, env = tools
-    result = _verify(env, "--project", "phlex-work-dir", "--tests", "^identifier$", "--verbose")
+    _, env = tools
+    args = ["--project", "phlex-work-dir"]
+    if pattern is not None:
+        args.extend(["--tests", pattern])
+    if verbose:
+        args.append("--verbose")
+    result = _verify(env, *args)
     assert result.returncode == 0, result.stderr
     commands = _commands(env)
     assert [c[0] for c in commands] == ["discover", "select", "build", "list", "test"]
@@ -129,7 +140,7 @@ def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[st
     assert commands[1][2] == ["mpd", "select", "--project", "phlex-work-dir"]
     assert commands[2][2] == ["mpd", "build"]
     assert commands[1][3] == commands[2][3] == commands[4][3]
-    selection = ["-R", "^identifier$"]
+    selection = ["-R", pattern] if pattern is not None else []
     assert commands[3][1] == commands[4][1] == "spack"
     assert commands[3][2] == ["mpd", "test", "--", *selection, "-N"]
     assert commands[4][2] == [
@@ -137,7 +148,7 @@ def test_mpd_build_precedes_identical_test_selections(tools: tuple[Path, dict[st
         "test",
         "--",
         *selection,
-        "-V",
+        *(["-V"] if verbose else []),
         "--parallel",
         "--output-on-failure",
         "--no-tests=error",
