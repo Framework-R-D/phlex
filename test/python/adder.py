@@ -59,20 +59,29 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
 
     # run a few cases that are supposed to fail cleanly
     for kwargs, err, msg in [
-            ({},
+            ({"input_family": config["input"]},
              "should have an output suffix",
              "without an output suffix"),
-            ({"output_product_suffixes": [42]},
+            ({"input_family": config["input"], "output_product_suffixes": [42]},
              "must be a string",
              "with non-string output suffix"),
+            ({"input_family": object(), "output_product_suffixes": ["42"]},
+              "input_family must be a sequence",
+              "with non-sequence input family"),
+            ({"input_family": config["input"], "output_product_suffixes": object()},
+              "output_product_suffixes must be a sequence",
+              "with non-sequence output suffixes"),
+            ({"input_family": [{"suffix": 42}], "output_product_suffixes": ["42"]},
+              "missing suffix or not a string",
+              "with non-string input suffix"),
             # currently an error, but should be supported at some point:
-            ({"output_product_suffixes": ["a", "b"]},
+            ({"input_family": config["input"], "output_product_suffixes": ["a", "b"]},
              "only a single output supported",
              "with multiple output suffixes"),
         ]:
 
         try:
-            m.transform(int_adder, input_family=config["input"], **kwargs)
+            m.transform(int_adder, **kwargs)
         except TypeError as e:
             assert err in str(e)
         else:

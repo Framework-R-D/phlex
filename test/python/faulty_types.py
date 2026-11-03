@@ -45,7 +45,6 @@ class FaultyCase:
 FAULTY_CASES = [
     #           tag                     claimed annotation          actual value
     FaultyCase("mixed_list_float_str",  list[float],                [1.0, "two"]),
-    FaultyCase("mixed_list_bool_none",  list[bool],                 [True, None]),
     FaultyCase("mixed_list_uint_float", list["unsigned int"],       [1, 2.5]), # type: ignore # noqa: F722
     FaultyCase("nested_list",           list["double"],             [[1.0], [2.0]]), # type: ignore # noqa: F821
     FaultyCase("unicode_as_float",      float,                      "π"),

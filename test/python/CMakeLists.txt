@@ -172,6 +172,7 @@ if(HAS_NUMPY)
         WILL_FAIL TRUE
         # Don't let unrelated breakage masquerade as "correctly rejected garbage"
         FAIL_REGULAR_EXPRESSION "ModuleNotFoundError;ImportError;KeyError: 'case'"
+        PASS_REGULAR_EXPRESSION "TypeError"
     )
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:faulty_types:${FAULTY_CASE})
   endforeach()
