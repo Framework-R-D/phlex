@@ -30,6 +30,9 @@ namespace phlex::experimental {
   void data_product_concept::add_concrete_types(
     std::unordered_set<concrete_product_id> const& types)
   {
+    if (&types == &concrete_types_) {
+      return;
+    }
     concrete_types_.insert(types.begin(), types.end());
   }
 
