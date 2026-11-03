@@ -3,6 +3,7 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/index_router.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/producer_catalog.hpp"
@@ -215,12 +216,12 @@ namespace phlex::detail {
       return result;
     }
 
-    std::map<std::string, named_index_ports> multilayer_ports(
+    std::map<std::string, join_registration> multilayer_ports(
       std::span<products_consumer* const> consumers)
     {
-      std::map<std::string, named_index_ports> result;
+      std::map<std::string, join_registration> result;
       for (auto* node : consumers) {
-        if (auto const& ports = node->index_ports(); not ports.empty()) {
+        if (auto const& ports = node->index_ports(); not ports.participants.empty()) {
           result.try_emplace(node->name().to_string(), ports);
         }
       }
@@ -242,7 +243,7 @@ namespace phlex::detail {
     }
   }
 
-  std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+  std::tuple<index_router::provider_input_ports_t, std::map<std::string, join_registration>>
   make_computational_edges(node_catalog& nodes,
                            std::map<std::string, filter>& filters,
                            tbb::flow::graph& g,

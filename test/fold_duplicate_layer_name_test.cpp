@@ -135,6 +135,46 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
   check_no_cached_entries(output);
 }
 
+TEST_CASE("Empty run fold excludes foreign pass-through event products", "[graph][fold]")
+{
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  {
+    constexpr auto foreign_count = 3u;
+    std::vector<unsigned int> sums;
+    auto gen = experimental::layer_generator::make();
+    gen->add_layer("run", {.parent_layer = "job", .count = 1});
+    // Declare the eligible invocation path without generating any eligible events.
+    gen->add_layer("event", {.parent_layer = "run", .count = 0});
+    gen->add_layer("event", {.parent_layer = "job", .count = foreign_count});
+
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(gen);
+    g.provide("provide_number", provide_number, concurrency::unlimited)
+      .output_product("input", "number", "event");
+    g.fold("run_add", add, concurrency::unlimited, "run", 0u)
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
+      .output_product_suffixes("run_sum");
+    g.observe(
+       "collect_sum", [&sums](unsigned int sum) { sums.push_back(sum); }, concurrency::serial)
+      .input_family(product_selector{.creator = "run_add", .layer = "run", .suffix = "run_sum"});
+
+    g.execute();
+
+    CHECK(gen->emitted_cell_count("/job/run") == 1);
+    CHECK(gen->emitted_cell_count("/job/run/event") == 0);
+    CHECK(gen->emitted_cell_count("/job/event") == foreign_count);
+    CHECK(g.execution_count("provide_number") == foreign_count);
+    CHECK(g.execution_count("run_add") == 0);
+    CHECK(g.execution_count("collect_sum") == 1);
+    CHECK(sums == std::vector<unsigned int>{0u});
+  }
+  // Unmatched foreign products must not remain cached after the graph is destroyed.
+  INFO(output.str());
+  CHECK_FALSE(output.str().contains("[run_add/event] Cached messages"));
+  check_no_cached_entries(output);
+}
+
 TEST_CASE("Fold duplicate event paths with empty unfolds", "[graph][issue955]")
 {
   auto const [description, top_count, run_count] =

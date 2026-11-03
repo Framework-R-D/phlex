@@ -4,6 +4,7 @@
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -13,7 +14,9 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <functional>
+#include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace phlex::detail {
@@ -36,7 +39,7 @@ namespace phlex::detail {
     std::vector<phlex::experimental::identifier> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_selector const& input_product);
 
-    virtual named_index_ports index_ports() = 0;
+    join_registration index_ports();
     virtual std::size_t num_calls() const = 0;
 
   protected:
@@ -48,9 +51,12 @@ namespace phlex::detail {
 
   private:
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
+    virtual join_registration index_ports_for() = 0;
     std::reference_wrapper<tbb::flow::graph> graph_;
     product_selectors input_products_;
     std::vector<phlex::experimental::identifier> layers_;
+    // Configured during router finalization, before execution; unset leaves name-only filtering.
+    std::vector<std::optional<std::unordered_set<std::size_t>>> accepted_cells_;
     std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
   };
 }

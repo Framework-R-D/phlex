@@ -31,7 +31,6 @@ namespace phlex::detail {
       return products_consumer::name();
     }
 
-    virtual tbb::flow::receiver<index_message>& partition_port() = 0;
     phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
 
   private:

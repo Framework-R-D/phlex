@@ -1,6 +1,7 @@
 #include "phlex/core/products_consumer.hpp"
 
 #include "phlex/core/consumer.hpp"
+#include "phlex/core/join_registration.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -14,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -71,7 +73,8 @@ namespace phlex::detail {
     consumer{std::move(name), std::move(predicates)},
     graph_{graph},
     input_products_{std::move(input_products)},
-    layers_{layers_from(input_products_)}
+    layers_{layers_from(input_products_)},
+    accepted_cells_(input_products_.size())
   {
     validate_layers(layers_required, input_products_, this->name());
   }
@@ -86,12 +89,12 @@ namespace phlex::detail {
 
     // If input_product doesn't have a layer, it must be for a node that allows layer omission
     if (input_product.layer) {
+      auto const input_ordinal = port_index_for(input_products_, input_product);
       auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
-        graph_,
-        tbb::flow::unlimited,
-        [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
-          message const& msg, auto& output) {
-          if (msg.store->layer_name() == layer) {
+        graph_, tbb::flow::unlimited, [this, input_ordinal](message const& msg, auto& output) {
+          auto const& accepted = accepted_cells_[input_ordinal];
+          if (msg.store->layer_name() == layers_[input_ordinal] and
+              (not accepted or accepted->contains(msg.store->index()->layer_hash()))) {
             std::get<0>(output).try_put(msg);
           }
         }));
@@ -100,6 +103,20 @@ namespace phlex::detail {
     }
     // else
     return next;
+  }
+
+  join_registration products_consumer::index_ports()
+  {
+    auto result = index_ports_for();
+    for (auto& participant : result.participants) {
+      if (participant.input_ordinal) {
+        participant.accept_cells = [this, input_ordinal = *participant.input_ordinal](
+                                     std::unordered_set<std::size_t> cells) {
+          accepted_cells_[input_ordinal] = std::move(cells);
+        };
+      }
+    }
+    return result;
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }
