@@ -24,13 +24,14 @@ namespace {
 
   soa_vertices to_soa(aos_vertices const& in) { return soa_vertices{std::stoi(in.value)}; }
 
-  // A concept modeled by both test types, ready for translator registration.
-  data_product_concept concept_with_both_types()
+  // Make a concept modeled by both test types, ready for translator
+  // registration. data_product_concept is neither movable nor assignable, so
+  // it cannot be returned from a function that populates a named local;
+  // instead the caller constructs the concept and this function populates it.
+  void add_both_types(data_product_concept& con)
   {
-    data_product_concept con{"VertexCollection"};
     con.add_concrete_type(typeid(soa_vertices));
     con.add_concrete_type(typeid(aos_vertices));
-    return con;
   }
 }
 
@@ -130,13 +131,15 @@ TEST_CASE("add_concrete_types adds the union of an overlapping set", "[data_prod
 
 TEST_CASE("a concept starts with no registered translators", "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
   CHECK(con.find_translator(typeid(soa_vertices), typeid(aos_vertices)) == nullptr);
 }
 
 TEST_CASE("a registered translator round-trips through the accessor", "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
 
   con.add_translator("one_to_two",
                      typeid(soa_vertices),
@@ -155,14 +158,15 @@ TEST_CASE("a registered translator round-trips through the accessor", "[data_pro
   // retrievable and invocable, not that it is the correct direction.
   auto const* conversion = std::any_cast<conversion_to_soa>(&registration->function);
   REQUIRE(conversion != nullptr);
-  aos_vertices input{"7"};
+  aos_vertices const input{"7"};
   soa_vertices const result = (*conversion)(input);
   CHECK(result == soa_vertices{7});
 }
 
 TEST_CASE("a borrowed result storage declaration is preserved", "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
 
   con.add_translator("one_to_two",
                      typeid(soa_vertices),
@@ -177,7 +181,8 @@ TEST_CASE("a borrowed result storage declaration is preserved", "[data_product_c
 
 TEST_CASE("translators are keyed by the ordered type pair", "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
 
   con.add_translator("one_to_two",
                      typeid(soa_vertices),
@@ -207,7 +212,8 @@ TEST_CASE("translators are keyed by the ordered type pair", "[data_product_conce
 TEST_CASE("registering a translator with identical source and target types throws",
           "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
 
   CHECK_THROWS_AS(con.add_translator("one_to_one",
                                      typeid(soa_vertices),
@@ -244,7 +250,8 @@ TEST_CASE("registering a translator for a type outside the concept throws",
 
 TEST_CASE("registering a second translator for the same type pair throws", "[data_product_concept]")
 {
-  auto con = concept_with_both_types();
+  data_product_concept con{"VertexCollection"};
+  add_both_types(con);
 
   con.add_translator("one_to_two",
                      typeid(soa_vertices),
@@ -271,11 +278,11 @@ TEST_CASE("add_concrete_types accepts its own set", "[data_product_concept]")
   con.add_concrete_types(con.concrete_types());
   CHECK(con.concrete_types().empty());
 
-  con.add_concrete_type(typeid(test_type_1));
-  con.add_concrete_type(typeid(test_type_2));
+  con.add_concrete_type(typeid(soa_vertices));
+  con.add_concrete_type(typeid(aos_vertices));
   con.add_concrete_types(con.concrete_types());
 
   CHECK(con.concrete_types().size() == 2ull);
-  CHECK(con.has_concrete_type(typeid(test_type_1)));
-  CHECK(con.has_concrete_type(typeid(test_type_2)));
+  CHECK(con.has_concrete_type(typeid(soa_vertices)));
+  CHECK(con.has_concrete_type(typeid(aos_vertices)));
 }
