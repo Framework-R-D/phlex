@@ -3,6 +3,7 @@
 #include "boost/core/demangle.hpp"
 #include "fmt/format.h"
 
+#include <any>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -82,8 +83,10 @@ namespace phlex::experimental {
                     boost::core::demangle(target.name()))};
     }
 
-    translators_.emplace(
-      key, translator_registration{std::move(translator_name), std::move(function), storage});
+    translators_.emplace(key,
+                         translator_registration{.name = std::move(translator_name),
+                                                 .function = std::move(function),
+                                                 .storage = storage});
   }
 
   translator_registration const* data_product_concept::find_translator(
