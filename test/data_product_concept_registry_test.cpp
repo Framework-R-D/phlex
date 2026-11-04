@@ -279,3 +279,57 @@ TEST_CASE("type_matches_concept is true under both names for a shared type",
   CHECK(registry.type_matches_concept("concept_a", typeid(test_type_1)));
   CHECK(registry.type_matches_concept("concept_b", typeid(test_type_1)));
 }
+
+TEST_CASE("get_concept_for_type returns the associated concept", "[data_product_concept_registry]")
+{
+  data_product_concept_registry registry;
+
+  auto con = std::make_unique<data_product_concept>("type_a");
+  con->add_concrete_type(typeid(test_type_1));
+  registry.register_concept(std::move(con));
+
+  auto const* found = registry.get_concept_for_type(typeid(test_type_1));
+  CHECK(found != nullptr);
+  CHECK(found->name() == "type_a");
+}
+
+TEST_CASE("get_concept_for_type returns nullptr for an unknown type",
+          "[data_product_concept_registry]")
+{
+  SECTION("empty registry")
+  {
+    data_product_concept_registry const registry;
+    CHECK(registry.get_concept_for_type(typeid(int)) == nullptr);
+  }
+
+  SECTION("registry whose concepts all lack the type")
+  {
+    data_product_concept_registry registry;
+    registry.add_concrete_type("concept_a", typeid(test_type_1));
+    registry.add_concrete_type("concept_b", typeid(test_type_2));
+
+    CHECK(registry.get_concept_for_type(typeid(int)) == nullptr);
+  }
+}
+
+TEST_CASE("get_concept_for_type returns a matching concept when a type belongs to multiple "
+          "concepts",
+          "[data_product_concept_registry]")
+{
+  data_product_concept_registry registry;
+
+  registry.add_concrete_type("concept_a", typeid(test_type_1));
+  registry.add_concrete_type("concept_b", typeid(test_type_1));
+  // "concept_other" is a distractor: it does not contain test_type_1, so it must never be
+  // returned for a test_type_1 query. Without it, every concept in the registry would match,
+  // and an implementation that returned an arbitrary concept without checking the type would
+  // still pass. Which of "concept_a" and "concept_b" is returned is unspecified (it depends
+  // on the registry's iteration order), so the checks below do not assume either one.
+  registry.add_concrete_type("concept_other", typeid(test_type_2));
+
+  auto const* found = registry.get_concept_for_type(typeid(test_type_1));
+  REQUIRE(found != nullptr);
+  CHECK(found->has_concrete_type(typeid(test_type_1)));
+  CHECK_FALSE(found->has_concrete_type(typeid(test_type_2)));
+  CHECK(found->name() != "concept_other");
+}
