@@ -25,6 +25,7 @@
 #include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;
@@ -93,6 +94,22 @@ namespace {
     static auto tokens() { return std::span<int const>{}; }
   };
 
+  struct counting_pooled_resource {
+    counting_pooled_resource(int& calls, std::vector<int> values) :
+      calls{calls}, values{std::move(values)}
+    {
+    }
+
+    std::vector<int> tokens() const
+    {
+      ++calls;
+      return values;
+    }
+
+    int& calls; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::vector<int> values;
+  };
+
   struct invalid_pooled_range_resource {
     static int tokens() { return 42; }
   };
@@ -130,6 +147,14 @@ namespace {
   concept catalog_accepts_serialized =
     requires(resource_catalog& catalog) { catalog.template add_serialized<T>(); };
 
+  template <typename T>
+  concept graph_accepts_pooled =
+    requires(framework_graph& graph) { graph.template add_pooled_resource<T>(); };
+
+  template <typename T>
+  concept catalog_accepts_pooled =
+    requires(resource_catalog& catalog) { catalog.template add_pooled<T>(); };
+
   static_assert(graph_accepts_unlimited<default_unlimited_resource>);
   static_assert(not graph_accepts_serialized<default_unlimited_resource>);
   static_assert(catalog_accepts_unlimited<default_unlimited_resource>);
@@ -162,8 +187,10 @@ namespace {
 
   static_assert(not graph_accepts_unlimited<pooled_token_resource>);
   static_assert(not graph_accepts_serialized<pooled_token_resource>);
+  static_assert(graph_accepts_pooled<pooled_token_resource>);
   static_assert(not catalog_accepts_unlimited<pooled_token_resource>);
   static_assert(not catalog_accepts_serialized<pooled_token_resource>);
+  static_assert(catalog_accepts_pooled<pooled_token_resource>);
 
   static_assert(not graph_accepts_unlimited<invalid_serialized_resource>);
   static_assert(not graph_accepts_serialized<invalid_serialized_resource>);
@@ -316,6 +343,35 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK_NOTHROW(catalog.limiter_for<value_token_resource>());
   }
 
+  SECTION("pooled resources materialize a temporary token range once")
+  {
+    int calls{};
+    catalog.add_pooled<counting_pooled_resource>(calls, std::vector{11, 29, 47});
+    CHECK(calls == 1);
+    CHECK_NOTHROW(catalog.limiter_for<counting_pooled_resource>());
+    CHECK(calls == 1);
+  }
+
+  SECTION("empty pooled resources throw during registration")
+  {
+    int calls{};
+    CHECK_THROWS_WITH(catalog.add_pooled<counting_pooled_resource>(calls, std::vector<int>{}),
+                      Catch::Matchers::ContainsSubstring("counting_pooled_resource") &&
+                        Catch::Matchers::ContainsSubstring("empty token pool"));
+    CHECK(calls == 1);
+    CHECK_THROWS_WITH(catalog.limiter_for<counting_pooled_resource>(),
+                      Catch::Matchers::ContainsSubstring("has not been registered"));
+  }
+
+  SECTION("duplicate pooled registrations throw")
+  {
+    int calls{};
+    catalog.add_pooled<counting_pooled_resource>(calls, std::vector{11});
+    CHECK_THROWS_WITH(catalog.add_pooled<counting_pooled_resource>(calls, std::vector{29}),
+                      Catch::Matchers::ContainsSubstring("has already been registered"));
+    CHECK(calls == 1);
+  }
+
   SECTION("duplicate serialized registrations throw")
   {
     catalog.add_serialized<catch2_resource>();
@@ -338,6 +394,9 @@ TEST_CASE("resource catalog", "[resource]")
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
     CHECK_THROWS_WITH(catalog.access_for<unlimited_resource_type>(),
+                      Catch::Matchers::ContainsSubstring("Resource of type '") &&
+                        Catch::Matchers::ContainsSubstring("' has not been registered"));
+    CHECK_THROWS_WITH(catalog.limiter_for<pooled_token_resource>(),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
   }

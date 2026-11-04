@@ -2,14 +2,20 @@
 #define PHLEX_CORE_RESOURCE_ENTRIES_HPP
 
 #include "phlex/core/resource/concepts.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
+#include <ranges>
+#include <typeinfo>
 #include <utility>
+#include <vector>
 
 namespace phlex::detail {
+  [[noreturn]] PHLEX_CORE_EXPORT void throw_empty_pooled_resource_error(std::type_info const& type);
+
   class resource_base {
   public:
     virtual ~resource_base() = default;
@@ -59,6 +65,40 @@ namespace phlex::detail {
 
     // The framework owns the resource, while TBB uses the limiter to limit access to it.
     // Declare resource_ first so it outlives the limiter, which holds a pointer to it.
+    T resource_;
+    tbb::flow::resource_limiter<token_type> limiter_;
+  };
+
+  template <pooled_resource T>
+  class pooled_resource_entry : public resource_base {
+  public:
+    using resource_type = T;
+    using token_type = internal::pooled_token_type_t<T>;
+
+    template <typename... Args>
+    explicit pooled_resource_entry(Args&&... args) :
+      resource_{std::forward<Args>(args)...}, limiter_{make_limiter(resource_)}
+    {
+    }
+
+    tbb::flow::resource_limiter<token_type>& limiter() noexcept { return limiter_; }
+
+  private:
+    static tbb::flow::resource_limiter<token_type> make_limiter(T const& resource)
+    {
+      std::vector<token_type> tokens;
+      for (auto&& token : resource.tokens()) {
+        tokens.emplace_back(std::forward<decltype(token)>(token));
+      }
+
+      if (tokens.empty()) {
+        throw_empty_pooled_resource_error(typeid(T));
+      }
+      return {tokens.begin(), tokens.end()};
+    }
+
+    // The limiter owns copies of token values. Declare the resource first so it outlives the
+    // limiter when tokens refer to resource-owned state.
     T resource_;
     tbb::flow::resource_limiter<token_type> limiter_;
   };
