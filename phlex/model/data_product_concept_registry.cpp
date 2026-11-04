@@ -1,4 +1,5 @@
 #include "phlex/model/data_product_concept_registry.hpp"
+
 #include "phlex/model/data_product_concept.hpp"
 
 #include <algorithm>
