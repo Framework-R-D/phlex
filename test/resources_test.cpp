@@ -21,6 +21,9 @@
 // Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <memory>
+#include <span>
+#include <string>
 #include <utility>
 
 using namespace phlex;
@@ -70,12 +73,12 @@ namespace {
     int token() const { return 24; }
   };
 
-  // A mutable-only tokens() member does not affect the unlimited classification.
+  // A malformed pooled declaration must not fall back to unlimited registration.
   struct mutable_tokens_unlimited_resource {
     void tokens() {}
   };
 
-  // A mutable-only tokens() member does not make a token-bearing resource bounded.
+  // A mutable-only tokens() declaration makes this resource invalid.
   struct mutable_tokens_serialized_resource {
     using token_type = mutable_tokens_serialized_resource const*;
 
@@ -83,9 +86,28 @@ namespace {
   };
 
   struct pooled_token_resource {
-    using token_type = int*;
-
     static auto tokens() { return std::array<int*, 1>{}; }
+  };
+
+  struct pooled_view_resource {
+    static auto tokens() { return std::span<int const>{}; }
+  };
+
+  struct invalid_pooled_range_resource {
+    static int tokens() { return 42; }
+  };
+
+  struct noncopyable_pooled_token_resource {
+    static auto tokens() { return std::array<std::unique_ptr<int>, 1>{}; }
+  };
+
+  struct nonassignable_pooled_token_resource {
+    struct token {
+      // NOLINTNEXTLINE(readability-identifier-naming, cppcoreguidelines-avoid-const-or-ref-data-members)
+      int const value;
+    };
+
+    static auto tokens() { return std::array<token, 1>{{{42}}}; }
   };
 
   using mixed_dependencies = resource_dependencies<catch2_resource, unlimited_resource_type>;
@@ -128,15 +150,15 @@ namespace {
   static_assert(not catalog_accepts_unlimited<const_member_token_resource>);
   static_assert(catalog_accepts_serialized<const_member_token_resource>);
 
-  static_assert(graph_accepts_unlimited<mutable_tokens_unlimited_resource>);
+  static_assert(not graph_accepts_unlimited<mutable_tokens_unlimited_resource>);
   static_assert(not graph_accepts_serialized<mutable_tokens_unlimited_resource>);
-  static_assert(catalog_accepts_unlimited<mutable_tokens_unlimited_resource>);
+  static_assert(not catalog_accepts_unlimited<mutable_tokens_unlimited_resource>);
   static_assert(not catalog_accepts_serialized<mutable_tokens_unlimited_resource>);
 
   static_assert(not graph_accepts_unlimited<mutable_tokens_serialized_resource>);
-  static_assert(graph_accepts_serialized<mutable_tokens_serialized_resource>);
+  static_assert(not graph_accepts_serialized<mutable_tokens_serialized_resource>);
   static_assert(not catalog_accepts_unlimited<mutable_tokens_serialized_resource>);
-  static_assert(catalog_accepts_serialized<mutable_tokens_serialized_resource>);
+  static_assert(not catalog_accepts_serialized<mutable_tokens_serialized_resource>);
 
   static_assert(not graph_accepts_unlimited<pooled_token_resource>);
   static_assert(not graph_accepts_serialized<pooled_token_resource>);
@@ -182,10 +204,30 @@ namespace {
   static_assert(not serialized_resource<invalid_serialized_resource>);
   static_assert(not phase_1_supported_resource<invalid_serialized_resource>);
 
-  // Pooled resources, deferred in Phase 1.
+  // Pooled handles are inferred from range values, not range references.
   static_assert(pooled_resource<pooled_token_resource>);
+  static_assert(pooled_resource_registration<pooled_token_resource>);
   static_assert(not serialized_resource<pooled_token_resource>);
   static_assert(not phase_1_supported_resource<pooled_token_resource>);
+  static_assert(pooled_resource<pooled_view_resource>);
+  static_assert(pooled_resource_registration<pooled_view_resource>);
+  static_assert(not pooled_resource_registration<pooled_view_resource const>);
+  static_assert(not pooled_resource_registration<pooled_view_resource, int>);
+  static_assert(not serialized_resource<pooled_view_resource>);
+
+  // Malformed token ranges are neither pooled nor eligible for serialized fallback.
+  static_assert(not pooled_resource<invalid_pooled_range_resource>);
+  static_assert(not unlimited_resource<invalid_pooled_range_resource>);
+  static_assert(not graph_accepts_unlimited<invalid_pooled_range_resource>);
+  static_assert(not serialized_resource<invalid_pooled_range_resource>);
+  static_assert(not graph_accepts_serialized<invalid_pooled_range_resource>);
+  static_assert(not catalog_accepts_serialized<invalid_pooled_range_resource>);
+  static_assert(not pooled_resource<noncopyable_pooled_token_resource>);
+  static_assert(not serialized_resource<noncopyable_pooled_token_resource>);
+  static_assert(not pooled_resource<nonassignable_pooled_token_resource>);
+  static_assert(not serialized_resource<nonassignable_pooled_token_resource>);
+  static_assert(not pooled_resource<mutable_tokens_serialized_resource>);
+  static_assert(not serialized_resource<mutable_tokens_serialized_resource>);
 
   // Resource dependency partitioning.
   static_assert(mixed_dependencies::has_serialized_resources);
