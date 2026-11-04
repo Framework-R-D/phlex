@@ -315,7 +315,7 @@ TEST_CASE("technology::id on-disk tokens", "[form]")
   CHECK(find_on_disk_token("hdf5") == std::optional{hdf5});
   CHECK_THROWS_AS(from_on_disk_token("hdf5"), std::runtime_error);
 
-  CHECK_THROWS_AS(on_disk_token(id{.major = static_cast<form::technology::major>(99), .minor = 0}),
+  CHECK_THROWS_AS(on_disk_token(id{.major = form::technology::major::root, .minor = 99}),
                   std::runtime_error);
 }
 

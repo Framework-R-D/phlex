@@ -690,10 +690,11 @@ TEST_CASE("storage_reader read_descriptor: a written file identifies its layout 
   // A single-technology file names just that technology, with the token FORM writes to disk.
   auto const technologies = descriptor_value(descriptor, descriptor_technologies_key);
   REQUIRE(technologies.has_value());
-  CHECK(*technologies == form::technology::on_disk_token(technology));
+  auto const token = technologies.value_or(std::string{});
+  CHECK(token == form::technology::on_disk_token(technology));
 
   // The on-disk token identifies the technology independently of its configuration name.
-  CHECK(form::technology::from_on_disk_token(*technologies) == technology);
+  CHECK(form::technology::from_on_disk_token(token) == technology);
 
   // The file opened for the descriptor is the one the reader goes on to read products from.
   for (auto const& cell : cells) {

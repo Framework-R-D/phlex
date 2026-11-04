@@ -91,8 +91,8 @@ namespace form::technology {
     {
       for (std::size_t i = 0; i < registry.size(); ++i) {
         for (std::size_t j = i + 1; j < registry.size(); ++j) {
-          auto const& left = registry[i];
-          auto const& right = registry[j];
+          auto const& left = registry.at(i);
+          auto const& right = registry.at(j);
           if (left.technology == right.technology) {
             return false;
           }
@@ -115,10 +115,12 @@ namespace form::technology {
 
     constexpr registration const* lookup_by_id(id technology)
     {
-      auto const found = std::ranges::find_if(registry, [technology](registration const& entry) {
-        return entry.technology == technology;
-      });
-      return found == registry.end() ? nullptr : &*found;
+      for (auto const& entry : registry) {
+        if (entry.technology == technology) {
+          return &entry;
+        }
+      }
+      return nullptr;
     }
 
     constexpr registration const* lookup_by_configuration_name(std::string_view name)
@@ -126,17 +128,23 @@ namespace form::technology {
       if (name.empty()) {
         return nullptr;
       }
-      auto const found = std::ranges::find_if(
-        registry, [name](registration const& entry) { return entry.configuration_name == name; });
-      return found == registry.end() ? nullptr : &*found;
+      for (auto const& entry : registry) {
+        if (entry.configuration_name == name) {
+          return &entry;
+        }
+      }
+      return nullptr;
     }
 
     // No empty guard is needed, unlike configuration names: every token is non-empty.
     constexpr registration const* lookup_by_on_disk_token(std::string_view token)
     {
-      auto const found = std::ranges::find_if(
-        registry, [token](registration const& entry) { return entry.on_disk_token == token; });
-      return found == registry.end() ? nullptr : &*found;
+      for (auto const& entry : registry) {
+        if (entry.on_disk_token == token) {
+          return &entry;
+        }
+      }
+      return nullptr;
     }
 
   } // namespace detail
