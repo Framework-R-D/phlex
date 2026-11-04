@@ -32,7 +32,9 @@ Command-line options
 ``--version``, ``-h``/``--help``
    Print the version or the option summary.
 
-Options must be spelled out in full; abbreviations are not accepted.
+Long options must be spelled out in full: ``--par`` is not accepted for
+``--parallel``.
+The short forms ``-c``, ``-j`` and ``-h`` listed above can be used.
 When both are given, ``-j`` overrides the ``max_concurrency`` key and
 ``--stage`` overrides the ``stage`` key.
 
