@@ -48,6 +48,13 @@ namespace phlex::detail {
       resources_.template add_serialized<Resource>(std::forward<Args>(args)...);
     }
 
+    template <typename Resource, typename... Args>
+      requires pooled_resource_registration<Resource, Args...>
+    void add_pooled_resource(Args&&... args) const
+    {
+      resources_.template add_pooled<Resource>(std::forward<Args>(args)...);
+    }
+
   private:
     resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };

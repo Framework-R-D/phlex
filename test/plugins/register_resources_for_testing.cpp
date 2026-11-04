@@ -15,6 +15,7 @@ namespace {
   static_assert(requires(proxy const& r) {
     r.template add_unlimited_resource<configured_resource>(1);
     r.template add_serialized_resource<serialized_resource>();
+    r.template add_pooled_resource<pooled_resource>();
   });
   static_assert(not exposes_observe<proxy>);
 }
@@ -23,4 +24,5 @@ PHLEX_REGISTER_RESOURCES(r, config)
 {
   r.add_unlimited_resource<configured_resource>(config.get<int>("value"));
   r.add_serialized_resource<serialized_resource>();
+  r.add_pooled_resource<pooled_resource>();
 }
