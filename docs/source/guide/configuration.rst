@@ -39,15 +39,11 @@ When both are given, ``-j`` overrides the ``max_concurrency`` key and
 Phlex has no options for passing Jsonnet top-level arguments or external
 variables.
 To parameterize a workflow, evaluate it with the ``jsonnet`` tool first and
-hand the result to Phlex, for example:
-
-.. code-block:: console
-
-   phlex -c <(jsonnet --tla-code seed=12345 workflow.jsonnet)
+hand the result to Phlex.
 
 Library search paths (``jsonnet -J`` or ``JSONNET_PATH``) cannot be set
-either, so a configuration passed directly to Phlex can only use relative
-``import`` paths.
+either, so a configuration passed directly to Phlex must give ``import``
+paths relative to the importing file, or as absolute paths.
 
 Top-level keys
 --------------
