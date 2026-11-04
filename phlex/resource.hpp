@@ -36,9 +36,11 @@ namespace phlex::detail {
     /// @p Resource must define @c token_type.  The resource is constructed from @p args and
     /// owned by the framework.  Across all algorithms that declare @c resource<Resource>{},
     /// at most one call runs at a time; it receives a @c token_type parameter, which is
-    /// a pointer to the resource if @c Resource* converts to @c token_type, a copy of the
-    /// resource if @c token_type is @c Resource, and otherwise the result of the resource's
-    /// @c token() member function.  Each resource type may be registered only once per job.
+    /// a pointer to the resource if @c Resource* converts to @c token_type; a copy of the
+    /// resource if @c token_type is @c Resource, which must then be copy-constructible; and
+    /// otherwise the result of @c Resource::token(), which must return something convertible
+    /// to @c token_type and be a @c static or @c const-qualified member function.  Each
+    /// resource type may be registered only once per job.
     template <typename Resource, typename... Args>
       requires serialized_resource_registration<Resource, Args...>
     void add_serialized_resource(Args&&... args) const

@@ -23,8 +23,12 @@ Serialized resources
 
    - a pointer to the resource, if ``T*`` converts to ``token_type``
      (for example ``using token_type = T const*;``);
-   - a copy of the resource, if ``token_type`` is ``T`` itself;
-   - otherwise, the result of the resource's ``token()`` member function.
+   - a copy of the resource, if ``token_type`` is ``T`` itself, in which
+     case ``T`` must be copy-constructible;
+   - otherwise, the result of ``T::token()``, which must return something
+     convertible to ``token_type`` and be either a ``static`` member
+     function or a ``const``-qualified member function.
+     A ``token()`` that is neither is rejected by ``add_serialized_resource``.
 
    This is the framework's way to protect a non-thread-safe library that
    several algorithms share.
@@ -60,6 +64,11 @@ target:
      r.add_unlimited_resource<calibration>(config.get<int>("version"));
      r.add_serialized_resource<legacy_generator>();
    }
+
+Define the resource types in a header that is included both by the plugin
+that registers them and by every algorithm module that uses them, as
+``test/plugins/resources_for_testing.hpp`` does.
+Header-only types like these need no separate shared library.
 
 The arguments of ``add_unlimited_resource`` and ``add_serialized_resource``
 are forwarded to the resource's constructor.
@@ -111,7 +120,9 @@ Limitations
   the unfolder's constructor
   (`issue #946 <https://github.com/Framework-R-D/phlex/issues/946>`_).
 - Resources with a pool of several tokens are not supported yet.
-- Phlex needs a oneTBB that provides the preview ``flow::resource_limiter``
-  class; CMake configuration fails without it.
+- Phlex needs `oneTBB 2023.0.0 or later
+  <https://github.com/uxlfoundation/oneTBB/releases#release-v2023.0.0>`_,
+  which provides the preview ``flow::resource_limiter`` class; CMake
+  configuration fails without it.
   The ``phlex::core`` target defines ``TBB_PREVIEW_FLOW_GRAPH_RESOURCE_LIMITING``
   for its users.
