@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <functional>
 #include <tuple>
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;
@@ -38,6 +39,10 @@ namespace {
     using token_type = int;
 
     static int token() { return 42; }
+  };
+
+  struct pooled_resource_type {
+    static std::vector<int> tokens() { return {42, 84}; }
   };
 
   // The production node bodies adapt product messages and output ports before invoking the
@@ -130,6 +135,9 @@ namespace {
       tbb::flow::multifunction_node<int, std::tuple<int>>>);
   static_assert(
     std::same_as<node_builder<int, no_outputs_t, std::tuple<serialized_resource_type>>::node_t,
+                 tbb::flow::resource_limited_node<int, no_outputs_t>>);
+  static_assert(
+    std::same_as<node_builder<int, no_outputs_t, std::tuple<pooled_resource_type>>::node_t,
                  tbb::flow::resource_limited_node<int, no_outputs_t>>);
 }
 
@@ -249,6 +257,26 @@ TEST_CASE("node builder supplies custom resource tokens", "[node_builder][resour
   REQUIRE(node.try_put(43));
   graph.wait_for_all();
   CHECK(called);
+}
+
+TEST_CASE("node builder supplies pooled resource tokens", "[node_builder][resource]")
+{
+  tbb::flow::graph graph;
+  resource_catalog resources;
+  resources.add_pooled<pooled_resource_type>();
+  std::atomic<int> received_token{};
+
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<pooled_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::serial.value,
+    resources,
+    [&received_token](int, int token) { received_token = token; },
+    invoke_operation);
+  REQUIRE(node.try_put(43));
+  graph.wait_for_all();
+  auto const token = received_token.load();
+  CHECK((token == 42 || token == 84));
 }
 
 TEST_CASE("a shared serialized resource limits concurrency",

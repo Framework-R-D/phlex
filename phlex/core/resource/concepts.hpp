@@ -48,7 +48,7 @@ namespace phlex::detail {
   concept pooled_resource = internal::has_valid_token_range<T>;
 
   template <typename T>
-  concept phase_1_supported_resource = unlimited_resource<T> || serialized_resource<T>;
+  concept limited_resource = serialized_resource<T> || pooled_resource<T>;
 
   template <typename T, typename... Args>
   concept unlimited_resource_registration =
@@ -76,6 +76,11 @@ namespace phlex::detail {
       using type = T::token_type;
     };
 
+    template <pooled_resource T>
+    struct resource_access_type<T> {
+      using type = pooled_token_type_t<T>;
+    };
+
     template <typename T>
     using resource_access_type_t = resource_access_type<T>::type;
 
@@ -83,7 +88,7 @@ namespace phlex::detail {
     using is_unlimited_resource = std::bool_constant<unlimited_resource<T>>;
 
     template <typename T>
-    using is_serialized_resource = std::bool_constant<serialized_resource<T>>;
+    using is_limited_resource = std::bool_constant<limited_resource<T>>;
   }
 }
 
