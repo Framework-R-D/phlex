@@ -10,7 +10,6 @@
 #include "storage/istorage.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -94,15 +93,6 @@ namespace form::test {
       start = comma + 1;
     }
     return values;
-  }
-
-  inline std::string technology_token(std::string const& tech_string)
-  {
-    std::string name = tech_string;
-    for (char& c : name) {
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return name;
   }
 
   inline std::string column_of(std::string const& table, std::string const& column)
@@ -240,7 +230,7 @@ namespace form::test {
 
   struct layout {
     form::technology::id technology{};
-    std::string technology_token;
+    std::string on_disk_token;
     std::string dictionary;
     std::vector<product_entry> products;
     /// Ordered by table name, so the printout is stable.
@@ -441,7 +431,7 @@ namespace form::test {
                       product.product_name),
           what + " uses its creator-stage row space");
         checks.check(product.navigation_container ==
-                       "nav_" + found.technology_token + "_cells_" + product.hierarchy_key,
+                       "nav_" + found.on_disk_token + "_cells_" + product.hierarchy_key,
                      what + " names the navigation table of its hierarchy");
         checks.check(product.navigation_column ==
                        navigation_row_column(product.creator, product.stage),
@@ -475,8 +465,8 @@ namespace form::test {
   {
     layout found;
     found.technology = form::technology::from_string(tech_string);
-    found.technology_token = technology_token(tech_string);
-    found.dictionary = "nav_" + found.technology_token + "_products";
+    found.on_disk_token = form::technology::on_disk_token(found.technology);
+    found.dictionary = "nav_" + found.on_disk_token + "_products";
 
     auto const names = reader.column<std::string>(column_of(found.dictionary, "product_name"));
     if (names.empty()) {
@@ -587,7 +577,7 @@ namespace form::test {
   {
     std::cout
       << "\nFORM navigation layout: " << found.tables.size() << " hierarchy table(s)"
-      << " for technology '" << found.technology_token << "'.\n"
+      << " for technology '" << found.on_disk_token << "'.\n"
       << "A table with more than one stream column is a wide table: those (creator, stage)\n"
       << "streams share a hierarchy, so they share its table.\n";
     for (auto const& table : found.tables) {

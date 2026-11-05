@@ -174,7 +174,7 @@ int main(int const argc, char* argv[])
     return 1;
   }
 
-  auto const prefix = "nav_" + technology_token(tech_string);
+  auto const prefix = "nav_" + std::string{form::technology::on_disk_token(technology)};
 
   checker checks;
   column_reader reader{file_name, technology};

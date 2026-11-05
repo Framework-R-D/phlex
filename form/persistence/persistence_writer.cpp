@@ -50,7 +50,7 @@ namespace {
     for (auto const& tech : actual->second) {
       if (!planned.contains(tech)) {
         throw std::runtime_error("persistence_writer: file '" + file_name + "' holds '" +
-                                 technology_name(tech) +
+                                 std::string{form::technology::on_disk_token(tech)} +
                                  "' products that were never planned; its descriptor would be "
                                  "inconsistent with its contents");
       }
@@ -65,7 +65,7 @@ namespace {
       if (!technology_names.empty()) {
         technology_names += ',';
       }
-      technology_names += technology_name(tech);
+      technology_names += form::technology::on_disk_token(tech);
     }
 
     return {{std::string{descriptor_layout_version_key}, std::string{form_layout_version}},

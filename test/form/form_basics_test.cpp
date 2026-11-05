@@ -36,11 +36,14 @@
 #include "root_storage/root_rntuple_write_container.hpp"
 #endif
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
@@ -245,7 +248,7 @@ TEST_CASE("token basics", "[form]")
   CHECK(t.id() == 42u);
 }
 
-TEST_CASE("technology::id string conversions", "[form]")
+TEST_CASE("technology::id configuration names", "[form]")
 {
   using namespace form::technology;
 
@@ -264,6 +267,56 @@ TEST_CASE("technology::id string conversions", "[form]")
   // An unknown name throws; an unknown id stringifies to the sentinel
   CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
   CHECK(to_string(id{}) == "UNKNOWN");
+
+  // An on-disk token is not a configuration name. The job configuration takes "ROOT_TTREE";
+  // "root_ttree" is what a file carries, and naming the confusion beats "Unknown technology".
+  CHECK_THROWS_AS(from_string("root_ttree"), std::runtime_error);
+  CHECK_THROWS_WITH(from_string("root_ttree"),
+                    Catch::Matchers::ContainsSubstring("on-disk token, not a configuration name"));
+  CHECK_THROWS_AS(from_string("ROOT_Ttree"), std::runtime_error);
+  CHECK_THROWS_AS(from_string(""), std::runtime_error);
+
+  // Generic:  not selectable from a configuration
+  CHECK_THROWS_AS(from_string("GENERIC"), std::runtime_error);
+  CHECK_THROWS_AS(from_string("generic"), std::runtime_error);
+}
+
+TEST_CASE("technology::id on-disk tokens", "[form]")
+{
+  using namespace form::technology;
+
+  static_assert(on_disk_token(root_ttree) == "root_ttree");
+  static_assert(on_disk_token(root_rntuple) == "root_rntuple");
+  static_assert(on_disk_token(id{}) == "generic");
+  // hdf5 has no backend, but fixing its spelling now stops a future implementation from
+  // picking a different one. Every registered token is pinned here.
+  static_assert(on_disk_token(hdf5) == "hdf5");
+
+  CHECK(on_disk_token(root_ttree) == "root_ttree");
+  CHECK(on_disk_token(root_rntuple) == "root_rntuple");
+  CHECK(on_disk_token(id{}) == "generic");
+
+  for (auto const tech : {root_ttree, root_rntuple, id{}}) {
+    CHECK(find_on_disk_token(on_disk_token(tech)) == std::optional{tech});
+    CHECK(from_on_disk_token(on_disk_token(tech)) == tech);
+  }
+
+  static_assert(find_on_disk_token("ROOT_TTREE") == std::nullopt);
+  CHECK(find_on_disk_token("ROOT_TTREE") == std::nullopt);
+  CHECK(find_on_disk_token("Root_TTree") == std::nullopt);
+  CHECK(find_on_disk_token("GENERIC") == std::nullopt);
+  CHECK_THROWS_AS(from_on_disk_token("ROOT_TTREE"), std::runtime_error);
+
+  CHECK(find_on_disk_token("not_a_token") == std::nullopt);
+  CHECK(find_on_disk_token("") == std::nullopt);
+  CHECK_THROWS_AS(from_on_disk_token("not_a_token"), std::runtime_error);
+  CHECK_THROWS_AS(from_on_disk_token(""), std::runtime_error);
+
+  CHECK(find_on_disk_token("hdf5") == std::optional{hdf5});
+  CHECK_THROWS_AS(from_on_disk_token("hdf5"), std::runtime_error);
+
+  CHECK_THROWS_AS(on_disk_token(id{.major = form::technology::major::root, .minor = 99}),
+                  std::runtime_error);
 }
 
 TEST_CASE("technology::id members and ordering", "[form]")
@@ -1024,9 +1077,9 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
 
   SECTION("a navigation name carries the technology that wrote it")
   {
-    CHECK(technology_name(form::technology::root_ttree) == "root_ttree");
-    CHECK(technology_name(form::technology::root_rntuple) == "root_rntuple");
-    CHECK(technology_name(form::technology::id{}) == "generic");
+    CHECK(form::technology::on_disk_token(form::technology::root_ttree) == "root_ttree");
+    CHECK(form::technology::on_disk_token(form::technology::root_rntuple) == "root_rntuple");
+    CHECK(form::technology::on_disk_token(form::technology::id{}) == "generic");
 
     CHECK(navigation_table_name(cell_hierarchy{{"event"}}, form::technology::root_ttree) ==
           "nav_root_ttree_cells_event");

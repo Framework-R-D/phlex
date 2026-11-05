@@ -688,7 +688,13 @@ TEST_CASE("storage_reader read_descriptor: a written file identifies its layout 
         std::string{form_layout_version});
 
   // A single-technology file names just that technology, with the token FORM writes to disk.
-  CHECK(descriptor_value(descriptor, descriptor_technologies_key) == technology_name(technology));
+  auto const technologies = descriptor_value(descriptor, descriptor_technologies_key);
+  REQUIRE(technologies.has_value());
+  auto const token = technologies.value_or(std::string{});
+  CHECK(token == form::technology::on_disk_token(technology));
+
+  // The on-disk token identifies the technology independently of its configuration name.
+  CHECK(form::technology::from_on_disk_token(token) == technology);
 
   // The file opened for the descriptor is the one the reader goes on to read products from.
   for (auto const& cell : cells) {
@@ -1265,7 +1271,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   }
 
   // Writer and reader use technology__creator__stage for physical row-space names.
-  auto const tech = technology_name(technology);
+  std::string const tech{form::technology::on_disk_token(technology)};
   storage_reader storage;
   tech_setting_config const settings{};
   auto const index_rows = [&](std::string const& container) {
@@ -1285,9 +1291,8 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   form::test::check_layout(checks, columns, layout);
   CHECK(checks.failures() == 0);
 
-  auto const table =
-    layout.table("nav_" + form::test::technology_token(form::technology::to_string(technology)) +
-                 "_cells_event_segment");
+  auto const table = layout.table(
+    "nav_" + std::string{form::technology::on_disk_token(technology)} + "_cells_event_segment");
   CHECK(table.transform(&form::test::navigation_table::stream_ids) ==
         std::vector<std::pair<std::string, std::string>>{
           {"shower", "stage1"}, {"tracker", ""}, {"tracker", "stage1"}, {"tracker", "stage2"}});
