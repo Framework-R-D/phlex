@@ -618,6 +618,54 @@ bash "$1" dev
         assert "ghcr.io/framework-r-d/phlex-dev:latest" in result.stdout
 
 
+@pytest.mark.parametrize("option", ["-h", "--help"])
+def test_generate_image_help(option):
+    """Help displays usage without starting a build."""
+    script = DEVCONTAINER.parent / "scripts/generate-image"
+    result = subprocess.run(["bash", str(script), option], text=True, capture_output=True)
+    assert result.returncode == 0
+    assert "Usage: generate-image [-h|--help] ci|dev [-- <podman build args...>]" in result.stdout
+    assert result.stderr == ""
+
+
+def test_generate_image_requires_separator_before_build_arguments():
+    """Trailing arguments without the post-target separator are rejected."""
+    script = DEVCONTAINER.parent / "scripts/generate-image"
+    result = subprocess.run(
+        ["bash", str(script), "ci", "--pull=always"], text=True, capture_output=True
+    )
+    assert result.returncode == 2
+    assert "additional arguments must follow '--'" in result.stderr
+
+
+def test_generate_image_forwards_arguments_after_separator(tmp_path):
+    """Arguments after the post-target separator are passed intact to Podman."""
+    script = DEVCONTAINER.parent / "scripts/generate-image"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    podman = bin_dir / "podman"
+    podman.write_text('#!/bin/sh\nprintf "<%s>\\n" "$@"\n')
+    podman.chmod(0o700)
+    command = """
+uname() { printf '%s\\n' 'x86_64'; }
+export -f uname
+bash "$1" dev -- --pull=always --label 'build note=local' --
+"""
+    env = {
+        key: value for key, value in os.environ.items() if not key.startswith(("PHLEX_", "GPG_"))
+    }
+    env.update(
+        HOME=str(tmp_path),
+        PHLEX_TAG_TAG="fixture",
+        PATH=f"{bin_dir}:{os.environ['PATH']}",
+    )
+    result = subprocess.run(
+        ["bash", "-c", command, "bash", str(script)], env=env, text=True, capture_output=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert "<--pull=always>\n<--label>\n<build note=local>\n<-->\n<.>" in result.stdout
+
+
 @pytest.mark.parametrize("template", ["packages.yaml", "spack.yaml"])
 def test_shared_spack_renderer_substitutes_build_inputs(tmp_path, template):
     """Both Spack templates use the same renderer with build-selected versions and targets."""

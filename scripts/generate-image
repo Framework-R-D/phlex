@@ -11,21 +11,42 @@ fi
 set -eu
 
 usage() {
-  echo "Usage: $(basename "$0") ci|dev" >&2
-    exit 2
+  printf 'Usage: %s [-h|--help] ci|dev [-- <podman build args...>]\n' "$(basename "$0")"
 }
 
-if [ "$#" -ne 1 ]; then
+if [[ "$#" -eq 1 && ( "$1" = -h || "$1" = --help ) ]]; then
   usage
+  exit 0
+fi
+
+if [[ "$#" -lt 1 ]]; then
+  usage >&2
+  exit 2
 fi
 
 case "$1" in
   ci | dev) PHLEX_PODMAN_TARGET="$1" ;;
   *)
     echo "error: image identifier must be 'ci' or 'dev', got '$1'" >&2
-    usage
+    usage >&2
+    exit 2
     ;;
 esac
+shift
+
+have_podman_args=0
+if [[ "$#" -gt 0 ]]; then
+  if [[ "$1" != -- ]]; then
+    echo "error: additional arguments must follow '--'" >&2
+    usage >&2
+    exit 2
+  fi
+  shift
+  if [[ "$#" -gt 0 ]]; then
+    podman_args=("$@")
+    have_podman_args=1
+  fi
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_SOURCE="$(dirname "$SCRIPT_DIR")"
@@ -91,6 +112,9 @@ args+=(--build-arg "PHLEX_LLVM_TARGET=${PHLEX_LLVM_TARGET}")
 args+=(--build-arg "PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}")
 args+=(--build-arg "PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}")
 args+=(--build-arg "PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}")
+if (( have_podman_args )); then
+  args+=("${podman_args[@]}")
+fi
 
 echo "${args[*]}"
 
