@@ -27,6 +27,9 @@ namespace phlex::detail {
 
   gsl::not_null<product_base const*> products::find_product(product_specification const& spec) const
   {
+    // Lookup is exact: product_specification equality distinguishes an absent creator from every
+    // present creator, so a creator-less specification neither matches nor is matched by one with
+    // a creator.
     auto it =
       std::ranges::find(products_, spec, [](auto const& p) -> auto const& { return p.first; });
     if (it == products_.end()) {

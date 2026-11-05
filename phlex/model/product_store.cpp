@@ -53,7 +53,7 @@ namespace phlex::experimental {
 
   algorithm_name product_store::default_source()
   {
-    static algorithm_name const def = algorithm_name::create("[Source]");
+    static algorithm_name const def = algorithm_name::create("phlex_source");
     return def;
   }
 }

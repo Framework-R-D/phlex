@@ -36,6 +36,10 @@ namespace phlex::detail {
       return experimental_when({std::forward<decltype(names)>(names)...});
     }
 
+    // Fluent suffix registration is textual: the strings given here, including the empty string
+    // and the default used when no suffixes are registered, stay strings in the registrar. They
+    // become `suffix_t` values (empty text as `empty_string`, non-empty text as a named
+    // identifier) when `to_product_specifications()` creates the product specifications.
     template <std::size_t M>
       requires(NumberOutputProducts > 0)
     void output_product_suffixes(std::array<std::string, M> outputs)

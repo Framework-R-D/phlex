@@ -11,11 +11,32 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <utility>
+
+namespace {
+  // A provider always names its creator, so an output specification without one is an error.
+  phlex::experimental::algorithm_name const& creator_of(
+    phlex::experimental::product_specification const& spec)
+  {
+    if (!spec.creator()) {
+      throw std::runtime_error("Cannot create a provider for the product specification '" +
+                               spec.to_string() + "' because it has no creator");
+    }
+    return *spec.creator();
+  }
+
+  phlex::experimental::product_specification require_creator(
+    phlex::experimental::product_specification spec)
+  {
+    creator_of(spec);
+    return spec;
+  }
+}
 
 namespace phlex::detail {
   provider_node::provider_node(tbb::flow::graph& g, provider_bundle bundle) :
-    provider_node{bundle.spec.creator(),
+    provider_node{creator_of(bundle.spec),
                   bundle.max_concurrency.value,
                   g,
                   std::move(bundle.provider_function),
@@ -33,7 +54,7 @@ namespace phlex::detail {
                                phlex::experimental::identifier output_layer,
                                phlex::experimental::identifier stage) :
     name_{std::move(algo_name)},
-    output_{std::move(output_spec)},
+    output_{require_creator(std::move(output_spec))},
     layer_{std::move(output_layer)},
     stage_{std::move(stage)},
     provider_{g,

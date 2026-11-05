@@ -8,6 +8,8 @@
 #include <gsl/pointers>
 
 #include <optional>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -54,6 +56,11 @@ namespace phlex {
     using const_reference = value_type const&;
     using const_pointer = value_type const*;
 
+    /// Borrowed textual views of the creator's components. Each view refers to the text owned
+    /// by the product specification that the handle references, so it is valid only while that
+    /// specification (and thus the handle's source) is alive. No copy is stored. A component that
+    /// is absent (the plugin of an unqualified creator, or both components when the specification
+    /// has no creator) is an empty view.
     struct algorithm_name_view {
       std::string_view plugin;
       std::string_view algorithm;
@@ -87,12 +94,17 @@ namespace phlex {
     // NOLINTEND(google-explicit-constructor)
     auto const& data_cell_index() const noexcept { return *index_; }
 
-    // Product specification information
+    // Product specification information. The handle exposes borrowed textual views, not the
+    // domain types (`suffix_t`, `identifier_or_empty`), so callers need not depend on them.
+    /// Views of the creator's plugin and algorithm names. Absent components are empty views.
     algorithm_name_view creator() const noexcept
     {
-      return {std::string_view(spec_->plugin()), std::string_view(spec_->algorithm())};
+      auto const* const algorithm = spec_->algorithm();
+      return {spec_->plugin().text(),
+              algorithm ? std::string_view(*algorithm) : std::string_view{}};
     }
-    std::string_view suffix() const noexcept { return std::string_view(spec_->suffix()); }
+    /// View of the suffix text; empty for the explicit empty suffix.
+    std::string_view suffix() const noexcept { return spec_->suffix().text(); }
     std::string_view layer() const noexcept { return std::string_view(index_->layer_name()); }
     std::string_view stage() const noexcept { return std::string_view(*stage_); }
     std::string layer_path() const { return index_->layer_path().to_string(); }
