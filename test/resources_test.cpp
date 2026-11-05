@@ -130,6 +130,7 @@ namespace {
   using mixed_dependencies = resource_dependencies<catch2_resource, unlimited_resource_type>;
   using reversed_dependencies = resource_dependencies<unlimited_resource_type, catch2_resource>;
   using serialized_dependencies = resource_dependencies<catch2_resource, catch2_resource>;
+  using pooled_dependencies = resource_dependencies<pooled_token_resource, unlimited_resource_type>;
 
   template <typename T>
   concept graph_accepts_unlimited =
@@ -229,13 +230,11 @@ namespace {
   // Invalid token types.
   static_assert(not resource_token_constructible<invalid_serialized_resource>);
   static_assert(not serialized_resource<invalid_serialized_resource>);
-  static_assert(not phase_1_supported_resource<invalid_serialized_resource>);
 
   // Pooled handles are inferred from range values, not range references.
   static_assert(pooled_resource<pooled_token_resource>);
   static_assert(pooled_resource_registration<pooled_token_resource>);
   static_assert(not serialized_resource<pooled_token_resource>);
-  static_assert(not phase_1_supported_resource<pooled_token_resource>);
   static_assert(pooled_resource<pooled_view_resource>);
   static_assert(pooled_resource_registration<pooled_view_resource>);
   static_assert(not pooled_resource_registration<pooled_view_resource const>);
@@ -257,29 +256,35 @@ namespace {
   static_assert(not serialized_resource<mutable_tokens_serialized_resource>);
 
   // Resource dependency partitioning.
-  static_assert(mixed_dependencies::has_serialized_resources);
+  static_assert(mixed_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<mixed_dependencies::serialized_resources, boost::mp11::mp_list<catch2_resource>>);
+    std::same_as<mixed_dependencies::limited_resources, boost::mp11::mp_list<catch2_resource>>);
   static_assert(std::same_as<mixed_dependencies::unlimited_resources,
                              boost::mp11::mp_list<unlimited_resource_type>>);
-  static_assert(
-    std::same_as<mixed_dependencies::serialized_resource_indices, std::index_sequence<0>>);
+  static_assert(std::same_as<mixed_dependencies::limited_resource_indices, std::index_sequence<0>>);
   static_assert(
     std::same_as<mixed_dependencies::unlimited_resource_indices, std::index_sequence<1>>);
 
-  static_assert(reversed_dependencies::has_serialized_resources);
+  static_assert(reversed_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<reversed_dependencies::serialized_resource_indices, std::index_sequence<1>>);
+    std::same_as<reversed_dependencies::limited_resource_indices, std::index_sequence<1>>);
   static_assert(
     std::same_as<reversed_dependencies::unlimited_resource_indices, std::index_sequence<0>>);
 
-  static_assert(serialized_dependencies::has_serialized_resources);
+  static_assert(serialized_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<serialized_dependencies::serialized_resource_indices, std::index_sequence<0, 1>>);
+    std::same_as<serialized_dependencies::limited_resource_indices, std::index_sequence<0, 1>>);
   static_assert(
     std::same_as<serialized_dependencies::unlimited_resource_indices, std::index_sequence<>>);
-  static_assert(not resource_dependencies<unlimited_resource_type>::has_serialized_resources);
-  static_assert(not resource_dependencies<>::has_serialized_resources);
+  static_assert(not resource_dependencies<unlimited_resource_type>::has_limited_resources);
+  static_assert(not resource_dependencies<>::has_limited_resources);
+
+  static_assert(pooled_dependencies::has_limited_resources);
+  static_assert(std::same_as<pooled_dependencies::limited_resources,
+                             boost::mp11::mp_list<pooled_token_resource>>);
+  static_assert(
+    std::same_as<pooled_dependencies::limited_resource_indices, std::index_sequence<0>>);
+  static_assert(std::same_as<internal::resource_access_type_t<pooled_token_resource>, int*>);
 }
 
 TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
