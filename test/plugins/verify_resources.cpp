@@ -12,13 +12,18 @@ PHLEX_REGISTER_ALGORITHMS(m)
 {
   m.observe(
      "verify_resources",
-     [](int const, configured_resource const* configured, serialized_resource const* serialized) {
+     [](int const,
+        configured_resource const* configured,
+        serialized_resource const* serialized,
+        int pooled_token) {
        assert(configured != nullptr);
        assert(configured->value == 42);
        assert(serialized != nullptr);
+       assert(pooled_token == 1 || pooled_token == 2);
      },
      concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "i"},
                   resource<configured_resource>{},
-                  resource<serialized_resource>{});
+                  resource<serialized_resource>{},
+                  resource<pooled_resource>{});
 }

@@ -22,8 +22,10 @@
 #include <chrono> // IWYU pragma: keep
 #include <concepts>
 #include <memory>
+#include <ranges>
 #include <span>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -92,6 +94,44 @@ namespace {
 
   struct pooled_view_resource {
     static auto tokens() { return std::span<int const>{}; }
+  };
+
+  struct pooled_object_view_resource {
+    std::array<int, 2> values{11, 29};
+
+    auto tokens() const
+    {
+      return values | std::views::transform([](int const& value) { return &value; });
+    }
+  };
+
+  struct pooled_object_reference_resource {
+    std::vector<int> values{11, 29};
+
+    std::vector<int> const& tokens() const { return values; }
+  };
+
+  struct temporary_pooled_objects_resource {
+    static std::vector<int> tokens() { return {11, 29}; }
+  };
+
+  struct filtered_pooled_resource {
+    std::array<int, 3> values{11, 0, 29};
+
+    auto tokens() const
+    {
+      return values | std::views::filter([](int value) { return value != 0; });
+    }
+  };
+
+  struct proxy_pooled_objects_resource {
+    std::vector<bool> values{true, false};
+
+    auto tokens() const { return std::views::all(values); }
+  };
+
+  struct prvalue_pooled_objects_resource {
+    static auto tokens() { return std::views::iota(11) | std::views::take(2); }
   };
 
   struct counting_pooled_resource {
@@ -241,6 +281,24 @@ namespace {
   static_assert(not pooled_resource_registration<pooled_view_resource, int>);
   static_assert(not serialized_resource<pooled_view_resource>);
 
+  static_assert(pooled_resource<pooled_object_view_resource>);
+  static_assert(graph_accepts_pooled<pooled_object_view_resource>);
+  static_assert(catalog_accepts_pooled<pooled_object_view_resource>);
+  static_assert(pooled_resource<pooled_object_reference_resource>);
+  static_assert(pooled_resource<temporary_pooled_objects_resource>);
+  static_assert(graph_accepts_pooled<temporary_pooled_objects_resource>);
+  static_assert(catalog_accepts_pooled<temporary_pooled_objects_resource>);
+  static_assert(not serialized_resource<temporary_pooled_objects_resource>);
+  static_assert(pooled_resource<filtered_pooled_resource>);
+  static_assert(pooled_resource<proxy_pooled_objects_resource>);
+  static_assert(pooled_resource<prvalue_pooled_objects_resource>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<pooled_object_view_resource>, int const*>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<pooled_object_reference_resource>, int>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<proxy_pooled_objects_resource>, bool>);
+
   // Malformed token ranges are neither pooled nor eligible for serialized fallback.
   static_assert(not pooled_resource<invalid_pooled_range_resource>);
   static_assert(not unlimited_resource<invalid_pooled_range_resource>);
@@ -285,6 +343,30 @@ namespace {
   static_assert(
     std::same_as<pooled_dependencies::limited_resource_indices, std::index_sequence<0>>);
   static_assert(std::same_as<internal::resource_access_type_t<pooled_token_resource>, int*>);
+
+  template <typename Resource, typename IsValid>
+  void verify_pooled_tokens(resource_catalog& catalog,
+                            IsValid is_valid,
+                            unsigned int number_of_messages = 2)
+  {
+    catalog.add_pooled<Resource>();
+    tbb::flow::graph graph;
+    std::atomic<unsigned int> valid_tokens{};
+    tbb::flow::resource_limited_node<int, std::tuple<>> node{
+      graph,
+      tbb::flow::serial,
+      std::tie(catalog.limiter_for<Resource>()),
+      [&valid_tokens, is_valid](int, auto&, internal::resource_access_type_t<Resource> token) {
+        if (is_valid(token)) {
+          ++valid_tokens;
+        }
+      }};
+    for (unsigned int i = 0; i < number_of_messages; ++i) {
+      REQUIRE(node.try_put(static_cast<int>(i)));
+    }
+    graph.wait_for_all();
+    CHECK(valid_tokens == number_of_messages);
+  }
 }
 
 TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
@@ -355,6 +437,43 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK(calls == 1);
     CHECK_NOTHROW(catalog.limiter_for<counting_pooled_resource>());
     CHECK(calls == 1);
+  }
+
+  SECTION("explicit pointer handles refer to resource-owned elements")
+  {
+    verify_pooled_tokens<pooled_object_view_resource>(
+      catalog, [](int const* token) { return token && (*token == 11 || *token == 29); });
+  }
+
+  SECTION("owning ranges and views supply copied value handles")
+  {
+    auto is_expected_value = [](int token) { return token == 11 || token == 29; };
+    verify_pooled_tokens<pooled_object_reference_resource>(catalog, is_expected_value);
+    verify_pooled_tokens<temporary_pooled_objects_resource>(catalog, is_expected_value);
+    verify_pooled_tokens<filtered_pooled_resource>(catalog, is_expected_value);
+  }
+
+  SECTION("prvalue input ranges with distinct sentinels supply value handles")
+  {
+    verify_pooled_tokens<prvalue_pooled_objects_resource>(
+      catalog, [](int token) { return token == 11 || token == 12; }, 1);
+  }
+
+  SECTION("pointer ranges supply pointer values rather than their addresses")
+  {
+    catalog.add_pooled<pooled_token_resource>();
+    tbb::flow::graph graph;
+    std::atomic<bool> received_null_token{};
+    tbb::flow::resource_limited_node<int, std::tuple<>> node{
+      graph,
+      tbb::flow::serial,
+      std::tie(catalog.limiter_for<pooled_token_resource>()),
+      [&received_null_token](int, auto&, int const* token) {
+        received_null_token = token == nullptr;
+      }};
+    REQUIRE(node.try_put(0));
+    graph.wait_for_all();
+    CHECK(received_null_token);
   }
 
   SECTION("empty pooled resources throw during registration")

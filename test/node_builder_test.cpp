@@ -5,14 +5,19 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <oneapi/tbb/flow_graph.h>
+#include <oneapi/tbb/global_control.h>
 #include <oneapi/tbb/parallel_for.h>
 
 #include <atomic>
 // Provides chrono literals used below but attributed to a transitive include by include-cleaner.
+#include <array>
 #include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <condition_variable>
 #include <cstddef>
 #include <functional>
+#include <mutex>
+#include <span>
 #include <tuple>
 #include <vector>
 
@@ -43,6 +48,16 @@ namespace {
 
   struct pooled_resource_type {
     static std::vector<int> tokens() { return {42, 84}; }
+  };
+
+  struct one_token_pooled_resource_type {
+    static std::array<int, 1> tokens() { return {42}; }
+  };
+
+  struct span_pooled_resource_type {
+    std::array<int, 2> values{101, 202};
+
+    std::span<int const> tokens() const { return values; }
   };
 
   // The production node bodies adapt product messages and output ports before invoking the
@@ -110,6 +125,36 @@ namespace {
     std::atomic<value_type> active_;
     std::atomic<value_type> maximum_active_;
     std::atomic<value_type> calls_;
+  };
+
+  // Releases two invocations together, but lets the test finish within a fixed bound if the
+  // pool or scheduler fails to provide overlap.
+  class bounded_overlap_gate {
+  public:
+    void arrive_and_wait()
+    {
+      std::unique_lock lock{mutex_};
+      if (arrivals_ >= 2) {
+        return;
+      }
+      ++arrivals_;
+      condition_.notify_all();
+      if (!condition_.wait_for(lock, 5s, [this] { return arrivals_ >= 2; })) {
+        timed_out_ = true;
+      }
+    }
+
+    bool released_two_together() const
+    {
+      std::scoped_lock const lock{mutex_};
+      return arrivals_ >= 2 && !timed_out_;
+    }
+
+  private:
+    mutable std::mutex mutex_;
+    std::condition_variable condition_;
+    unsigned int arrivals_{};
+    bool timed_out_{};
   };
 
   constexpr auto number_of_messages = 64uz;
@@ -277,6 +322,131 @@ TEST_CASE("node builder supplies pooled resource tokens", "[node_builder][resour
   graph.wait_for_all();
   auto const token = received_token.load();
   CHECK((token == 42 || token == 84));
+}
+
+TEST_CASE("pooled span values remain valid and distinct across dependent nodes",
+          "[node_builder][resource][concurrency]")
+{
+  tbb::global_control parallelism{tbb::global_control::max_allowed_parallelism, 4};
+  tbb::flow::graph graph;
+  resource_catalog resources;
+  resources.add_pooled<span_pooled_resource_type>();
+  concurrency_observations observations;
+  bounded_overlap_gate gate;
+  std::atomic<unsigned int> token_values{};
+  std::atomic<unsigned int> accepted_messages{};
+
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<span_pooled_resource_type>>;
+  auto function = [&observations, &gate, &token_values](int, int const token) {
+    concurrency_observations::scope const invocation{observations};
+    if (token == 101) {
+      token_values.fetch_or(1u);
+    } else if (token == 202) {
+      token_values.fetch_or(2u);
+    }
+    gate.arrive_and_wait();
+  };
+  auto node1 =
+    builder_t::make(graph, concurrency::unlimited.value, resources, function, invoke_operation);
+  auto node2 =
+    builder_t::make(graph, concurrency::unlimited.value, resources, function, invoke_operation);
+
+  tbb::parallel_for(0uz, 2uz, [&](std::size_t value) {
+    accepted_messages += node1.try_put(static_cast<int>(value));
+    accepted_messages += node2.try_put(static_cast<int>(value));
+  });
+  graph.wait_for_all();
+
+  CHECK(accepted_messages == 4u);
+  CHECK(observations.calls() == 4u);
+  CHECK(observations.maximum_active() == 2u);
+  CHECK(gate.released_two_together());
+  CHECK(token_values == 3u);
+}
+
+TEST_CASE("one-token pooled resource limits dependent invocations",
+          "[node_builder][resource][concurrency]")
+{
+  tbb::flow::graph graph;
+  resource_catalog resources;
+  resources.add_pooled<one_token_pooled_resource_type>();
+  concurrency_observations observations;
+
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<one_token_pooled_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::unlimited.value,
+    resources,
+    [&observations](int, int token) {
+      concurrency_observations::scope const invocation{observations};
+      if (token != 42) {
+        return;
+      }
+      spin_for(1ms);
+    },
+    invoke_operation);
+
+  tbb::parallel_for(
+    0uz, number_of_messages, [&](std::size_t value) { node.try_put(static_cast<int>(value)); });
+  graph.wait_for_all();
+
+  CHECK(observations.calls() == number_of_messages);
+  CHECK(observations.maximum_active() == 1u);
+}
+
+TEST_CASE("node concurrency remains below pooled capacity", "[node_builder][resource][concurrency]")
+{
+  tbb::flow::graph graph;
+  resource_catalog resources;
+  resources.add_pooled<pooled_resource_type>();
+  concurrency_observations observations;
+
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<pooled_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    1,
+    resources,
+    [&observations](int, int) {
+      concurrency_observations::scope const invocation{observations};
+      spin_for(1ms);
+    },
+    invoke_operation);
+
+  tbb::parallel_for(
+    0uz, number_of_messages, [&](std::size_t value) { node.try_put(static_cast<int>(value)); });
+  graph.wait_for_all();
+
+  CHECK(observations.calls() == number_of_messages);
+  CHECK(observations.maximum_active() == 1u);
+}
+
+TEST_CASE("node builder preserves mixed unlimited serialized and pooled argument order",
+          "[node_builder][resource]")
+{
+  tbb::flow::graph graph;
+  resource_catalog resources;
+  resources.add_unlimited<unlimited_resource_type>();
+  resources.add_serialized<serialized_resource_type>();
+  resources.add_pooled<pooled_resource_type>();
+  std::atomic<bool> received_expected_arguments{};
+
+  using builder_t = node_builder<
+    int,
+    no_outputs_t,
+    std::tuple<pooled_resource_type, unlimited_resource_type, serialized_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::serial.value,
+    resources,
+    [&received_expected_arguments](
+      int, int pooled_token, unlimited_resource_type const*, serialized_resource_type const*) {
+      received_expected_arguments = pooled_token == 42 || pooled_token == 84;
+    },
+    invoke_operation);
+  REQUIRE(node.try_put(43));
+  graph.wait_for_all();
+
+  CHECK(received_expected_arguments);
 }
 
 TEST_CASE("a shared serialized resource limits concurrency",
