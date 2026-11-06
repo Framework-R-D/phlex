@@ -1,0 +1,11 @@
+/* Import the Sphinx theme style. */
+@import url("bizstyle.css");
+
+/* Ensure left-justified figure captions. */
+figure p {
+    text-align: left;
+}
+
+table.docutils caption {
+    text-align: left;
+}

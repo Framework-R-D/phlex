@@ -1,5 +1,5 @@
 graph_proxy
 =============
 
-.. doxygenclass:: phlex::experimental::graph_proxy
+.. doxygenclass:: phlex::detail::graph_proxy
    :members:
