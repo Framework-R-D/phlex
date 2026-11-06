@@ -35,6 +35,9 @@ spack:
 
   packages:
     cmake:
+      deprecation:
+        allow:
+          - reason: [retired, unspecified]
       require:
         - "~qtgui"
         - "@4:"
