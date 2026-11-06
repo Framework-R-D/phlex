@@ -145,7 +145,7 @@ include(${PROJECT_SOURCE_DIR}/Modules/private/PhlexTBB.cmake)
 
 # Dependencies required by public API
 find_package(Boost REQUIRED COMPONENTS json EXPORT)
-find_package(TBB REQUIRED EXPORT)
+find_package(TBB 2023.2.0 REQUIRED EXPORT)
 phlex_check_tbb_resource_limiting()
 
 find_package(fmt REQUIRED EXPORT)

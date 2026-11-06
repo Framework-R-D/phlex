@@ -15,7 +15,7 @@
 namespace phlex::detail {
 
   // For each resource, in declaration order, the index it would occupy within just the
-  // unlimited or just the serialized subsequence, so a single pass can pick its argument
+  // unlimited or just the limited subsequence, so a single pass can pick its argument
   // from the right tuple.
   template <typename... Resources>
   inline constexpr auto resource_local_indices = [] {
@@ -23,33 +23,33 @@ namespace phlex::detail {
     // The following variables are incremented in the fold expression below.
     // clang-tidy does not recognize this, so we suppress the warning about const correctness.
     // NOLINTBEGIN(misc-const-correctness)
-    std::size_t serialized = 0;
+    std::size_t limited = 0;
     std::size_t unlimited = 0;
     std::size_t i = 0;
     // NOLINTEND(misc-const-correctness)
     // gsl::at used to avoid cppcoreguidelines-pro-bounds-constant-array-index clang-tidy warning.
-    ((gsl::at(indices, i++) = unlimited_resource<Resources> ? unlimited++ : serialized++), ...);
+    ((gsl::at(indices, i++) = unlimited_resource<Resources> ? unlimited++ : limited++), ...);
     return indices;
   }();
 
-  // Return either the unlimited resource (from the cached tuple) or the serialized-resource token
+  // Return either the unlimited resource (from the cached tuple) or a limited-resource token
   // (from the per-call tuple).
   template <typename Resource, std::size_t LocalIndex>
-  decltype(auto) resource_argument(auto const& unlimited_resources, auto&& serialized_tokens)
+  decltype(auto) resource_argument(auto const& unlimited_resources, auto&& limited_tokens)
   {
     if constexpr (unlimited_resource<Resource>) {
       return std::get<LocalIndex>(unlimited_resources);
     } else {
-      return std::get<LocalIndex>(serialized_tokens);
+      return std::get<LocalIndex>(limited_tokens);
     }
   }
 
   // Reassembles Resources... in declaration order for the node body, drawing each argument
-  // from either the per-call serialized_tokens (TBB-supplied) or the cached unlimited_resources.
+  // from either the per-call limited_tokens (TBB-supplied) or the cached unlimited_resources.
   template <typename... Resources>
   decltype(auto) invoke_with_resources(auto const& callable,
                                        auto&& arguments,
-                                       auto&& serialized_tokens,
+                                       auto&& limited_tokens,
                                        auto const& unlimited_resources)
   {
     return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
@@ -59,28 +59,28 @@ namespace phlex::detail {
           return std::invoke(callable,
                              std::forward<FunctionArguments>(function_arguments)...,
                              resource_argument<Resources, resource_local_indices<Resources...>[Is]>(
-                               unlimited_resources, serialized_tokens)...);
+                               unlimited_resources, limited_tokens)...);
         },
         std::forward<decltype(arguments)>(arguments));
     }(std::index_sequence_for<Resources...>{});
   }
 
   using no_outputs_t = std::tuple<>;
-  using no_serialized_resources_t = std::tuple<>;
+  using no_limited_resources_t = std::tuple<>;
 
   template <typename... Outputs>
   struct multifunction_outputs {};
 
   // Selects and constructs the TBB node that matches an algorithm's output shape and resource
   // dependencies. Specializations use function_node or multifunction_node when all resources are
-  // unlimited, and resource_limited_node when any resource is serialized. They also adapt each
+  // unlimited, and resource_limited_node when any resource is limited. They also adapt each
   // node body's construction interface and provide output_port() only for node shapes with outputs.
   template <typename InputMessages, typename Outputs, typename Resources>
   struct node_builder;
 
-  // Specialization for an observer or a fold (no serialized resources)
+  // Specialization for an observer or a fold (no limited resources)
   template <typename InputMessages, typename... Resources>
-    requires(not has_serialized<Resources...>)
+    requires(not has_limited<Resources...>)
   struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
     using node_t = tbb::flow::function_node<InputMessages>;
 
@@ -99,15 +99,15 @@ namespace phlex::detail {
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable -> oneapi::tbb::flow::continue_msg {
           invoke_with_resources<Resources...>(
-            node_body, std::forward_as_tuple(ft, messages), no_serialized_resources_t{}, unlimited);
+            node_body, std::forward_as_tuple(ft, messages), no_limited_resources_t{}, unlimited);
           return {};
         }};
     }
   };
 
-  // Specialization for an observer or a fold (serialized resources)
+  // Specialization for an observer or a fold (limited resources)
   template <typename InputMessages, typename... Resources>
-    requires(has_serialized<Resources...>)
+    requires(has_limited<Resources...>)
   struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
     using node_t = tbb::flow::resource_limited_node<InputMessages, no_outputs_t>;
 
@@ -121,7 +121,7 @@ namespace phlex::detail {
       return {
         g,
         concurrency,
-        resource_dependencies<Resources...>::serialized_resource_limiters(resources),
+        resource_dependencies<Resources...>::limited_resource_limiters(resources),
         [ft = std::move(ft),
          node_body = std::move(node_body),
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
@@ -134,9 +134,9 @@ namespace phlex::detail {
     }
   };
 
-  // Specialization for a transform or a predicate (no serialized resources)
+  // Specialization for a transform or a predicate (no limited resources)
   template <typename InputMessages, typename Output, typename... Resources>
-    requires(not has_serialized<Resources...>)
+    requires(not has_limited<Resources...>)
   struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
     using node_t = tbb::flow::function_node<InputMessages, Output>;
 
@@ -155,16 +155,16 @@ namespace phlex::detail {
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable {
           return invoke_with_resources<Resources...>(
-            node_body, std::forward_as_tuple(ft, messages), no_serialized_resources_t{}, unlimited);
+            node_body, std::forward_as_tuple(ft, messages), no_limited_resources_t{}, unlimited);
         }};
     }
 
     static tbb::flow::sender<Output>& output_port(node_t& node) { return node; }
   };
 
-  // Specialization for a transform or a predicate (serialized resources)
+  // Specialization for a transform or a predicate (limited resources)
   template <typename InputMessages, typename Output, typename... Resources>
-    requires(has_serialized<Resources...>)
+    requires(has_limited<Resources...>)
   struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
     using node_t = tbb::flow::resource_limited_node<InputMessages, std::tuple<Output>>;
 
@@ -178,7 +178,7 @@ namespace phlex::detail {
       return {
         g,
         concurrency,
-        resource_dependencies<Resources...>::serialized_resource_limiters(resources),
+        resource_dependencies<Resources...>::limited_resource_limiters(resources),
         [ft = std::move(ft),
          node_body = std::move(node_body),
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
@@ -197,9 +197,9 @@ namespace phlex::detail {
     }
   };
 
-  // Specialization for an unfold (no serialized resources)
+  // Specialization for an unfold (no limited resources)
   template <typename InputMessages, typename... Outputs, typename... Resources>
-    requires(not has_serialized<Resources...>)
+    requires(not has_limited<Resources...>)
   struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
     using node_t = tbb::flow::multifunction_node<InputMessages, std::tuple<Outputs...>>;
 
@@ -218,15 +218,15 @@ namespace phlex::detail {
                  resources)](InputMessages const& messages, auto& ports) mutable {
                 invoke_with_resources<Resources...>(node_body,
                                                     std::forward_as_tuple(ft, messages, ports),
-                                                    no_serialized_resources_t{},
+                                                    no_limited_resources_t{},
                                                     unlimited);
               }};
     }
   };
 
-  // Specialization for an unfold (serialized resources)
+  // Specialization for an unfold (limited resources)
   template <typename InputMessages, typename... Outputs, typename... Resources>
-    requires(has_serialized<Resources...>)
+    requires(has_limited<Resources...>)
   struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
     using node_t = tbb::flow::resource_limited_node<InputMessages, std::tuple<Outputs...>>;
 
@@ -240,7 +240,7 @@ namespace phlex::detail {
       return {
         g,
         concurrency,
-        resource_dependencies<Resources...>::serialized_resource_limiters(resources),
+        resource_dependencies<Resources...>::limited_resource_limiters(resources),
         [ft = std::move(ft),
          node_body = std::move(node_body),
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
