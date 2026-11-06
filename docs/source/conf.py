@@ -19,7 +19,11 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "bizstyle"
+html_logo = "_static/phlex-logo.svg"
+html_static_path = ["_static"]
+html_style = "phlexframework.css"
+html_last_updated_fmt = ""
 
 # -- Breathe configuration -------------------------------------------------
 

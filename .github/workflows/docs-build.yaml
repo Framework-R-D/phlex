@@ -1,0 +1,60 @@
+name: Documentation Build
+run-name: "${{ github.actor }} building Phlex documentation"
+
+concurrency:
+  group: docs-build-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+"on":
+  pull_request:
+    paths:
+      - "docs/source/**"
+      - "docs/Doxyfile"
+      - "docs/requirements.txt"
+      - "phlex/**/*.hpp"
+      - "form/**/*.hpp"
+      - "!phlex/model/type_id.hpp"
+      - "!phlex/**/detail/**"
+      - "!form/**/detail/**"
+      - ".github/workflows/docs-build.yaml"
+  push:
+    branches: [main, "release/*"]
+    paths:
+      - "docs/source/**"
+      - "docs/Doxyfile"
+      - "docs/requirements.txt"
+      - "phlex/**/*.hpp"
+      - "form/**/*.hpp"
+      - "!phlex/model/type_id.hpp"
+      - "!phlex/**/detail/**"
+      - "!form/**/detail/**"
+      - ".github/workflows/docs-build.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: ghcr.io/framework-r-d/phlexdoc:2026-11-06
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate Doxygen XML
+        run: doxygen docs/Doxyfile
+
+      - name: Build HTML documentation
+        run: sphinx-build -E --keep-going -b html docs/source docs/build/html
+
+      - name: Upload HTML documentation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phlex-docs-html
+          path: docs/build/html/
+          if-no-files-found: error
+          retention-days: 14
