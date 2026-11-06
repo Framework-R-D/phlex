@@ -17,7 +17,7 @@
 
 namespace phlex::detail {
 
-  /// @brief Base class for plugins that supply data products on demand.
+  /// @brief Base class for a factory of providers, which supply data products on demand.
   ///
   /// Register a source with @c add_source<T>(name, args...) in a @c PHLEX_REGISTER_SOURCE
   /// entry point.  For each algorithm input that no algorithm or explicit provider creates,

@@ -37,8 +37,9 @@ product: algorithms select it with ``.creator = "input"`` and ``.suffix =
 Sources and implicit providers
 ------------------------------
 
-A *source* decides at graph-construction time which products it can
-supply.
+A *source* does not supply products itself: it is a factory for providers.
+At graph-construction time it decides which products its providers can
+supply and creates an implicit provider for each.
 It derives from ``phlex::source`` and is registered with
 ``PHLEX_REGISTER_SOURCE``:
 
