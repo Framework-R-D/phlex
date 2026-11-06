@@ -22,7 +22,8 @@ EXTRACT_ALL       = YES
 WARN_IF_UNDOCUMENTED = NO
 ENABLE_PREPROCESSING = YES
 MACRO_EXPANSION  = YES
-FILE_PATTERNS     = *.hpp *.cpp
+FILE_PATTERNS     = *.hpp
+EXCLUDE           = phlex/model/type_id.hpp
 EXCLUDE_PATTERNS  = */detail/*
 # Help Doxygen with some of the more complex macros
 PREDEFINED        = "BOOST_DLL_ALIAS(a,b)=" \

@@ -77,7 +77,7 @@ namespace phlex::experimental {
     friend PHLEX_MODEL_EXPORT bool operator==(identifier const& lhs, identifier_query rhs);
     friend PHLEX_MODEL_EXPORT std::strong_ordering operator<=>(identifier const& lhs,
                                                                identifier_query rhs);
-    friend std::hash<identifier>;
+    friend struct std::hash<identifier>;
 
   private:
     std::string content_;
