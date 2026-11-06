@@ -381,23 +381,6 @@ spack buildcache keys -it
 SPACK_CONFIGURE_MIRRORS
 
 ########################################################################
-# Ensure intel-tbb@2023.0.0 has a checksum in the Spack recipe
-
-RUN <<'ENSURE_INTEL_TBB_CHECKSUM'
-set -euo pipefail
-
-# intel-tbb@2023.0.0 may not be present in the spack-packages recipe that
-# was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
-# and add its checksum to the package file so that Spack can install it.
-. /spack/share/spack/setup-env.sh
-. /etc/profile.d/phlex-targets.sh
-
-if spack versions -n intel-tbb | grep -Fwq '2023.0.0'; then
-  EDITOR=true spack checksum -ab intel-tbb 2023.0.0
-fi
-ENSURE_INTEL_TBB_CHECKSUM
-
-########################################################################
 # Use Spack to install the GCC we want to use
 
 RUN <<'SPACK_INSTALL_GCC'
