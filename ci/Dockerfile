@@ -421,6 +421,22 @@ spack clean -dfs
 SPACK_INSTALL_GCC
 
 ########################################################################
+# Ensure `llvm@${PHLEX_LLVM_VERSION}` has a checksum in the recipe
+
+RUN <<'ENSURE_LLVM_CHECKSUM'
+set -euo pipefail
+
+# llvm@${PHLEX_LLVM_VERSION} may not be present in the spack-packages recipe that
+# was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
+# and add its checksum to the package file so that Spack can install it.
+. /spack/share/spack/setup-env.sh
+
+if spack versions -n llvm | grep -Fwq "${PHLEX_LLVM_VERSION}"; then
+  EDITOR=true spack checksum -ab llvm ${PHLEX_LLVM_VERSION}
+fi
+ENSURE_LLVM_CHECKSUM
+
+########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
 
 COPY spack.yaml /tmp/spack.yaml.template
