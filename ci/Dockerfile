@@ -300,6 +300,7 @@ PREP_SPACK_GROUP
 
 COPY packages.yaml /tmp/packages.yaml.template
 COPY upgrade_repos.py /tmp/upgrade_repos.py
+COPY overrides/ /tmp/llvm-amdgpu-overrides/
 
 ENV GNUPGHOME=/run/gpg
 ENV SPACK_GNUPGHOME=/run/gpg
@@ -313,6 +314,10 @@ mkdir -p "$SPACK_REPO_ROOT"
 git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
 git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
+mkdir -p "$SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides"
+cp -a /tmp/llvm-amdgpu-overrides/. \
+  "$SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides/"
+rm -rf /tmp/llvm-amdgpu-overrides
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
@@ -351,6 +356,9 @@ spack repo list
 chmod +x /tmp/upgrade_repos.py
 spack python /tmp/upgrade_repos.py
 rm -f /tmp/upgrade_repos.py
+# Prioritize the CI-local LLVM recipe tweak without changing precedence among the other repos.
+spack repo add --scope site \
+  $SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides
 spack repo list
 spack clean -m
 spack audit configs
