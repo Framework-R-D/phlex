@@ -103,7 +103,7 @@ namespace form::test {
   class column_reader {
   public:
     column_reader(std::string const& file_name, form::technology::id technology) :
-      file_(create_file(technology, file_name, 'i')), technology_(technology)
+      file_(create_file(technology.major, file_name, 'i')), technology_(technology)
     {
     }
 

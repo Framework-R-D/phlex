@@ -71,7 +71,7 @@ std::shared_ptr<i_storage_file> const& storage_reader::open_file(
     return found->second;
   }
   // Cache the file only after all file settings have been applied successfully.
-  auto opened = create_file(technology, file_name, 'i');
+  auto opened = create_file(technology.major, file_name, 'i');
   for (auto const& [key, value] : get_file_table(settings, technology, file_name)) {
     opened->set_attribute(key, value);
   }
@@ -79,11 +79,9 @@ std::shared_ptr<i_storage_file> const& storage_reader::open_file(
 }
 
 std::optional<std::vector<std::pair<std::string, std::string>>> storage_reader::read_descriptor(
-  std::string const& file_name,
-  form::technology::id technology,
-  form::experimental::config::tech_setting_config const& settings)
+  std::string const& file_name, form::technology::major technology)
 {
-  return open_file(file_name, technology, settings)->read_descriptor();
+  return create_file(technology, file_name, 'i')->read_descriptor();
 }
 
 std::uint64_t storage_reader::get_index(

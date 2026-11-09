@@ -421,7 +421,7 @@ TEST_CASE("storage_associative_write_container basics", "[form]")
 
 TEST_CASE("Factories fallback", "[form]")
 {
-  auto f = create_file(form::technology::id{}, "test.root", 'o');
+  auto f = create_file(form::technology::major::generic, "test.root", 'o');
   CHECK(dynamic_cast<storage_file*>(f.get()) != nullptr);
 
   auto rc = create_read_container(form::technology::id{}, "cont");
@@ -435,7 +435,7 @@ TEST_CASE("Factories fallback", "[form]")
 
   // HDF5 is reserved but unimplemented: every factory must fail loudly on the
   // hdf5 dispatch branch rather than silently return generic storage.
-  CHECK_THROWS_AS(create_file(form::technology::hdf5, "test.h5", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_file(form::technology::major::hdf5, "test.h5", 'o'), std::runtime_error);
   CHECK_THROWS_AS(create_read_container(form::technology::hdf5, "cont"), std::runtime_error);
   CHECK_THROWS_AS(create_write_association(form::technology::hdf5, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(create_write_container(form::technology::hdf5, "cont"), std::runtime_error);
@@ -445,7 +445,7 @@ TEST_CASE("Factories fallback", "[form]")
   auto const unknown_major =
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     form::technology::id{.major = static_cast<form::technology::major>(99), .minor = 0};
-  CHECK_THROWS_AS(create_file(unknown_major, "test.dat", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_file(unknown_major.major, "test.dat", 'o'), std::runtime_error);
   CHECK_THROWS_AS(create_read_container(unknown_major, "cont"), std::runtime_error);
   CHECK_THROWS_AS(create_write_association(unknown_major, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(create_write_container(unknown_major, "cont"), std::runtime_error);

@@ -36,9 +36,7 @@ namespace form::detail::experimental {
                         std::type_info const& type,
                         form::experimental::config::tech_setting_config const& settings) override;
     std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor(
-      std::string const& file_name,
-      form::technology::id technology,
-      form::experimental::config::tech_setting_config const& settings) override;
+      std::string const& file_name, form::technology::major technology) override;
 
   private:
     std::shared_ptr<i_storage_file> const& open_file(
