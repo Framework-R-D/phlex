@@ -205,7 +205,7 @@ TEST_CASE("storage_container read wrong type", "[form]")
   std::vector<int> primes = {2, 3, 5, 7, 11, 13, 17, 19};
   form::test::write(technology, primes);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -248,7 +248,7 @@ TEST_CASE("storage_container multiple containers in Association", "[form]")
 
 TEST_CASE("FORM Container setup error handling")
 {
-  auto file = create_file(technology, "testContainerErrorHandling.root", 'o');
+  auto file = create_file(technology.major, "testContainerErrorHandling.root", 'o');
   auto write_container = create_write_container(technology, "test/test_data");
 
   std::vector<float> test_data;
@@ -417,7 +417,7 @@ TEST_CASE("Root branch read: returns false when id exceeds entry count", "[form]
   std::vector<int> data = {1, 2, 3};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -432,7 +432,7 @@ TEST_CASE("Root branch read: throws when the named tree is absent from the file"
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container = create_read_container(technology, "NonExistentTree/someBranch");
   container->set_file(file);
   void const* raw_ptr = nullptr;
@@ -444,7 +444,7 @@ TEST_CASE("Root branch read: throws when the named branch is absent from the tre
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container = create_read_container(
     technology, std::string(form::test::test_tree_name) + "/NonExistentBranch");
   container->set_file(file);
@@ -462,7 +462,7 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -472,7 +472,7 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
 
 TEST_CASE("Root TTree write container: fill and commit are not implemented", "[form]")
 {
-  auto file = create_file(technology, "testTTreeWriteOps.root", 'o');
+  auto file = create_file(technology.major, "testTTreeWriteOps.root", 'o');
   auto write_assoc = create_write_association(technology, "testTTreeWriteOpsTree");
   write_assoc->set_file(file);
   write_assoc->setup_write();
@@ -496,7 +496,7 @@ TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error"
   // non-writable so that flush fails and Fill() returns a negative value.
   auto const tech = form::technology::root_ttree;
 
-  auto file = create_file(tech, "tbranch_fill_write_error.root", 'o');
+  auto file = create_file(tech.major, "tbranch_fill_write_error.root", 'o');
   auto tree = create_write_association(tech, "faketree");
   auto branch = create_write_container(tech, "faketree/fakebranch");
 
@@ -681,7 +681,7 @@ TEST_CASE("storage_reader read_descriptor: a written file identifies its layout 
   write_cells(file_name, creator, cells);
 
   storage_reader reader;
-  auto const descriptor = reader.read_descriptor(file_name, technology, {});
+  auto const descriptor = reader.read_descriptor(file_name, technology.major);
   REQUIRE(descriptor.has_value());
 
   CHECK(descriptor_value(descriptor, descriptor_layout_version_key) ==
@@ -734,7 +734,7 @@ TEST_CASE("storage_reader read_descriptor: any minor of a mixed file's major rea
   for (auto const tech : {root_ttree, root_rntuple}) {
     CAPTURE(form::technology::to_string(tech));
     storage_reader reader;
-    auto const descriptor = reader.read_descriptor(file_name, tech, {});
+    auto const descriptor = reader.read_descriptor(file_name, tech.major);
     CHECK(descriptor_value(descriptor, descriptor_technologies_key) ==
           std::string{"root_ttree,root_rntuple"});
   }
@@ -745,7 +745,7 @@ TEST_CASE("storage_reader read_descriptor: a file that cannot be opened is an er
 {
   storage_reader reader;
   CHECK_THROWS_AS(
-    reader.read_descriptor("/nonexistent-directory-for-form-tests/x.root", technology, {}),
+    reader.read_descriptor("/nonexistent-directory-for-form-tests/x.root", technology.major),
     std::runtime_error);
 }
 
@@ -1118,7 +1118,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(technology, "NonExistentTreeForPrime/branch");
     container->set_file(file);
     CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
@@ -1128,7 +1128,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(
       technology, std::string(form::test::test_tree_name) + "/NonExistentBranchForPrime");
     container->set_file(file);
@@ -1140,7 +1140,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
     struct local_prime_type {};
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container =
       create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
     container->set_file(file);
@@ -1160,7 +1160,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(technology, "NonExistentTreeForEntries/branch");
     container->set_file(file);
     CHECK_THROWS_AS(container->entries(), std::runtime_error);
@@ -1170,7 +1170,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(
       technology, std::string(form::test::test_tree_name) + "/NonExistentBranchForEntries");
     container->set_file(file);
@@ -1181,7 +1181,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {10, 20, 30};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container =
       create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
     container->set_file(file);

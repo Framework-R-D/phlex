@@ -13,7 +13,7 @@ namespace form::detail::experimental {
 
   void ensure_backend_thread_safety();
 
-  std::shared_ptr<i_storage_file> create_file(form::technology::id tech,
+  std::shared_ptr<i_storage_file> create_file(form::technology::major tech,
                                               std::string const& name,
                                               char mode);
 
