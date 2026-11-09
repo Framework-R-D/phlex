@@ -1,12 +1,11 @@
-#!/bin/bash
-# vi: set ft=sh b:is_bash=1 fenc=utf-8 :
+# vi: set ft=sh fenc=utf-8 :
 # -*- Local Variables:
 # -*- mode: shell-script
 # -*- coding: utf-8
-# -*- sh-shell: bash
+# -*- sh-shell: sh
 # -*- End:
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+if ! (return 0 2>/dev/null); then
   printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
   exit 1
 fi
