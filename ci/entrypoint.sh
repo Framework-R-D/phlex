@@ -5,10 +5,12 @@
 # -*- sh-shell: sh
 # -*- End:
 
-if ! (return 0 2>/dev/null); then
-  printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
-  exit 1
-fi
+case ${0##*/} in
+  entrypoint.sh)
+    printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
+    exit 1
+    ;;
+esac
 
 # Disable Spack's user scope to prevent user-level config interference
 export SPACK_USER_CONFIG_PATH=/dev/null
