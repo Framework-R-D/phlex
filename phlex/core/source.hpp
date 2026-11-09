@@ -17,12 +17,28 @@
 
 namespace phlex::detail {
 
+  /// @brief Base class for a factory of providers, which supply data products on demand.
+  ///
+  /// Register a source with @c add_source<T>(name, args...) in a @c PHLEX_REGISTER_SOURCE
+  /// entry point.  For each algorithm input that no algorithm or explicit provider creates,
+  /// the framework asks every source for providers with @c create_providers().
   class PHLEX_CORE_EXPORT source {
   public:
     virtual ~source() = default;
 
+    /// @brief Returns providers for the products this source can supply that match the selector.
+    ///
+    /// Return an empty vector if the source has no matching product.  Any of the selector's
+    /// fields may be unset; check a candidate with
+    /// @c product_selector::match(spec, layer, stage) rather than reading the fields.
+    /// Each returned bundle becomes a separate provider node, and its @c stage must not be
+    /// @c "CURRENT".  Across all sources, at most one bundle may match a selector.
     virtual provider_bundles create_providers(product_selector const&) = 0;
 
+    /// @brief Yields the data cells this source holds.
+    ///
+    /// The framework does not call this function; a driver that lists the source in its
+    /// @c uses_sources configuration may.  The default yields nothing.
     // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     virtual index_generator indices() { co_return; }
