@@ -71,7 +71,7 @@ TEST_CASE("Index routing roots relative driver paths at the job layer", "[graph]
   graph.wait_for_all();
 }
 
-TEST_CASE("Unfold hierarchy resolves dependencies before their producers", "[graph][unfold]")
+TEST_CASE("Index routing accepts data cells from chained unfolds", "[graph][unfold]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
