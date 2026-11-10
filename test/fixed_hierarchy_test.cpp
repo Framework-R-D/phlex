@@ -6,9 +6,12 @@
 #include "phlex/utilities/resumable_driver.hpp" // IWYU pragma: keep
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <initializer_list>
+#include <string>
 #include <vector>
 
 using namespace phlex;
@@ -36,18 +39,72 @@ namespace {
 
 TEST_CASE("Ill-formed paths result in an exception", "[fixed_hierarchy]")
 {
+  CHECK_THROWS_WITH(fixed_hierarchy(std::vector<std::vector<std::string>>{}),
+                    ContainsSubstring("A fixed hierarchy must declare at least one layer path"));
+  CHECK_THROWS_WITH(fixed_hierarchy(std::initializer_list<std::vector<std::string>>{}),
+                    ContainsSubstring("A fixed hierarchy must declare at least one layer path"));
   CHECK_THROWS_WITH(fixed_hierarchy{{}}, ContainsSubstring("Layer paths cannot be empty"));
   CHECK_THROWS_WITH((fixed_hierarchy{{"job", "run", "job"}}),
                     ContainsSubstring("Layer paths may only contain 'job' as the first element"));
 }
 
-TEST_CASE("Default-constructed fixed_hierarchy accepts any index", "[fixed_hierarchy]")
+TEST_CASE("Default-constructed fixed_hierarchy accepts only job", "[fixed_hierarchy]")
 {
-  fixed_hierarchy const h;
+  fixed_hierarchy h;
   auto const job = data_cell_index::job();
+  CHECK(h.layer_paths() == std::vector<experimental::layer_path>{"job"});
   CHECK_NOTHROW(h.validate(job));
-  CHECK_NOTHROW(h.validate(job->make_child("run", 0)));
-  CHECK_NOTHROW(h.validate(job->make_child("unrelated", 0)));
+  CHECK_THROWS(h.validate(job->make_child("run", 0)));
+  CHECK_THROWS(h.validate(job->make_child("unrelated", 0)));
+
+  SECTION("Empty update preserves job-only hierarchy")
+  {
+    h.update({});
+    CHECK(h.layer_paths() == std::vector<experimental::layer_path>{"job"});
+    CHECK_NOTHROW(h.validate(job));
+    CHECK_THROWS(h.validate(job->make_child("run", 0)));
+  }
+
+  SECTION("Valid update extends the hierarchy")
+  {
+    h.update({"run/subrun"});
+    CHECK(h.layer_paths() == std::vector<experimental::layer_path>{"run/subrun", "job"});
+    CHECK_NOTHROW(h.validate(job));
+    CHECK_NOTHROW(h.validate(job->make_child("run", 0)));
+    CHECK_NOTHROW(h.validate(job->make_child("run", 0)->make_child("subrun", 0)));
+    CHECK_THROWS(h.validate(job->make_child("unrelated", 0)));
+  }
+
+  SECTION("Job-only update preserves job-only hierarchy")
+  {
+    h.update({"/job"});
+    CHECK(h.layer_paths() == std::vector<experimental::layer_path>{"job"});
+    CHECK_NOTHROW(h.validate(job));
+    CHECK_THROWS(h.validate(job->make_child("run", 0)));
+  }
+}
+
+TEST_CASE("Job-only hierarchy accepts and yields only job", "[fixed_hierarchy]")
+{
+  auto const h = GENERATE(fixed_hierarchy{}, fixed_hierarchy{{"job"}});
+  auto const job = data_cell_index::job();
+  CHECK(h.layer_paths() == std::vector<experimental::layer_path>{"job"});
+  CHECK_NOTHROW(h.validate(job));
+  CHECK_THROWS(h.validate(job->make_child("run", 0)));
+
+  auto const use_cursor = GENERATE(false, true);
+  detail::framework_driver driver{[&h, use_cursor](detail::framework_driver& d) {
+    if (use_cursor) {
+      h.yield_job(d);
+    } else {
+      h.yielder(d)(data_cell_index::job());
+    }
+  }};
+  std::vector<experimental::layer_path> yielded;
+  while (auto index = driver()) {
+    yielded.push_back((*index)->layer_path());
+  }
+  CHECK(yielded == std::vector<experimental::layer_path>{"/job"});
 }
 
 TEST_CASE("Fixed hierarchy accepts valid layer indices", "[fixed_hierarchy]")
