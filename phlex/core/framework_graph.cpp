@@ -104,11 +104,22 @@ namespace phlex::detail {
     stage_{std::move(stage)},
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
+         [this, seen_job = false](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
            assert(driver_);
            if (auto item = (*driver_)()) {
-             return {.ready_flushes = cell_tracker_->start_data_cell(*item),
-                     .index_to_emit = *item};
+             auto const& index_to_process = *item;
+             if (not index_to_process->has_parent()) {
+               // The following exchange returns false (while replacing the value of seen_job
+               // with true) the first time a job is seen.
+               if (std::exchange(seen_job, true)) {
+                 throw std::runtime_error(
+                   "The driver emitted a second job-layer data cell. Only one job-layer data cell "
+                   "is supported per graph execution. Emit the job once and yield subsequent data "
+                   "cells as descendants of that job.");
+               }
+             }
+             return {.ready_flushes = cell_tracker_->start_data_cell(index_to_process),
+                     .index_to_emit = index_to_process};
            }
            fc.stop();
            return {};

@@ -60,6 +60,50 @@ TEST_CASE("Catch other exceptions", "[graph]")
   CHECK_THROWS_AS(g.execute(), double);
 }
 
+TEST_CASE("Reject a second job index from the driver", "[graph]")
+{
+  auto g = phlex::detail::framework_graph::without_driver("test", 1);
+
+  SECTION("Job-only driver")
+  {
+    g.add_driver(driver_bundle{.driver =
+                                 [](framework_driver& driver) {
+                                   driver.yield(data_cell_index::job());
+                                   driver.yield(data_cell_index::job());
+                                 },
+                               .hierarchy = {}});
+  }
+
+  SECTION("Repeated job before driver children")
+  {
+    g.add_driver(driver_bundle{.driver =
+                                 [](framework_driver& driver) {
+                                   driver.yield(data_cell_index::job());
+                                   driver.yield(data_cell_index::job());
+                                 },
+                               .hierarchy = fixed_hierarchy{{"run", "event"}}});
+  }
+
+  SECTION("Repeated job after driver children")
+  {
+    g.add_driver(driver_bundle{.driver =
+                                 [](framework_driver& driver) {
+                                   auto const job = data_cell_index::job();
+                                   auto const run = job->make_child("run", 0);
+                                   driver.yield(job);
+                                   driver.yield(run);
+                                   driver.yield(run->make_child("event", 0));
+                                   driver.yield(data_cell_index::job());
+                                 },
+                               .hierarchy = fixed_hierarchy{{"run", "event"}}});
+  }
+
+  CHECK_THROWS_WITH(g.execute(),
+                    "The driver emitted a second job-layer data cell. Only one job-layer data cell "
+                    "is supported per graph execution. Emit the job once and yield subsequent data "
+                    "cells as descendants of that job.");
+}
+
 TEST_CASE("Make progress with one thread", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
