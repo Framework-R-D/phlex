@@ -73,17 +73,9 @@ namespace phlex::detail {
     }
   }
 
-  index_flushes data_cell_tracker::report_and_evict_ready_flushes(
-    data_cell_index_ptr const& received_index)
+  index_flushes data_cell_tracker::start_data_cell(data_cell_index_ptr const& received_index)
   {
-    if (received_index == nullptr) {
-      index_flushes result;
-      result.reserve(active_families_.size());
-      while (not active_families_.empty()) {
-        result.push_back(close_active_family());
-      }
-      return result;
-    }
+    Expects(received_index != nullptr);
 
     // The job index starts the stream and is the only valid index without a parent.
     if (not received_index->has_parent()) {
@@ -120,6 +112,16 @@ namespace phlex::detail {
     if (driver_child_layer_hashes_.contains(received_index->layer_hash())) {
       active_families_.push_back(
         {.index = received_index, .counts = std::make_shared<data_cell_counts>()});
+    }
+    return result;
+  }
+
+  index_flushes data_cell_tracker::end_job()
+  {
+    index_flushes result;
+    result.reserve(active_families_.size());
+    while (not active_families_.empty()) {
+      result.push_back(close_active_family());
     }
     return result;
   }

@@ -23,9 +23,11 @@ namespace phlex::detail {
     data_cell_tracker& operator=(data_cell_tracker&&) = delete;
 
     // Computes and returns the set of indices whose processing is now complete, given that
-    // the next index to be processed is `index`.  A null `index` signals end-of-job and
-    // returns all remaining pending flushes.
-    index_flushes report_and_evict_ready_flushes(data_cell_index_ptr const& index);
+    // the next index to be processed is `index`, which must be non-null.
+    index_flushes start_data_cell(data_cell_index_ptr const& index);
+
+    // Returns all remaining pending flushes at end-of-job.
+    index_flushes end_job();
 
   private:
     index_flush close_active_family();

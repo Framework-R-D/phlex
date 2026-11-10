@@ -27,16 +27,16 @@ TEST_CASE("Test data-cell tracker", "[graph]")
   auto run5 = job_index->make_child("run", 5);
 
   // Present data-cell indices in an order that reflects what a normal framework program would do.
-  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run4).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(spill5).empty());
-  auto flushes = tracker.report_and_evict_ready_flushes(spill6);
+  CHECK(tracker.start_data_cell(job_index).empty());
+  CHECK(tracker.start_data_cell(run4).empty());
+  CHECK(tracker.start_data_cell(spill5).empty());
+  auto flushes = tracker.start_data_cell(spill6);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == spill5);
   CHECK(flushes[0].counts->count(spill5->make_child("subspill", 0)->layer_hash()) == 0);
-  CHECK(tracker.report_and_evict_ready_flushes(subspill2).empty());
+  CHECK(tracker.start_data_cell(subspill2).empty());
 
-  flushes = tracker.report_and_evict_ready_flushes(run5);
+  flushes = tracker.start_data_cell(run5);
   REQUIRE(flushes.size() == 2);
 
   auto spill6_flush = flushes[0];
@@ -49,7 +49,7 @@ TEST_CASE("Test data-cell tracker", "[graph]")
   REQUIRE(run4_flush.counts->size() == 1);                    // Should only be "spill" layer
   CHECK(run4_flush.counts->count(spill5->layer_hash()) == 2); // spills 5 and 6
 
-  flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2); // job and the empty second run
 
   CHECK(flushes[0].index == run5);
@@ -68,16 +68,16 @@ TEST_CASE("Data-cell tracker reports zero-count driver children", "[graph]")
   auto const run = job->make_child("run", 0);
   auto const foreign_event = job->make_child("event", 0);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run).empty());
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(run).empty());
 
-  auto flushes = tracker.report_and_evict_ready_flushes(foreign_event);
+  auto flushes = tracker.start_data_cell(foreign_event);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == run);
   REQUIRE(flushes[0].counts->size() == 1);
   CHECK(flushes[0].counts->count(run->make_child("event", 0)->layer_hash()) == 0);
 
-  flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  flushes = tracker.end_job();
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == job);
   CHECK(flushes[0].counts->count(run->layer_hash()) == 1);
@@ -94,11 +94,11 @@ TEST_CASE("Data-cell tracker closes consecutive empty driver families", "[graph]
   auto const run1 = job->make_child("run", 1);
   auto const run2 = job->make_child("run", 2);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run0).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(spill).empty());
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(run0).empty());
+  CHECK(tracker.start_data_cell(spill).empty());
 
-  auto flushes = tracker.report_and_evict_ready_flushes(run1);
+  auto flushes = tracker.start_data_cell(run1);
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == spill);
   REQUIRE(flushes[0].counts->size() == 1);
@@ -106,12 +106,12 @@ TEST_CASE("Data-cell tracker closes consecutive empty driver families", "[graph]
   CHECK(flushes[1].index == run0);
   CHECK(flushes[1].counts->count(spill->layer_hash()) == 1);
 
-  flushes = tracker.report_and_evict_ready_flushes(run2);
+  flushes = tracker.start_data_cell(run2);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == run1);
   CHECK(flushes[0].counts->count(spill->layer_hash()) == 0);
 
-  flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   for (auto const& flush : flushes) {
     if (flush.index == job) {
@@ -122,7 +122,7 @@ TEST_CASE("Data-cell tracker closes consecutive empty driver families", "[graph]
       CHECK(flush.counts->count(spill->layer_hash()) == 0);
     }
   }
-  CHECK(tracker.report_and_evict_ready_flushes(nullptr).empty());
+  CHECK(tracker.end_job().empty());
 }
 
 TEST_CASE("Data-cell tracker closes an empty job only for driver-owned children", "[graph]")
@@ -131,9 +131,9 @@ TEST_CASE("Data-cell tracker closes an empty job only for driver-owned children"
   SECTION("Declared driver children")
   {
     data_cell_tracker tracker{layer_path{"run"}};
-    CHECK(tracker.report_and_evict_ready_flushes(nullptr).empty());
-    CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-    auto const flushes = tracker.report_and_evict_ready_flushes(nullptr);
+    CHECK(tracker.end_job().empty());
+    CHECK(tracker.start_data_cell(job).empty());
+    auto const flushes = tracker.end_job();
     REQUIRE(flushes.size() == 1);
     CHECK(flushes[0].index == job);
     REQUIRE(flushes[0].counts->size() == 1);
@@ -142,8 +142,8 @@ TEST_CASE("Data-cell tracker closes an empty job only for driver-owned children"
   SECTION("Children owned only by unfolds")
   {
     data_cell_tracker tracker{layer_path{"/job"}};
-    CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-    CHECK(tracker.report_and_evict_ready_flushes(nullptr).empty());
+    CHECK(tracker.start_data_cell(job).empty());
+    CHECK(tracker.end_job().empty());
   }
 }
 
@@ -152,10 +152,10 @@ TEST_CASE("Data-cell tracker keeps populated completion counts sparse", "[graph]
   data_cell_tracker tracker{layer_path{"run"}, layer_path{"event"}};
   auto const job = data_cell_index::job();
   auto const event = job->make_child("event", 0);
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(event).empty());
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(event).empty());
 
-  auto const flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  auto const flushes = tracker.end_job();
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == job);
   REQUIRE(flushes[0].counts->size() == 1);
@@ -171,12 +171,12 @@ TEST_CASE("Data-cell tracker tracks leaf siblings without retaining leaf indices
   auto const event0 = run->make_child("event", 0);
   auto const event1 = run->make_child("event", 1);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(event0).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(event1).empty());
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(run).empty());
+  CHECK(tracker.start_data_cell(event0).empty());
+  CHECK(tracker.start_data_cell(event1).empty());
 
-  auto const flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  auto const flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == run);
   CHECK(flushes[0].counts->count(event0->layer_hash()) == 2);
@@ -193,16 +193,16 @@ TEST_CASE("Data-cell tracker distinguishes repeated trailing layer names", "[gra
   auto const calib = job->make_child("calib", 0);
   auto const calib_event = calib->make_child("event", 0);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run_event).empty());
-  auto flushes = tracker.report_and_evict_ready_flushes(calib);
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(run).empty());
+  CHECK(tracker.start_data_cell(run_event).empty());
+  auto flushes = tracker.start_data_cell(calib);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == run);
   CHECK(flushes[0].counts->count(run_event->layer_hash()) == 1);
-  CHECK(tracker.report_and_evict_ready_flushes(calib_event).empty());
+  CHECK(tracker.start_data_cell(calib_event).empty());
 
-  flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == calib);
   CHECK(flushes[0].counts->count(calib_event->layer_hash()) == 1);
@@ -220,11 +220,11 @@ TEST_CASE("Data-cell tracker closes multiple active levels deepest first", "[gra
   auto const event = spill->make_child("event", 0);
   auto const next_run = job->make_child("run", 1);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(spill).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(event).empty());
-  auto const flushes = tracker.report_and_evict_ready_flushes(next_run);
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK(tracker.start_data_cell(run).empty());
+  CHECK(tracker.start_data_cell(spill).empty());
+  CHECK(tracker.start_data_cell(event).empty());
+  auto const flushes = tracker.start_data_cell(next_run);
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == spill);
   CHECK(flushes[0].counts->count(event->layer_hash()) == 1);
@@ -242,18 +242,18 @@ TEST_CASE("Data-cell tracker counts a family spanning multiple child layers", "[
   auto calib1 = job_index->make_child("calib", 1);
   auto run5 = job_index->make_child("run", 5);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(run4).empty());
-  auto flushes = tracker.report_and_evict_ready_flushes(calib1);
+  CHECK(tracker.start_data_cell(job_index).empty());
+  CHECK(tracker.start_data_cell(run4).empty());
+  auto flushes = tracker.start_data_cell(calib1);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == run4);
   CHECK(flushes[0].counts->count(run4->make_child("event", 0)->layer_hash()) == 0);
-  flushes = tracker.report_and_evict_ready_flushes(run5);
+  flushes = tracker.start_data_cell(run5);
   REQUIRE(flushes.size() == 1);
   CHECK(flushes[0].index == calib1);
   CHECK(flushes[0].counts->count(calib1->make_child("event", 0)->layer_hash()) == 0);
 
-  flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == run5);
   CHECK(flushes[0].counts->count(run5->make_child("event", 0)->layer_hash()) == 0);
@@ -271,15 +271,15 @@ TEST_CASE("Data-cell tracker rejects root indices while driver families are acti
   auto const run = job->make_child("run", 0);
   auto const event = run->make_child("event", 0);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job).empty());
-  CHECK_THROWS_WITH(tracker.report_and_evict_ready_flushes(job),
+  CHECK(tracker.start_data_cell(job).empty());
+  CHECK_THROWS_WITH(tracker.start_data_cell(job),
                     "Received root index [] while driver families are active");
-  CHECK(tracker.report_and_evict_ready_flushes(run).empty());
-  CHECK(tracker.report_and_evict_ready_flushes(event).empty());
-  CHECK_THROWS_WITH(tracker.report_and_evict_ready_flushes(job),
+  CHECK(tracker.start_data_cell(run).empty());
+  CHECK(tracker.start_data_cell(event).empty());
+  CHECK_THROWS_WITH(tracker.start_data_cell(job),
                     "Received root index [] while driver families are active");
 
-  auto const flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  auto const flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == run);
   REQUIRE(flushes[0].counts->size() == 1);
@@ -287,7 +287,7 @@ TEST_CASE("Data-cell tracker rejects root indices while driver families are acti
   CHECK(flushes[1].index == job);
   REQUIRE(flushes[1].counts->size() == 1);
   CHECK(flushes[1].counts->count(run->layer_hash()) == 1);
-  CHECK(tracker.report_and_evict_ready_flushes(nullptr).empty());
+  CHECK(tracker.end_job().empty());
 }
 
 TEST_CASE("Test data-cell tracker with missing intermediate layers", "[graph]")
@@ -298,13 +298,13 @@ TEST_CASE("Test data-cell tracker with missing intermediate layers", "[graph]")
   auto run4 = job_index->make_child("run", 4);
   auto spill2 = run4->make_child("spill", 2);
 
-  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
+  CHECK(tracker.start_data_cell(job_index).empty());
 
-  CHECK_THROWS_WITH(tracker.report_and_evict_ready_flushes(spill2),
+  CHECK_THROWS_WITH(tracker.start_data_cell(spill2),
                     "Received index [run:4, spill:2], whose parent [run:4] does not identify an "
                     "active driver family");
-  CHECK(tracker.report_and_evict_ready_flushes(run4).empty());
-  auto const flushes = tracker.report_and_evict_ready_flushes(nullptr);
+  CHECK(tracker.start_data_cell(run4).empty());
+  auto const flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
   CHECK(flushes[0].index == run4);
   CHECK(flushes[1].index == job_index);
@@ -320,8 +320,8 @@ TEST_CASE("Active families at destruction generate warning message", "[graph]")
   auto job_index = data_cell_index::job();
   auto run4 = job_index->make_child("run", 4);
 
-  CHECK(tracker->report_and_evict_ready_flushes(job_index).empty());
-  CHECK(tracker->report_and_evict_ready_flushes(run4).empty());
+  CHECK(tracker->start_data_cell(job_index).empty());
+  CHECK(tracker->start_data_cell(run4).empty());
 
   tracker.reset(); // Invoke destructor to trigger warning message
   auto const warning = oss.str();
