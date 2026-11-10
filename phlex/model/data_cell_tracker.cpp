@@ -81,8 +81,7 @@ namespace phlex::detail {
     if (not received_index->has_parent()) {
       Expects(received_index->layer_path() == layer_path{"/job"});
       if (not active_families_.empty()) {
-        throw std::runtime_error(fmt::format(
-          "Received root index {} while driver families are active", received_index->to_string()));
+        throw std::runtime_error("Cannot start a new job before the current job ends.");
       }
       if (driver_child_layer_hashes_.contains(received_index->layer_hash())) {
         active_families_.push_back(

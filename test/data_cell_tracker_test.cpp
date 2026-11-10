@@ -264,7 +264,7 @@ TEST_CASE("Data-cell tracker counts a family spanning multiple child layers", "[
   CHECK(job_flush.counts->count(calib1->layer_hash()) == 1); // calib 1
 }
 
-TEST_CASE("Data-cell tracker rejects root indices while driver families are active", "[graph]")
+TEST_CASE("Data-cell tracker rejects starting a new job before the current job ends", "[graph]")
 {
   data_cell_tracker tracker{layer_path{"run/event"}};
   auto const job = data_cell_index::job();
@@ -273,11 +273,11 @@ TEST_CASE("Data-cell tracker rejects root indices while driver families are acti
 
   CHECK(tracker.start_data_cell(job).empty());
   CHECK_THROWS_WITH(tracker.start_data_cell(job),
-                    "Received root index [] while driver families are active");
+                    "Cannot start a new job before the current job ends.");
   CHECK(tracker.start_data_cell(run).empty());
   CHECK(tracker.start_data_cell(event).empty());
   CHECK_THROWS_WITH(tracker.start_data_cell(job),
-                    "Received root index [] while driver families are active");
+                    "Cannot start a new job before the current job ends.");
 
   auto const flushes = tracker.end_job();
   REQUIRE(flushes.size() == 2);
