@@ -1,0 +1,95 @@
+name: Documentation Build
+run-name: "${{ github.actor }} building Phlex documentation"
+
+concurrency:
+  group: docs-build-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+"on":
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "docs/source/**"
+      - "docs/Doxyfile"
+      - "docs/requirements.txt"
+      - "phlex/**/*.hpp"
+      - "form/**/*.hpp"
+      - "!phlex/model/type_id.hpp"
+      - "!phlex/**/detail/**"
+      - "!form/**/detail/**"
+      - ".github/workflows/docs-build.yaml"
+  push:
+    branches: [main, "release/*"]
+    paths:
+      - "docs/source/**"
+      - "docs/Doxyfile"
+      - "docs/requirements.txt"
+      - "phlex/**/*.hpp"
+      - "form/**/*.hpp"
+      - "!phlex/model/type_id.hpp"
+      - "!phlex/**/detail/**"
+      - "!form/**/detail/**"
+      - ".github/workflows/docs-build.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: ghcr.io/framework-r-d/phlexdoc:2026-11-06
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate Doxygen XML
+        run: doxygen docs/Doxyfile
+
+      - name: Build HTML documentation
+        run: sphinx-build -E --keep-going -b html docs/source docs/build/html
+
+      - name: Upload HTML documentation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phlex-docs-html
+          path: docs/build/html/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload GitHub Pages artifact
+        if: >-
+          github.repository == 'Framework-R-D/phlex' && github.ref == 'refs/heads/main' && (github.event_name == 'push'
+          ||
+           github.event_name == 'workflow_dispatch')
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs/build/html/
+
+  deploy:
+    needs: build
+    if: >-
+      github.repository == 'Framework-R-D/phlex' && github.ref == 'refs/heads/main' && (github.event_name == 'push' ||
+       github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    permissions:
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy documentation
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
