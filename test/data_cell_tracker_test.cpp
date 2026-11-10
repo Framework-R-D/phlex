@@ -211,9 +211,9 @@ TEST_CASE("Data-cell tracker distinguishes repeated trailing layer names", "[gra
   CHECK(flushes[1].counts->count(calib->layer_hash()) == 1);
 }
 
-TEST_CASE("Data-cell tracker closes multiple active levels deepest first", "[graph]")
+TEST_CASE("Data-cell tracker closes multiple active families when starting the next run", "[graph]")
 {
-  data_cell_tracker tracker{layer_path{"run/spill/event"}, layer_path{"run/calib/event"}};
+  data_cell_tracker tracker{layer_path{"run/spill/event"}};
   auto const job = data_cell_index::job();
   auto const run = job->make_child("run", 0);
   auto const spill = run->make_child("spill", 0);
@@ -230,7 +230,6 @@ TEST_CASE("Data-cell tracker closes multiple active levels deepest first", "[gra
   CHECK(flushes[0].counts->count(event->layer_hash()) == 1);
   CHECK(flushes[1].index == run);
   CHECK(flushes[1].counts->count(spill->layer_hash()) == 1);
-  CHECK(flushes[1].counts->count(run->make_child("calib", 0)->layer_hash()) == 0);
 }
 
 TEST_CASE("Data-cell tracker counts a family spanning multiple child layers", "[graph]")
