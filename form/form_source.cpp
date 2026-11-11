@@ -180,7 +180,6 @@ PHLEX_REGISTER_SOURCE(s, config)
 
   auto const input_file = config.get<std::string>("input_file");
   auto const advertised_creator = config.get<std::string>("creator");
-  auto const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
   auto const module_label = config.get<std::string>("module_label", "form_source");
   auto const products = config.get<std::vector<std::string>>("products");
   auto const stage = config.get<std::string>("stage");
@@ -192,12 +191,11 @@ PHLEX_REGISTER_SOURCE(s, config)
     actual_creator = *plugin + ":" + *algorithm;
   }
 
-  auto const technology = form::technology::from_string(tech_string);
-
   form::experimental::config::item_config input_cfg;
   form::experimental::config::tech_setting_config const tech_cfg;
   for (auto const& name : products) {
-    input_cfg.add_item(name, input_file, technology);
+    // Technology is determined from the input file's descriptor (read-path).
+    input_cfg.add_item(name, input_file, form::technology::id{});
   }
 
   // Register the source object with Phlex
