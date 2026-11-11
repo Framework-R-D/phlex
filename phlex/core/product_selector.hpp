@@ -96,11 +96,23 @@ namespace phlex {
     };
   }
 
+  /// @brief Selects the data products an algorithm receives as one input.
+  ///
+  /// Every field is optional; an unset field matches any value.  Fields are usually set
+  /// with designated initializers, for example
+  /// @c product_selector{.creator = "tracker", .layer = "event", .suffix = "tracks"}, or read
+  /// from a configuration object with @c config.get<product_selector>(key).
   struct PHLEX_CORE_EXPORT product_selector {
+    /// Plugin label (configuration key) or algorithm name of the product's creator.
     detail::creator_name creator;
+    /// Data layer of the product.  Required for every input of multi-input algorithms,
+    /// folds and unfolds; products from other layers are not delivered.
     detail::layer_name layer;
+    /// Product suffix, as given to @c output_product_suffixes(...).
     std::optional<experimental::identifier> suffix;
+    /// Stage that created the product; @c "CURRENT" means the job's own stage.
     std::optional<experimental::identifier> stage;
+    /// Product type; set by the framework from the algorithm's parameter type.
     experimental::type_id type;
 
     // Check that all products selected by /other/ would satisfy this query

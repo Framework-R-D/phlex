@@ -4,7 +4,7 @@
 // like (e.g.):
 //
 //   driver: {
-//     plugin: "generate_layers",
+//     cpp: "generate_layers",
 //     layers: {
 //       spill: { parent: "job", total: 16 },
 //       CRU: { parent: "spill", total: 256 },

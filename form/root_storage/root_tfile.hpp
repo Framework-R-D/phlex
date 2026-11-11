@@ -6,6 +6,7 @@
 #include "storage/storage_file.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,6 +26,7 @@ namespace form::detail::experimental {
     void set_attribute(std::string const& key, std::string const& value) override;
 
     void write_descriptor(std::vector<std::pair<std::string, std::string>> const& entries) override;
+    std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor() override;
 
     std::shared_ptr<TFile> get_tfile();
 

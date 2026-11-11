@@ -7,6 +7,7 @@
 #include <concepts>
 #include <ostream>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -35,6 +36,11 @@ namespace phlex::experimental {
     bool ends_with(layer_path const& other) const noexcept;
 
     bool ends_with(identifier const& name) const noexcept;
+
+    /// Check stored components only, excluding any implicit job root.
+    bool contains(identifier const& name) const noexcept;
+
+    std::span<identifier const> components() const noexcept { return layer_path_; }
 
     std::string to_string() const;
 

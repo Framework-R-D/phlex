@@ -10,7 +10,6 @@ namespace phlex::detail {
   class framework_graph;
   struct message;
   class index_router;
-  class products_consumer;
 }
 
 #endif // PHLEX_CORE_FWD_HPP

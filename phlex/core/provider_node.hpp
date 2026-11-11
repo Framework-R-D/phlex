@@ -23,11 +23,18 @@ namespace phlex::experimental {
 }
 
 namespace phlex {
+  /// @brief Description of one implicit provider, returned by @c source::create_providers().
   struct PHLEX_CORE_EXPORT provider_bundle {
+    /// Called once per data cell of @c layer; wrap the product with
+    /// @c experimental::product_for(value).
     experimental::provider_function provider_function;
+    /// Maximum number of simultaneous calls of @c provider_function.
     concurrency max_concurrency;
+    /// Creator, suffix and type of the product.
     experimental::product_specification spec;
+    /// Data layer of the product.
     std::string layer;
+    /// Stage of the product; must be a real stage name, not @c "CURRENT".
     std::string stage;
   };
 

@@ -61,19 +61,6 @@ namespace form::detail::experimental {
     return result;
   }
 
-  /// Returns the technology token used in physical names.
-  inline std::string technology_name(form::technology::id tech)
-  {
-    if (tech.major == form::technology::major::generic) {
-      return "generic";
-    }
-    auto name = form::technology::to_string(tech);
-    for (char& c : name) {
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return sanitize_name(name);
-  }
-
   /// Throws if a creator or stage cannot be part of a physical row-space name.
   inline void check_row_space_parts(std::string_view creator, std::string_view stage)
   {
@@ -99,7 +86,7 @@ namespace form::detail::experimental {
                                           std::string_view creator,
                                           std::string_view stage)
   {
-    std::string result = technology_name(tech);
+    std::string result{form::technology::on_disk_token(tech)};
     result += row_space_field_separator;
     result += build_stream_name(creator, stage);
     return result;

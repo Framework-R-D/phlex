@@ -27,19 +27,25 @@
 #include <TFile.h>
 #include <TList.h>
 #include <TNamed.h>
+#include <TObjString.h>
 #include <TTree.h>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <numbers>
 #include <numeric>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -133,6 +139,22 @@ namespace {
     writer->finalize();
   }
 
+  // Returns the value stored under key in a descriptor read back from a file, if both exist.
+  std::optional<std::string> descriptor_value(
+    std::optional<std::vector<std::pair<std::string, std::string>>> const& descriptor,
+    std::string_view key)
+  {
+    if (!descriptor.has_value()) {
+      return std::nullopt;
+    }
+    auto const found = std::ranges::find(
+      *descriptor, key, [](auto const& entry) { return std::string_view{entry.first}; });
+    if (found == descriptor->end()) {
+      return std::nullopt;
+    }
+    return found->second;
+  }
+
   token index_token_of(std::string const& file_name, std::string const& creator)
   {
     return token{file_name, build_full_label(row_space(creator), "index"), technology};
@@ -185,7 +207,7 @@ TEST_CASE("storage_container read wrong type", "[form]")
   std::vector<int> primes = {2, 3, 5, 7, 11, 13, 17, 19};
   form::test::write(technology, primes);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -228,7 +250,7 @@ TEST_CASE("storage_container multiple containers in Association", "[form]")
 
 TEST_CASE("FORM Container setup error handling")
 {
-  auto file = create_file(technology, "testContainerErrorHandling.root", 'o');
+  auto file = create_file(technology.major, "testContainerErrorHandling.root", 'o');
   auto write_container = create_write_container(technology, "test/test_data");
 
   std::vector<float> test_data;
@@ -397,7 +419,7 @@ TEST_CASE("Root branch read: returns false when id exceeds entry count", "[form]
   std::vector<int> data = {1, 2, 3};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -412,7 +434,7 @@ TEST_CASE("Root branch read: throws when the named tree is absent from the file"
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container = create_read_container(technology, "NonExistentTree/someBranch");
   container->set_file(file);
   void const* raw_ptr = nullptr;
@@ -424,7 +446,7 @@ TEST_CASE("Root branch read: throws when the named branch is absent from the tre
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container = create_read_container(
     technology, std::string(form::test::test_tree_name) + "/NonExistentBranch");
   container->set_file(file);
@@ -442,7 +464,7 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
-  auto file = create_file(technology, form::test::test_file_name, 'i');
+  auto file = create_file(technology.major, form::test::test_file_name, 'i');
   auto container =
     create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
   container->set_file(file);
@@ -452,7 +474,7 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
 
 TEST_CASE("Root TTree write container: fill and commit are not implemented", "[form]")
 {
-  auto file = create_file(technology, "testTTreeWriteOps.root", 'o');
+  auto file = create_file(technology.major, "testTTreeWriteOps.root", 'o');
   auto write_assoc = create_write_association(technology, "testTTreeWriteOpsTree");
   write_assoc->set_file(file);
   write_assoc->setup_write();
@@ -476,7 +498,7 @@ TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error"
   // non-writable so that flush fails and Fill() returns a negative value.
   auto const tech = form::technology::root_ttree;
 
-  auto file = create_file(tech, "tbranch_fill_write_error.root", 'o');
+  auto file = create_file(tech.major, "tbranch_fill_write_error.root", 'o');
   auto tree = create_write_association(tech, "faketree");
   auto branch = create_write_container(tech, "faketree/fakebranch");
 
@@ -574,6 +596,284 @@ TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "
       CHECK(std::string{named->GetTitle()} == value);
     }
   }
+}
+
+TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[form]")
+{
+  std::vector<std::pair<std::string, std::string>> const entries{
+    {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+    {std::string{descriptor_technologies_key}, "root_ttree,root_rntuple"}};
+  std::string const object_name{descriptor_object_name};
+  auto const suffix = form::technology::to_string(technology);
+
+  SECTION("no file attached")
+  {
+    root_tfile_imp file{"/nonexistent-directory-for-form-tests/x.root", 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+
+  SECTION("a file without a descriptor reads as none, not as an empty one")
+  {
+    std::string const file_name = "form_descriptor_absent_" + suffix + ".root";
+    {
+      root_tfile_imp const file{file_name, 'o'};
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_FALSE(file.read_descriptor().has_value());
+  }
+
+  SECTION("the entries read back in the order they were written")
+  {
+    std::string const file_name = "form_descriptor_read_" + suffix + ".root";
+    {
+      root_tfile_imp file{file_name, 'o'};
+      file.write_descriptor(entries);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK(file.read_descriptor() == entries);
+  }
+
+  SECTION("an empty descriptor is still a descriptor")
+  {
+    std::string const file_name = "form_descriptor_empty_" + suffix + ".root";
+    {
+      root_tfile_imp file{file_name, 'o'};
+      file.write_descriptor({});
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
+  }
+
+  SECTION("an object of the wrong type under the descriptor name is rejected")
+  {
+    std::string const file_name = "form_descriptor_wrong_type_" + suffix + ".root";
+    {
+      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
+      REQUIRE(raw != nullptr);
+      TNamed const impostor{object_name.c_str(), "not a list"};
+      REQUIRE(raw->WriteObject(&impostor, object_name.c_str()) > 0);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+
+  SECTION("a descriptor entry that is not a key/value pair is rejected")
+  {
+    std::string const file_name = "form_descriptor_bad_entry_" + suffix + ".root";
+    {
+      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
+      REQUIRE(raw != nullptr);
+      TObjString entry{"form_layout_version=1.0"};
+      TList list;
+      list.Add(&entry);
+      REQUIRE(raw->WriteObject(&list, object_name.c_str()) > 0);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+  }
+}
+
+TEST_CASE("storage_reader read_descriptor: a written file identifies its layout and technology",
+          "[form]")
+{
+  std::string const file_name =
+    "storage_reader_descriptor_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "descriptor_creator";
+  std::vector<cell_index> const cells{event_cell(4), event_cell(2)};
+  write_cells(file_name, creator, cells);
+
+  storage_reader reader;
+  auto const descriptor = reader.read_descriptor(file_name, technology.major);
+  REQUIRE(descriptor.has_value());
+
+  CHECK(descriptor_value(descriptor, descriptor_layout_version_key) ==
+        std::string{form_layout_version});
+
+  // A single-technology file names just that technology, with the token FORM writes to disk.
+  auto const technologies = descriptor_value(descriptor, descriptor_technologies_key);
+  REQUIRE(technologies.has_value());
+  auto const token = technologies.value_or(std::string{});
+  CHECK(token == form::technology::on_disk_token(technology));
+
+  // The on-disk token identifies the technology independently of its configuration name.
+  CHECK(form::technology::from_on_disk_token(token) == technology);
+
+  // The file opened for the descriptor is the one the reader goes on to read products from.
+  for (auto const& cell : cells) {
+    CHECK(read_cell(reader, file_name, creator, cell.id) == payload_of(cell));
+  }
+}
+
+#ifdef USE_RNTUPLE_STORAGE
+TEST_CASE("storage_reader read_descriptor: any minor of a mixed file's major reads its descriptor",
+          "[form]")
+{
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+
+  std::string const file_name =
+    "storage_reader_descriptor_mixed_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "mixed_creator";
+  {
+    auto writer = create_persistence_writer();
+    REQUIRE(writer != nullptr);
+    writer->configure_tech_settings(form::experimental::config::tech_setting_config{});
+    auto const ttree_place = make_placement(file_name, creator, "ttree_prod", root_ttree);
+    auto const rntuple_place = make_placement(file_name, creator, "rntuple_prod", root_rntuple);
+    writer->create_containers(
+      {{ttree_place, &typeid(std::vector<int>)}, {rntuple_place, &typeid(std::vector<int>)}});
+    auto const cell = event_cell(1);
+    auto const payload = payload_of(cell);
+    writer->register_write(
+      identity(creator, "ttree_prod"), ttree_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(ttree_place, cell);
+    writer->register_write(
+      identity(creator, "rntuple_prod"), rntuple_place, &payload, typeid(std::vector<int>));
+    writer->commit_place(rntuple_place, cell);
+    writer->finalize();
+  }
+
+  for (auto const tech : {root_ttree, root_rntuple}) {
+    CAPTURE(form::technology::to_string(tech));
+    storage_reader reader;
+    auto const descriptor = reader.read_descriptor(file_name, tech.major);
+    CHECK(descriptor_value(descriptor, descriptor_technologies_key) ==
+          std::string{"root_ttree,root_rntuple"});
+  }
+}
+#endif
+
+TEST_CASE("storage_reader read_descriptor: a file that cannot be opened is an error", "[form]")
+{
+  storage_reader reader;
+  CHECK_THROWS_AS(
+    reader.read_descriptor("/nonexistent-directory-for-form-tests/x.root", technology.major),
+    std::runtime_error);
+}
+
+TEST_CASE("Persistence read: the technology comes from the descriptor, never from configuration",
+          "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_descriptor_minor_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "descriptor_creator";
+  std::vector<cell_index> const cells{make_cell(1, 1), make_cell(2, 0)};
+  write_cells(file_name, creator, cells);
+
+  // The configured technology is deliberately unset; reading must use the file's descriptor.
+  item_config cfg;
+  cfg.add_item("prod", file_name, form::technology::id{});
+  auto reader = create_persistence_reader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configure_tech_settings(tech_setting_config{});
+  reader->prime(creator, test_stage, "prod", typeid(std::vector<int>));
+
+  CHECK(reader->list_indices(creator, test_stage, "prod") == ids_of(cells));
+  for (auto const& cell : cells) {
+    void const* raw = nullptr;
+    reader->read(creator, test_stage, "prod", cell.id, &raw, typeid(std::vector<int>));
+    std::unique_ptr<std::vector<int> const> const read_back{
+      static_cast<std::vector<int> const*>(raw)};
+    REQUIRE(read_back != nullptr);
+    CHECK(*read_back == payload_of(cell));
+  }
+}
+
+TEST_CASE("Persistence read: a file without a layout descriptor is refused", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_no_descriptor_" + form::technology::to_string(technology) + ".root";
+  {
+    auto const file = create_file(technology.major, file_name, 'o');
+  }
+
+  item_config cfg;
+  cfg.add_item("prod", file_name, technology);
+  auto reader = create_persistence_reader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configure_tech_settings(tech_setting_config{});
+  CHECK_THROWS_AS(reader->prime("any_creator", test_stage, "prod", typeid(int)),
+                  std::runtime_error);
+}
+
+TEST_CASE("Persistence read: a descriptor FORM cannot interpret is refused", "[form]")
+{
+  using namespace form::experimental::config;
+
+  auto const refused = [](std::string const& file_name,
+                          std::vector<std::pair<std::string, std::string>> const& entries) {
+    {
+      auto const file = create_file(technology.major, file_name, 'o');
+      file->write_descriptor(entries);
+    }
+    item_config cfg;
+    cfg.add_item("prod", file_name, technology);
+    auto reader = create_persistence_reader();
+    REQUIRE(reader != nullptr);
+    reader->configure(cfg);
+    reader->configure_tech_settings(tech_setting_config{});
+    CHECK_THROWS_AS(reader->prime("any_creator", test_stage, "prod", typeid(int)),
+                    std::runtime_error);
+  };
+
+  auto const suffix = form::technology::to_string(technology) + ".root";
+  std::string const version_key{descriptor_layout_version_key};
+  std::string const technologies_key{descriptor_technologies_key};
+  std::string const this_version{form_layout_version};
+
+  refused("persistence_desc_no_version_" + suffix, {{technologies_key, "root_ttree"}});
+  refused("persistence_desc_no_technology_" + suffix, {{version_key, this_version}});
+  refused("persistence_desc_bad_version_" + suffix,
+          {{version_key, "not-a-version"}, {technologies_key, "root_ttree"}});
+  refused("persistence_desc_future_" + suffix,
+          {{version_key, "99.0"}, {technologies_key, "root_ttree"}});
+  refused("persistence_desc_unknown_tech_" + suffix,
+          {{version_key, this_version}, {technologies_key, "nonsense"}});
+}
+
+TEST_CASE("Persistence read: a descriptor naming several technologies is valid", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const version_key{descriptor_layout_version_key};
+  std::string const technologies_key{descriptor_technologies_key};
+  std::string const suffix = form::technology::to_string(technology) + ".root";
+
+  auto const reader_for = [](std::string const& file_name,
+                             std::vector<std::pair<std::string, std::string>> const& entries) {
+    {
+      auto const file = create_file(technology.major, file_name, 'o');
+      file->write_descriptor(entries);
+    }
+    item_config cfg;
+    cfg.add_item("prod", file_name, technology);
+    auto reader = create_persistence_reader();
+    REQUIRE(reader != nullptr);
+    reader->configure(cfg);
+    reader->configure_tech_settings(tech_setting_config{});
+    return reader;
+  };
+
+  // Per-product technology selection is not yet implemented.
+  auto const both = reader_for("persistence_desc_multi_tech_" + suffix,
+                               {{version_key, std::string{form_layout_version}},
+                                {technologies_key, "root_ttree,root_rntuple"}});
+  CHECK_THROWS_WITH(both->prime("any_creator", test_stage, "prod", typeid(int)),
+                    Catch::Matchers::ContainsSubstring("multiple storage technologies") &&
+                      Catch::Matchers::ContainsSubstring("product 'prod'"));
+
+  // Multiple technologies do not bypass layout version validation.
+  auto const future =
+    reader_for("persistence_desc_multi_future_" + suffix,
+               {{version_key, "99.0"}, {technologies_key, "root_ttree,root_rntuple"}});
+  CHECK_THROWS_WITH(future->prime("any_creator", test_stage, "prod", typeid(int)),
+                    Catch::Matchers::ContainsSubstring("layout version"));
 }
 
 TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")
@@ -945,7 +1245,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(technology, "NonExistentTreeForPrime/branch");
     container->set_file(file);
     CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
@@ -955,7 +1255,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(
       technology, std::string(form::test::test_tree_name) + "/NonExistentBranchForPrime");
     container->set_file(file);
@@ -967,7 +1267,7 @@ TEST_CASE("Root branch prime: error paths", "[form]")
     struct local_prime_type {};
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container =
       create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
     container->set_file(file);
@@ -987,7 +1287,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(technology, "NonExistentTreeForEntries/branch");
     container->set_file(file);
     CHECK_THROWS_AS(container->entries(), std::runtime_error);
@@ -997,7 +1297,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container = create_read_container(
       technology, std::string(form::test::test_tree_name) + "/NonExistentBranchForEntries");
     container->set_file(file);
@@ -1008,7 +1308,7 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   {
     std::vector<int> data = {10, 20, 30};
     form::test::write(technology, data);
-    auto file = create_file(technology, form::test::test_file_name, 'i');
+    auto file = create_file(technology.major, form::test::test_file_name, 'i');
     auto container =
       create_read_container(technology, form::test::make_test_branch_name<std::vector<int>>());
     container->set_file(file);
@@ -1098,7 +1398,7 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   }
 
   // Writer and reader use technology__creator__stage for physical row-space names.
-  auto const tech = technology_name(technology);
+  std::string const tech{form::technology::on_disk_token(technology)};
   storage_reader storage;
   tech_setting_config const settings{};
   auto const index_rows = [&](std::string const& container) {
@@ -1118,9 +1418,8 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   form::test::check_layout(checks, columns, layout);
   CHECK(checks.failures() == 0);
 
-  auto const table =
-    layout.table("nav_" + form::test::technology_token(form::technology::to_string(technology)) +
-                 "_cells_event_segment");
+  auto const table = layout.table(
+    "nav_" + std::string{form::technology::on_disk_token(technology)} + "_cells_event_segment");
   CHECK(table.transform(&form::test::navigation_table::stream_ids) ==
         std::vector<std::pair<std::string, std::string>>{
           {"shower", "stage1"}, {"tracker", ""}, {"tracker", "stage1"}, {"tracker", "stage2"}});

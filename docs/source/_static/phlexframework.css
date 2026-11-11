@@ -1,0 +1,26 @@
+/* Import the Sphinx theme style. */
+@import url("bizstyle.css");
+
+/* Ensure left-justified figure captions. */
+figure p {
+    text-align: left;
+}
+
+table.docutils caption {
+    text-align: left;
+}
+
+@media (max-width: 767px) {
+    /* Prevent narrow screens from inheriting the theme's minimum content width. */
+    div.body {
+        min-width: 0;
+    }
+
+    /* Keep search and the local table of contents visible below the content. */
+    div.sphinxsidebar {
+        display: block;
+        float: none;
+        margin-left: 0;
+        width: auto;
+    }
+}

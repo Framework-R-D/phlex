@@ -3,7 +3,6 @@
 //
 // Generic navigation checks are in navigation_check.hpp; this file checks the toy fixture.
 
-#include "core/container_naming.hpp"
 #include "core/technology.hpp"
 #include "navigation_check.hpp"
 #include "test_helpers.hpp"
@@ -79,7 +78,7 @@ namespace {
     }
     checks.check(track_start->creator == "Toy_Tracker", "trackStart names its creator");
     checks.check(track_start->stage == test_stage, "trackStart names its stage");
-    auto const tech = form::detail::experimental::technology_name(found.technology);
+    std::string const tech{form::technology::on_disk_token(found.technology)};
     checks.check(track_start->container_name == tech + "__Toy_Tracker__test_stage/trackStart",
                  "trackStart names its product container in its (creator, stage) row space");
     checks.check(track_start->hierarchy_key == "event_segment",
@@ -110,7 +109,7 @@ int main(int const argc, char* argv[])
     return 1;
   }
 
-  auto const prefix = "nav_" + technology_token(tech_string);
+  auto const prefix = "nav_" + std::string{form::technology::on_disk_token(technology)};
   auto const segment_table = prefix + "_cells_event_segment";
   auto const event_table = prefix + "_cells_event";
 

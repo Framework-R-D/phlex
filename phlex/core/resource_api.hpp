@@ -12,6 +12,13 @@
 #include <type_traits>
 
 namespace phlex {
+  /// @brief Declares that an algorithm uses the registered resource of type @p T.
+  ///
+  /// Pass @c resource<T>{} to @c input_family(...) after all product selectors; each type
+  /// may appear only once.  The algorithm receives one extra parameter per resource, after
+  /// its product parameters and in the same order: @c T @c const* for a resource registered
+  /// with @c add_unlimited_resource, and @c T::token_type for one registered with
+  /// @c add_serialized_resource.
   template <typename T>
   struct resource {
     static_assert(!std::is_const_v<T>, "resource<T> must name a non-const resource type.");

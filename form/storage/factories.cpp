@@ -39,11 +39,11 @@ namespace form::detail::experimental {
 #endif
   }
 
-  std::shared_ptr<i_storage_file> create_file(form::technology::id tech,
+  std::shared_ptr<i_storage_file> create_file(form::technology::major tech,
                                               std::string const& name,
                                               char mode)
   {
-    switch (tech.major) {
+    switch (tech) {
     case major::generic:
       // No technology specified: generic storage.
       return std::make_shared<storage_file>(name, mode);

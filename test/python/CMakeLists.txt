@@ -56,6 +56,32 @@ check_python_module_version("numba" "0.61.0" HAS_NUMBA)
 check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
 check_python_module_version("pytest_cov" "4.0.0" HAS_PYTEST_COV)
 
+# Environment variables required:
+set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+# Add the python plugin source directory to PYTHONPATH so tests can use phlex
+# package
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
+
+# Always add site-packages to PYTHONPATH for tests, as embedded python might not
+# find them especially in spack environments where they are in non-standard
+# locations
+if(Python_SITELIB)
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
+endif()
+if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
+endif()
+
+if(DEFINED ENV{VIRTUAL_ENV})
+  # Keep this for backward compatibility or if it adds something else
+endif()
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+
+set(
+  PYTHON_TEST_ENVIRONMENT
+  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+)
+
 # Explicitly define Python executable variable to ensure it is visible in the
 # test environment
 set(PYTHON_TEST_EXECUTABLE ${Python_EXECUTABLE})
@@ -107,71 +133,6 @@ if(HAS_NUMPY)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
   add_test(
-    NAME py:callback3
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet --stage test
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
-
-  # Expect failure for these tests (check for error propagation and type
-  # checking)
-  add_test(
-    NAME py:raise
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:raise
-    PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
-
-  add_test(
-    NAME py:badbool
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:badbool
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
-
-  add_test(
-    NAME py:badint
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:badint
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type long: int/long conversion expects a signed integer object"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
-
-  add_test(
-    NAME py:baduint
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:baduint
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION
-        "Python conversion error for type uint: can't convert negative value to unsigned long"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
-
-  add_test(
-    NAME py:mismatch_variant
-    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet --stage test
-  )
-  set_tests_properties(
-    py:mismatch_variant
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
-
-  add_test(
     NAME py:veclists
     COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet --stage test
   )
@@ -182,7 +143,104 @@ if(HAS_NUMPY)
     COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet --stage test
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
+
+  # tests for faulty run-time returns
+  execute_process(
+    COMMAND
+      ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH} ${Python_EXECUTABLE} -c
+      "import faulty_types; print(';'.join(c.tag for c in faulty_types.FAULTY_CASES), end='')"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PYFAULTY_CASES
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+  set_property(
+    DIRECTORY
+    APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/faulty_types.py
+  )
+
+  foreach(FAULTY_CASE IN LISTS PYFAULTY_CASES)
+    set(cfg ${CMAKE_CURRENT_BINARY_DIR}/pyfaulty_${FAULTY_CASE}.jsonnet)
+    configure_file(pyfaulty.jsonnet.in ${cfg} @ONLY)
+    add_test(
+      NAME py:faulty_types:${FAULTY_CASE}
+      COMMAND phlex::phlex -c ${cfg} --stage test
+    )
+    set_tests_properties(
+      py:faulty_types:${FAULTY_CASE}
+      PROPERTIES
+        WILL_FAIL TRUE
+        # Don't let unrelated breakage masquerade as "correctly rejected garbage"
+        FAIL_REGULAR_EXPRESSION "ModuleNotFoundError;ImportError;KeyError: 'case'"
+        PASS_REGULAR_EXPRESSION "TypeError"
+    )
+    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:faulty_types:${FAULTY_CASE})
+  endforeach()
 endif()
+
+add_test(
+  NAME py:callback3
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet --stage test
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
+
+# Expect failure for these tests (check for error propagation and type checking)
+add_test(
+  NAME py:raise
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet --stage test
+)
+set_tests_properties(
+  py:raise
+  PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
+
+add_test(
+  NAME py:badbool
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet --stage test
+)
+set_tests_properties(
+  py:badbool
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
+
+add_test(
+  NAME py:badint
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet --stage test
+)
+set_tests_properties(
+  py:badint
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type long: int/long conversion expects a signed integer object"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
+
+add_test(
+  NAME py:baduint
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet --stage test
+)
+set_tests_properties(
+  py:baduint
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Python conversion error for type uint: can't convert negative value to unsigned long"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
+
+add_test(
+  NAME py:mismatch_variant
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet --stage test
+)
+set_tests_properties(
+  py:mismatch_variant
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
 
 # C++ helper to provide a driver
 add_library(cppsource4py MODULE source.cpp)
@@ -259,32 +317,7 @@ set_tests_properties(
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
-set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-# Add the python plugin source directory to PYTHONPATH so tests can use phlex
-# package
-set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
-
-# Always add site-packages to PYTHONPATH for tests, as embedded python might not
-# find them especially in spack environments where they are in non-standard
-# locations
-if(Python_SITELIB)
-  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
-endif()
-if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
-  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
-endif()
-
-if(DEFINED ENV{VIRTUAL_ENV})
-  # Keep this for backward compatibility or if it adds something else
-endif()
-set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-
-# Environment variables required:
-set(
-  PYTHON_TEST_ENVIRONMENT
-  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-)
-
+# Add test environment to all active tests
 set_tests_properties(${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
 
 # phlex-based test to ensure that sys.path is sanely set for virtual environment

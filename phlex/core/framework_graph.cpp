@@ -24,10 +24,10 @@
 #include <format>
 #include <map>
 #include <ranges>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::detail {
   namespace {
@@ -65,30 +65,23 @@ namespace phlex::detail {
       return result;
     }
 
-    // Collects (input layer, child layer) pairs and per-input-layer unfold counts from all
-    // registered unfold nodes.  One pair is emitted per (unfold node, input layer): a
-    // multi-input unfold contributes the same child layer under each of its input layers,
-    // which is over-approximate but harmless — only the most-derived input actually parents
-    // children at runtime, and the extra synthetic paths are never reached by
-    // counting_layer_hashes_under for any real fold.  The per-input-layer count lets
-    // flush_gates wait for a flush message from every unfold that consumes a given layer
-    // before evaluating done().
+    // Keep each unfold's inputs together: only their most-derived cell parents the children
+    // and receives the unfold flush. Finalization resolves that parent on each applicable branch.
     index_router::unfold_data unfold_layers(declared_unfolds const& unfolds)
     {
       index_router::unfold_data result;
-      for (auto const& n : unfolds | std::views::values) {
-        phlex::experimental::identifier const child_layer{n->child_layer()};
-        std::set<phlex::experimental::identifier> input_layers_for_unfold;
-        for (auto const& input : n->input()) {
-          // Existence of layer already validated
-          auto const& input_layer =
-            static_cast<phlex::experimental::identifier const&>(input.layer);
-          if (not input_layers_for_unfold.insert(input_layer).second) {
-            continue;
-          }
-          ++result.count_per_input_layer[input_layer];
-          result.layer_pairs.push_back({.input = input_layer, .output = child_layer});
-        }
+      result.reserve(unfolds.size());
+
+      using phlex::experimental::identifier;
+      for (auto const& [name, n] : unfolds) {
+        index_router::unfold_layer_spec spec{
+          .name = name,
+          .input_layers =
+            std::views::transform(
+              n->input(), [](auto const& input) -> identifier const& { return input.layer; }) |
+            std::ranges::to<std::vector>(),
+          .output_layer = identifier{n->child_layer()}};
+        result.push_back(std::move(spec));
       }
       return result;
     }
@@ -111,11 +104,22 @@ namespace phlex::detail {
     stage_{std::move(stage)},
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
+         [this, seen_job = false](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
            assert(driver_);
            if (auto item = (*driver_)()) {
-             return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
-                     .index_to_emit = *item};
+             auto const& index_to_process = *item;
+             if (not index_to_process->has_parent()) {
+               // The following exchange returns false (while replacing the value of seen_job
+               // with true) the first time a job is seen.
+               if (std::exchange(seen_job, true)) {
+                 throw std::runtime_error(
+                   "The driver emitted a second job-layer data cell. Only one job-layer data cell "
+                   "is supported per graph execution. Emit the job once and yield subsequent data "
+                   "cells as descendants of that job.");
+               }
+             }
+             return {.ready_flushes = cell_tracker_->start_data_cell(index_to_process),
+                     .index_to_emit = index_to_process};
            }
            fc.stop();
            return {};
@@ -160,9 +164,9 @@ namespace phlex::detail {
 
   framework_graph::~framework_graph()
   {
-    if (shutdown_on_error_) {
+    if (shutdown_on_error_ and cell_tracker_) {
       // When in an error state, we need to pop the layer stack and wait for any tasks to finish.
-      auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
+      auto remaining_flushes = cell_tracker_->end_job();
       index_router_.drain(remaining_flushes);
       graph_.wait_for_all();
     }
@@ -208,7 +212,9 @@ namespace phlex::detail {
     graph_.wait_for_all();
 
     // Now back out of all remaining layers
-    index_router_.drain(cell_tracker_.report_and_evict_ready_flushes(nullptr));
+    assert(cell_tracker_);
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    index_router_.drain(cell_tracker_->end_job());
     graph_.wait_for_all();
   }
 
@@ -250,17 +256,12 @@ namespace phlex::detail {
   void framework_graph::finalize()
   {
     throw_if_registration_errors();
+    cell_tracker_.emplace(fixed_hierarchy_.layer_paths());
     make_filter_edges();
     make_bookkeeping_edges();
 
     auto [provider_input_ports, multilayer_join_index_ports] =
       make_computational_edges(nodes_, filters_, graph_, stage_);
-
-    if (provider_input_ports.empty()) {
-      assert(multilayer_join_index_ports.empty());
-      // No algorithms downstream of source.
-      return;
-    }
 
     // Index-router finalization makes edges between the index-set nodes and the provider nodes.
     index_router_.finalize(graph_,

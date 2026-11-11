@@ -1,13 +1,23 @@
 #ifndef FORM_CORE_TECHNOLOGY_HPP
 #define FORM_CORE_TECHNOLOGY_HPP
 
+#include <algorithm>
+#include <array>
 #include <compare>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
-/* A storage technology, identified by a (major, minor) pair */
+/* @file technology.hpp
+ * @brief Storage technology identifiers and their configuration and on-disk names.
+ *   - A storage technology, identified by a (major, minor) pair.
+ *   - Configuration names and on-disk tokens are independent: configuration names are user-facing;
+ *     on-disk tokens are part of the FORM persistent format. Neither is derived from the other.
+ *   - Add technologies to detail::registry. Compile-time checks enforce the registry invariants.
+ */
 
 namespace form::technology {
 
@@ -32,40 +42,173 @@ namespace form::technology {
     constexpr auto operator<=>(id const&) const = default;
   };
 
-  // Backends: valid (major, minor) pairs, stable numeric values as a future token may persist them
+  // Backends: valid (major, minor) pairs. The numeric values are stable, but nothing writes
+  // them to a file: a file names a technology by its on-disk token.
   inline constexpr id root_ttree{.major = major::root, .minor = 1};
   inline constexpr id root_rntuple{.major = major::root, .minor = 2};
   inline constexpr id hdf5{.major = major::hdf5, .minor = 1};
 
-  // Canonical string -> technology mapping: the single place a technology string is parsed, replacing the copies that used to live in each module/source/test
-  inline id from_string(std::string_view name)
-  {
-    if (name == "ROOT_TTREE") {
-      return root_ttree;
-    }
-    if (name == "ROOT_RNTUPLE") {
-      return root_rntuple;
-    }
-    if (name == "HDF5") {
-      // HDF5 is a reserved technology but has no backend yet: reject it at parse time
-      throw std::runtime_error("Technology 'HDF5' is recognized but not yet implemented");
-    }
-    throw std::runtime_error("Unknown technology: " + std::string(name));
-  }
+  namespace detail {
 
-  // Canonical technology -> string mapping
+    struct registration {
+      id technology;
+      std::string_view configuration_name;
+      std::string_view on_disk_token;
+      bool is_implemented;
+    };
+
+    /// The single place a technology's spellings are declared. Nothing else may invent one.
+    inline constexpr std::array registry{
+      // Generic is not configurable but has an on-disk token.
+      registration{.technology = id{},
+                   .configuration_name = {},
+                   .on_disk_token = "generic",
+                   .is_implemented = true},
+      registration{.technology = root_ttree,
+                   .configuration_name = "ROOT_TTREE",
+                   .on_disk_token = "root_ttree",
+                   .is_implemented = true},
+      registration{.technology = root_rntuple,
+                   .configuration_name = "ROOT_RNTUPLE",
+                   .on_disk_token = "root_rntuple",
+                   .is_implemented = true},
+      // Reserved for a future HDF5 backend.
+      registration{.technology = hdf5,
+                   .configuration_name = "HDF5",
+                   .on_disk_token = "hdf5",
+                   .is_implemented = false},
+    };
+
+    /// Every technology must be nameable on disk: a row without a token could not be written.
+    consteval bool tokens_are_present()
+    {
+      return std::ranges::all_of(
+        registry, [](registration const& entry) { return !entry.on_disk_token.empty(); });
+    }
+
+    /// Checks that technology IDs, tokens and non-empty configuration names are unique.
+    consteval bool registry_is_unambiguous()
+    {
+      for (std::size_t i = 0; i < registry.size(); ++i) {
+        for (std::size_t j = i + 1; j < registry.size(); ++j) {
+          auto const& left = registry.at(i);
+          auto const& right = registry.at(j);
+          if (left.technology == right.technology) {
+            return false;
+          }
+          if (left.on_disk_token == right.on_disk_token) {
+            return false;
+          }
+          if (!left.configuration_name.empty() &&
+              left.configuration_name == right.configuration_name) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    static_assert(tokens_are_present(),
+                  "every technology needs an on-disk token: it names the technology in a file");
+    static_assert(registry_is_unambiguous(),
+                  "two technologies claim the same id or the same spelling");
+
+    constexpr registration const* lookup_by_id(id technology)
+    {
+      for (auto const& entry : registry) {
+        if (entry.technology == technology) {
+          return &entry;
+        }
+      }
+      return nullptr;
+    }
+
+    constexpr registration const* lookup_by_configuration_name(std::string_view name)
+    {
+      if (name.empty()) {
+        return nullptr;
+      }
+      for (auto const& entry : registry) {
+        if (entry.configuration_name == name) {
+          return &entry;
+        }
+      }
+      return nullptr;
+    }
+
+    // No empty guard is needed, unlike configuration names: every token is non-empty.
+    constexpr registration const* lookup_by_on_disk_token(std::string_view token)
+    {
+      for (auto const& entry : registry) {
+        if (entry.on_disk_token == token) {
+          return &entry;
+        }
+      }
+      return nullptr;
+    }
+
+  } // namespace detail
+
+  // ---- Configuration names: user-facing spellings, independent of on-disk tokens. ----
+
   inline std::string to_string(id tech)
   {
-    if (tech == root_ttree) {
-      return "ROOT_TTREE";
+    auto const* const found = detail::lookup_by_id(tech);
+    if (found == nullptr || found->configuration_name.empty()) {
+      return "UNKNOWN";
     }
-    if (tech == root_rntuple) {
-      return "ROOT_RNTUPLE";
+    return std::string{found->configuration_name};
+  }
+
+  /// Parses an exact configuration name; throws if unknown or unavailable.
+  inline id from_string(std::string_view name)
+  {
+    auto const* const found = detail::lookup_by_configuration_name(name);
+    if (found == nullptr) {
+      if (detail::lookup_by_on_disk_token(name) != nullptr) {
+        throw std::runtime_error("Unknown technology: " + std::string{name} +
+                                 " (that is an on-disk token, not a configuration name)");
+      }
+      throw std::runtime_error("Unknown technology: " + std::string{name});
     }
-    if (tech == hdf5) {
-      return "HDF5";
+    if (!found->is_implemented) {
+      throw std::runtime_error("Technology '" + std::string{name} +
+                               "' is recognized but not yet implemented");
     }
-    return "UNKNOWN";
+    return found->technology;
+  }
+
+  // ---- On-disk tokens: persistent identifiers written into FORM files. ----
+
+  constexpr std::string_view on_disk_token(id tech)
+  {
+    auto const* const found = detail::lookup_by_id(tech);
+    if (found == nullptr) {
+      throw std::runtime_error("FORM: an unregistered technology has no on-disk token and "
+                               "cannot be named in a file");
+    }
+    return found->on_disk_token;
+  }
+
+  constexpr std::optional<id> find_on_disk_token(std::string_view token)
+  {
+    auto const* const found = detail::lookup_by_on_disk_token(token);
+    return found == nullptr ? std::nullopt : std::optional<id>{found->technology};
+  }
+
+  /// Parses an exact on-disk token; throws if unknown or unavailable.
+  constexpr id from_on_disk_token(std::string_view token)
+  {
+    auto const* const found = detail::lookup_by_on_disk_token(token);
+    if (found == nullptr) {
+      throw std::runtime_error("Unknown FORM on-disk technology token: '" + std::string{token} +
+                               "'");
+    }
+    if (!found->is_implemented) {
+      throw std::runtime_error("FORM technology '" + std::string{token} +
+                               "' is recorded in the file but is not implemented");
+    }
+    return found->technology;
   }
 
 } // namespace form::technology

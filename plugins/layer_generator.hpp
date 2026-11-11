@@ -12,7 +12,7 @@
 //    │
 //    └ run: 16
 //       │
-//       └ APA: 2500
+//       └ APA: 2400
 //
 // To create the above tree of layers, the following function calls could be made:
 //

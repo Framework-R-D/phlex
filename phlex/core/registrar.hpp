@@ -80,8 +80,25 @@ namespace phlex::detail {
     registrar(registrar const&) = delete;
     registrar& operator=(registrar const&) = delete;
 
-    registrar(registrar&&) = default;
-    registrar& operator=(registrar&&) = default;
+    // Moving must clear the source creator so its destructor cannot register the node again.
+    registrar(registrar&& other) noexcept :
+      nodes_{other.nodes_},
+      errors_{other.errors_},
+      creator_{std::exchange(other.creator_, node_creator{})},
+      predicates_{std::exchange(other.predicates_, std::nullopt)},
+      output_product_suffixes_{std::move(other.output_product_suffixes_)}
+    {
+    }
+
+    registrar& operator=(registrar&& other) noexcept
+    {
+      nodes_ = other.nodes_;
+      errors_ = other.errors_;
+      creator_ = std::exchange(other.creator_, node_creator{});
+      predicates_ = std::exchange(other.predicates_, std::nullopt);
+      output_product_suffixes_ = std::move(other.output_product_suffixes_);
+      return *this;
+    }
 
     bool has_predicates() const { return predicates_.has_value(); }
 

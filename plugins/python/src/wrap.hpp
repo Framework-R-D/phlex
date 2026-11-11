@@ -90,6 +90,12 @@ namespace phlex::experimental {
   // commented out since there's currently no cleanup procedure
   // void release_py_tstates();
 
+  // RAII helper for Python owned returns
+  struct py_decref {
+    void operator()(PyObject* o) const noexcept { Py_DECREF(o); }
+  };
+  using py_owned = std::unique_ptr<PyObject, py_decref>;
+
 } // namespace phlex::experimental
 
 #endif // PLUGINS_PYTHON_SRC_WRAP_HPP

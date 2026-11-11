@@ -3,6 +3,7 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/fold/send.hpp"
 #include "phlex/core/fold_join_node.hpp"
@@ -11,7 +12,6 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
