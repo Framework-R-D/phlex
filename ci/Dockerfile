@@ -108,6 +108,8 @@ ARG PHLEX_LLVM_TARGET=auto
 ARG PHLEX_GCC_VERSION=15.3
 ARG PHLEX_LLVM_VERSION=22.1.8
 ARG PHLEX_DEFAULT_COMPILER=gcc
+ARG CI_SPACK_TAG=
+ARG CI_SPACK_PACKAGES_TAG=
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -120,6 +122,8 @@ ENV PHLEX_LLVM_SOURCE_TARGET=${PHLEX_LLVM_TARGET}
 ENV PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}
 ENV PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}
 ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
+ENV CI_SPACK_TAG=${CI_SPACK_TAG}
+ENV CI_SPACK_PACKAGES_TAG=${CI_SPACK_PACKAGES_TAG}
 
 SHELL ["/bin/bash", "-c"]
 
@@ -278,7 +282,8 @@ RUN <<'CLONE_SPACK'
 set -euo pipefail
 
 # Clone Spack checkout used by both CI and dev images
-git clone https://github.com/spack/spack.git /spack
+git clone ${CI_SPACK_TAG:+--branch ${CI_SPACK_TAG}} \
+  https://github.com/spack/spack.git /spack
 CLONE_SPACK
 
 ########################################################################
@@ -311,7 +316,7 @@ set -euo pipefail
 SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT"
-git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
+git clone --depth=1 ${CI_SPACK_PACKAGES_TAG:+--branch ${CI_SPACK_PACKAGES_TAG}} https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
 git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides"
@@ -565,6 +570,43 @@ fi
 
 spack clean -dfs
 SPACK_INSTALL_LLVM
+
+########################################################################
+# Install and cache llvm-amdgpu and its immediate dependencies
+# separately due to memory issues during parallel build/link.
+
+RUN <<'SPACK_INSTALL_LLVM_AMDGPU'
+set -euo pipefail
+
+. /entrypoint.sh
+
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
+spack --timestamp install --fail-fast -j $(nproc) \
+  --no-add --only-concrete --no-check-signature \
+  --only dependencies llvm-amdgpu
+
+spack --timestamp install --fail-fast -j $(nproc) \
+  --no-add --only-concrete --no-check-signature \
+  -j 1 --only package llvm-amdgpu
+
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
+
+spack clean -dfs
+SPACK_INSTALL_LLVM_AMDGPU
 
 ########################################################################
 # Install remaining tools (excluding phlex itself) in one layer
