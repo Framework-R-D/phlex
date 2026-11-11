@@ -48,16 +48,12 @@ namespace phlex::detail {
       child_index, node_name_, stage_, std::move(new_products));
   }
 
-  declared_unfold::declared_unfold(phlex::experimental::algorithm_name name,
+  declared_unfold::declared_unfold(phlex::experimental::algorithm_name const& name,
                                    std::vector<std::string> predicates,
                                    product_selectors input_products,
                                    tbb::flow::graph& graph,
                                    std::string child_layer) :
-    consumer{std::move(name),
-             std::move(predicates),
-             std::move(input_products),
-             graph,
-             require_layers::always},
+    consumer{name, std::move(predicates), std::move(input_products), graph, require_layers::always},
     child_layer_{std::move(child_layer)}
   {
     // Forbid multi-layer inputs until Phlex v0.5.
@@ -65,7 +61,7 @@ namespace phlex::detail {
     if (collapsed_layers.size() > 1u) {
       throw std::invalid_argument(
         fmt::format("Unfolds cannot yet accept multi-layer inputs (node: {}, layers: {})",
-                    this->name().to_string(),
+                    name.to_string(),
                     collapsed_layers));
     }
   }
