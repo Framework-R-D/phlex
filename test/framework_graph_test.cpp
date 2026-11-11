@@ -7,17 +7,23 @@
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/fwd.hpp"
 #include "plugins/layer_generator.hpp"
+#include "test/ostream_logger.hpp"
 
 #include <boost/core/demangle.hpp>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <fmt/format.h>
 
+#include <atomic>
 #include <exception>
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -358,4 +364,63 @@ TEST_CASE("Throw when configuring driver twice", "[graph]")
   CHECK_THROWS_WITH(
     g.add_driver(gen),
     Catch::Matchers::ContainsSubstring("Driver has already been configured for framework_graph"));
+}
+
+TEST_CASE("Leaf-only hierarchy joins ancestor products and completes folds", "[graph][join]")
+{
+  auto const [description, hierarchy] =
+    GENERATE(Catch::Generators::table<char const*, fixed_hierarchy>(
+      {{"Implicit job prefix", fixed_hierarchy{{"run", "spill"}}},
+       {"Explicit job prefix", fixed_hierarchy{{"job", "run", "spill"}}}}));
+  CAPTURE(description);
+
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  auto const run_graph = [](fixed_hierarchy const& hierarchy) {
+    std::vector<unsigned int> sums;
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(g.driver_proxy({}).driver(hierarchy, [](data_cell_cursor job) {
+      for (auto r = 0u; r != 2; ++r) {
+        auto run = job.yield_child("run", r);
+        for (auto s = 0u; s != 3; ++s) {
+          run.yield_child("spill", s);
+        }
+      }
+    }));
+    g.provide(
+       "run_number", [](data_cell_index const&) { return 2u; }, concurrency::unlimited)
+      .output_product("input", "run_number", "run");
+    g.provide(
+       "spill_number", [](data_cell_index const&) { return 3u; }, concurrency::unlimited)
+      .output_product("input", "spill_number", "spill");
+
+    g.transform("join", [](unsigned int run, unsigned int spill) { return run + spill; })
+      .input_family(
+        product_selector{.creator = "input", .layer = "run", .suffix = "run_number"},
+        product_selector{.creator = "input", .layer = "spill", .suffix = "spill_number"})
+      .output_product_suffixes("number");
+    g.fold(
+       "joined_sum",
+       [](std::atomic<unsigned int>& sum, unsigned int number) { sum += number; },
+       concurrency::unlimited,
+       "job",
+       0u)
+      .input_family(product_selector{.creator = "join", .layer = "spill", .suffix = "number"})
+      .output_product_suffixes("sum");
+    g.observe(
+       "collect_joined_sum",
+       [&sums](unsigned int sum) { sums.push_back(sum); },
+       concurrency::serial)
+      .input_family(product_selector{.creator = "joined_sum", .layer = "job", .suffix = "sum"});
+
+    g.execute();
+    CHECK(g.execution_count("join") == 6);
+    CHECK(g.execution_count("joined_sum") == 6);
+    CHECK(g.execution_count("collect_joined_sum") == 1);
+    return sums;
+  };
+  // Destroy the graph before checking for cached-entry warnings.
+  auto const sums = run_graph(hierarchy);
+  CHECK(sums == std::vector<unsigned int>{30});
+  CHECK_FALSE(output.str().contains("Cached"));
 }
