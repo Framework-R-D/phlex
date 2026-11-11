@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
 
 namespace {
   std::mutex& root_rfield_read_mutex()

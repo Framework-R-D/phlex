@@ -80,7 +80,7 @@ namespace phlex::detail {
     using node_t = builder::node_t;
 
   public:
-    unfold_node(phlex::experimental::algorithm_name algo_name,
+    unfold_node(phlex::experimental::algorithm_name const& algo_name,
                 phlex::experimental::identifier stage,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
@@ -91,7 +91,7 @@ namespace phlex::detail {
                 std::vector<std::string> output_product_suffixes,
                 std::string child_layer_name,
                 resource_catalog& resources) :
-      declared_unfold{std::move(algo_name),
+      declared_unfold{algo_name,
                       std::move(predicates),
                       std::move(input_products),
                       g,

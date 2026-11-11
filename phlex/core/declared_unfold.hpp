@@ -47,7 +47,7 @@ namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_unfold : public consumer, public producer {
   public:
-    declared_unfold(phlex::experimental::algorithm_name name,
+    declared_unfold(phlex::experimental::algorithm_name const& name,
                     std::vector<std::string> predicates,
                     product_selectors input_products,
                     tbb::flow::graph& graph,

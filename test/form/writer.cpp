@@ -19,6 +19,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <ostream>
 #include <random>
 #include <ranges>
 #include <string>
@@ -47,6 +48,97 @@ namespace {
     std::mt19937 gen_;
     std::uniform_real_distribution<float> dist_;
   };
+
+  std::vector<float> write_segment(form::experimental::form_writer_interface& writer,
+                                   toy_tracker& tracker,
+                                   generator& generate,
+                                   std::ostream& checksum_file,
+                                   int nevent,
+                                   int nseg)
+  {
+    std::vector<float> track_start_x;
+    generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
+    float check = 0.0;
+    for (float const val : track_start_x) {
+      check += val;
+    }
+
+    // Mimics the cell index passed from Phlex to the output module.
+    std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
+    form::detail::experimental::cell_index const segment_id{
+      .id = seg_id_text,
+      .hierarchy = {{"event", "segment"}},
+      .layer_values = {static_cast<std::uint64_t>(nevent), static_cast<std::uint64_t>(nseg)}};
+
+    std::vector<form::experimental::product_with_name> products;
+    std::string const creator = "Toy_Tracker";
+
+    form::experimental::product_with_name const pb = {
+      .label = "trackStart", .data = &track_start_x, .type = &typeid(std::vector<float>)};
+    products.push_back(pb);
+
+    std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
+    for (int const val : track_n_hits) {
+      check += static_cast<float>(val);
+    }
+    std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
+              << ", check = " << check << '\n';
+
+    form::experimental::product_with_name const pb_int = {
+      .label = "trackNumberHits", .data = &track_n_hits, .type = &typeid(std::vector<int>)};
+    products.push_back(pb_int);
+
+    std::vector<track_start> start_points = tracker();
+    track_start check_points;
+    for (track_start const& point : start_points) {
+      check_points += point;
+    }
+    std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
+              << ", check_points = " << check_points << '\n';
+
+    form::experimental::product_with_name const pb_points = {.label = "trackStartPoints",
+                                                             .data = &start_points,
+                                                             .type =
+                                                               &typeid(std::vector<track_start>)};
+    products.push_back(pb_points);
+
+    writer.write(creator, form::test::test_stage, segment_id, products);
+
+    // Save segment checksums
+    checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " << check << " "
+                  << check_points.get_x() << " " << check_points.get_y() << " "
+                  << check_points.get_z() << "\n";
+    return track_start_x;
+  }
+
+  void write_event(form::experimental::form_writer_interface& writer,
+                   std::ostream& checksum_file,
+                   int nevent,
+                   std::vector<float> const& track_x)
+  {
+    float check = 0.0;
+    for (float const val : track_x) {
+      check += val;
+    }
+
+    std::string const evt_id_text = std::format("[event:{}]", nevent);
+    form::detail::experimental::cell_index const event_id{
+      .id = evt_id_text,
+      .hierarchy = {{"event"}},
+      .layer_values = {static_cast<std::uint64_t>(nevent)}};
+
+    std::string const creator = "Toy_Tracker_Event";
+
+    form::experimental::product_with_name const pb = {
+      .label = "trackStartX", .data = &track_x, .type = &typeid(std::vector<float>)};
+    std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
+              << ", check = " << check << '\n';
+
+    writer.write(creator, form::test::test_stage, event_id, pb);
+
+    // Save event checksum
+    checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";
+  }
 } // namespace
 
 int main(int argc, char** argv)
@@ -69,7 +161,7 @@ int main(int argc, char** argv)
     "auto_flush", "1");
   tech_config.file_settings[technology]["toy.root"].emplace_back("compression", "kZSTD");
 
-  form::experimental::form_writer_interface form(config_items, tech_config);
+  form::experimental::form_writer_interface writer(config_items, tech_config);
 
   toy_tracker tracker(4 * 1024);
 
@@ -88,86 +180,14 @@ int main(int argc, char** argv)
     std::vector<float> track_x;
 
     for (int nseg = 0; nseg < number_segment; nseg++) {
-
-      std::vector<float> track_start_x;
-      generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
-      float check = 0.0;
-      for (float const val : track_start_x) {
-        check += val;
-      }
-
-      // Mimics the cell index passed from Phlex to the output module.
-      std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
-      form::detail::experimental::cell_index const segment_id{
-        .id = seg_id_text,
-        .hierarchy = {{"event", "segment"}},
-        .layer_values = {static_cast<std::uint64_t>(nevent), static_cast<std::uint64_t>(nseg)}};
-
-      std::vector<form::experimental::product_with_name> products;
-      std::string const creator = "Toy_Tracker";
-
-      form::experimental::product_with_name const pb = {
-        .label = "trackStart", .data = &track_start_x, .type = &typeid(std::vector<float>)};
-      products.push_back(pb);
-
-      std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
-      for (int const val : track_n_hits) {
-        check += static_cast<float>(val);
-      }
-      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", check = " << check << '\n';
-
-      form::experimental::product_with_name const pb_int = {
-        .label = "trackNumberHits", .data = &track_n_hits, .type = &typeid(std::vector<int>)};
-      products.push_back(pb_int);
-
-      std::vector<track_start> start_points = tracker();
-      track_start check_points;
-      for (track_start const& point : start_points) {
-        check_points += point;
-      }
-      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", check_points = " << check_points << '\n';
-
-      form::experimental::product_with_name const pb_points = {.label = "trackStartPoints",
-                                                               .data = &start_points,
-                                                               .type =
-                                                                 &typeid(std::vector<track_start>)};
-      products.push_back(pb_points);
-
-      form.write(creator, form::test::test_stage, segment_id, products);
-
-      // Save segment checksums
-      checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " << check
-                    << " " << check_points.get_x() << " " << check_points.get_y() << " "
-                    << check_points.get_z() << "\n";
+      auto const track_start_x =
+        write_segment(writer, tracker, generate, checksum_file, nevent, nseg);
       track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 
     std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
-    float check = 0.0;
-    for (float const val : track_x) {
-      check += val;
-    }
-
-    std::string const evt_id_text = std::format("[event:{}]", nevent);
-    form::detail::experimental::cell_index const event_id{
-      .id = evt_id_text,
-      .hierarchy = {{"event"}},
-      .layer_values = {static_cast<std::uint64_t>(nevent)}};
-
-    std::string const creator = "Toy_Tracker_Event";
-
-    form::experimental::product_with_name const pb = {
-      .label = "trackStartX", .data = &track_x, .type = &typeid(std::vector<float>)};
-    std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
-              << ", check = " << check << '\n';
-
-    form.write(creator, form::test::test_stage, event_id, pb);
-
-    // Save event checksum
-    checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";
+    write_event(writer, checksum_file, nevent, track_x);
     std::cout << "PHLEX: Write Event done " << nevent << '\n';
   }
 
