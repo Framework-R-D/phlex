@@ -32,6 +32,8 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -747,6 +749,131 @@ TEST_CASE("storage_reader read_descriptor: a file that cannot be opened is an er
   CHECK_THROWS_AS(
     reader.read_descriptor("/nonexistent-directory-for-form-tests/x.root", technology.major),
     std::runtime_error);
+}
+
+TEST_CASE("Persistence read: the technology comes from the descriptor, never from configuration",
+          "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_descriptor_minor_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "descriptor_creator";
+  std::vector<cell_index> const cells{make_cell(1, 1), make_cell(2, 0)};
+  write_cells(file_name, creator, cells);
+
+  // The configured technology is deliberately unset; reading must use the file's descriptor.
+  item_config cfg;
+  cfg.add_item("prod", file_name, form::technology::id{});
+  auto reader = create_persistence_reader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configure_tech_settings(tech_setting_config{});
+  reader->prime(creator, test_stage, "prod", typeid(std::vector<int>));
+
+  CHECK(reader->list_indices(creator, test_stage, "prod") == ids_of(cells));
+  for (auto const& cell : cells) {
+    void const* raw = nullptr;
+    reader->read(creator, test_stage, "prod", cell.id, &raw, typeid(std::vector<int>));
+    std::unique_ptr<std::vector<int> const> const read_back{
+      static_cast<std::vector<int> const*>(raw)};
+    REQUIRE(read_back != nullptr);
+    CHECK(*read_back == payload_of(cell));
+  }
+}
+
+TEST_CASE("Persistence read: a file without a layout descriptor is refused", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_no_descriptor_" + form::technology::to_string(technology) + ".root";
+  {
+    auto const file = create_file(technology.major, file_name, 'o');
+  }
+
+  item_config cfg;
+  cfg.add_item("prod", file_name, technology);
+  auto reader = create_persistence_reader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configure_tech_settings(tech_setting_config{});
+  CHECK_THROWS_AS(reader->prime("any_creator", test_stage, "prod", typeid(int)),
+                  std::runtime_error);
+}
+
+TEST_CASE("Persistence read: a descriptor FORM cannot interpret is refused", "[form]")
+{
+  using namespace form::experimental::config;
+
+  auto const refused = [](std::string const& file_name,
+                          std::vector<std::pair<std::string, std::string>> const& entries) {
+    {
+      auto const file = create_file(technology.major, file_name, 'o');
+      file->write_descriptor(entries);
+    }
+    item_config cfg;
+    cfg.add_item("prod", file_name, technology);
+    auto reader = create_persistence_reader();
+    REQUIRE(reader != nullptr);
+    reader->configure(cfg);
+    reader->configure_tech_settings(tech_setting_config{});
+    CHECK_THROWS_AS(reader->prime("any_creator", test_stage, "prod", typeid(int)),
+                    std::runtime_error);
+  };
+
+  auto const suffix = form::technology::to_string(technology) + ".root";
+  std::string const version_key{descriptor_layout_version_key};
+  std::string const technologies_key{descriptor_technologies_key};
+  std::string const this_version{form_layout_version};
+
+  refused("persistence_desc_no_version_" + suffix, {{technologies_key, "root_ttree"}});
+  refused("persistence_desc_no_technology_" + suffix, {{version_key, this_version}});
+  refused("persistence_desc_bad_version_" + suffix,
+          {{version_key, "not-a-version"}, {technologies_key, "root_ttree"}});
+  refused("persistence_desc_future_" + suffix,
+          {{version_key, "99.0"}, {technologies_key, "root_ttree"}});
+  refused("persistence_desc_unknown_tech_" + suffix,
+          {{version_key, this_version}, {technologies_key, "nonsense"}});
+}
+
+TEST_CASE("Persistence read: a descriptor naming several technologies is valid", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const version_key{descriptor_layout_version_key};
+  std::string const technologies_key{descriptor_technologies_key};
+  std::string const suffix = form::technology::to_string(technology) + ".root";
+
+  auto const reader_for = [](std::string const& file_name,
+                             std::vector<std::pair<std::string, std::string>> const& entries) {
+    {
+      auto const file = create_file(technology.major, file_name, 'o');
+      file->write_descriptor(entries);
+    }
+    item_config cfg;
+    cfg.add_item("prod", file_name, technology);
+    auto reader = create_persistence_reader();
+    REQUIRE(reader != nullptr);
+    reader->configure(cfg);
+    reader->configure_tech_settings(tech_setting_config{});
+    return reader;
+  };
+
+  // Per-product technology selection is not yet implemented.
+  auto const both = reader_for("persistence_desc_multi_tech_" + suffix,
+                               {{version_key, std::string{form_layout_version}},
+                                {technologies_key, "root_ttree,root_rntuple"}});
+  CHECK_THROWS_WITH(both->prime("any_creator", test_stage, "prod", typeid(int)),
+                    Catch::Matchers::ContainsSubstring("multiple storage technologies") &&
+                      Catch::Matchers::ContainsSubstring("product 'prod'"));
+
+  // Multiple technologies do not bypass layout version validation.
+  auto const future =
+    reader_for("persistence_desc_multi_future_" + suffix,
+               {{version_key, "99.0"}, {technologies_key, "root_ttree,root_rntuple"}});
+  CHECK_THROWS_WITH(future->prime("any_creator", test_stage, "prod", typeid(int)),
+                    Catch::Matchers::ContainsSubstring("layout version"));
 }
 
 TEST_CASE("Persistence round-trip: every listed cell reads back its own payload", "[form]")

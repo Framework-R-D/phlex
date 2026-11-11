@@ -35,6 +35,7 @@
 #include "root_storage/root_rfield_write_container.hpp"
 #include "root_storage/root_rntuple_write_container.hpp"
 #endif
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -319,6 +320,40 @@ TEST_CASE("technology::id on-disk tokens", "[form]")
                   std::runtime_error);
 }
 
+TEST_CASE("layout descriptor: only this build's layout version is readable", "[form]")
+{
+  // Only the current layout version is supported.
+  CHECK_NOTHROW(check_layout_version(form_layout_version, "f.root"));
+
+  for (auto const* const other :
+       {"", "0.0", "0.2", "0.9", "1.0", "1", "1.", ".1", "0.1.0", "x.1", " 0.1", "0.1 ", "-0.1"}) {
+    CAPTURE(other);
+    CHECK_THROWS_AS(check_layout_version(other, "f.root"), std::runtime_error);
+  }
+}
+
+TEST_CASE("layout descriptor: technologies field and entry lookup", "[form]")
+{
+  using namespace form::technology;
+
+  CHECK(parse_technologies("root_ttree", "f.root") == std::vector<id>{root_ttree});
+  CHECK(parse_technologies("root_ttree,root_rntuple", "f.root") ==
+        std::vector<id>{root_ttree, root_rntuple});
+  CHECK(parse_technologies("generic", "f.root") == std::vector<id>{id{}});
+
+  // Only valid on-disk technology tokens are accepted.
+  for (auto const* const bad :
+       {"", "ROOT_TTREE", "root_ttree,", ",root_ttree", "root_ttree,,root_rntuple", "nonsense"}) {
+    CAPTURE(bad);
+    CHECK_THROWS_AS(parse_technologies(bad, "f.root"), std::runtime_error);
+  }
+
+  std::vector<std::pair<std::string, std::string>> const entries{{"a", "1"}, {"b", "2"}};
+  CHECK(descriptor_entry(entries, "a") == std::optional<std::string>{"1"});
+  CHECK(descriptor_entry(entries, "b") == std::optional<std::string>{"2"});
+  CHECK(descriptor_entry(entries, "missing") == std::nullopt);
+}
+
 TEST_CASE("technology::id members and ordering", "[form]")
 {
   using namespace form::technology;
@@ -538,7 +573,7 @@ TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
     {placement{"file.root", "cont", form::technology::id{}}, &typeid(int)}};
   storage->create_containers(containers, settings);
 
-  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "1.0"}};
+  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "0.1"}};
   CHECK_NOTHROW(storage->write_descriptor("file.root", entries));
 
   // A file that was never created cannot be described; say so rather than drop the descriptor.
