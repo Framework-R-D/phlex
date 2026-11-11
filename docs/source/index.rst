@@ -3,6 +3,14 @@ Welcome to Phlex's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :caption: User guide:
+   :glob:
+
+   guide/configuration
+   guide/*
+
+.. toctree::
+   :maxdepth: 2
    :caption: Plugin entry points:
 
    api/module_graph_proxy

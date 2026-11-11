@@ -1,6 +1,7 @@
 #include "phlex/app/run.hpp"
 #include "phlex/app/version.hpp"
 
+#include <boost/json/object.hpp>
 #include <boost/json/parse.hpp>
 // Public umbrella whose implementation headers are ignored by include-cleaner.
 #include <boost/program_options.hpp> // IWYU pragma: keep
@@ -9,8 +10,10 @@
 #include <oneapi/tbb/info.h>
 
 #include <exception>
+#include <expected>
 #include <filesystem>
 #include <iostream>
+#include <print>
 #include <string>
 #include <string_view>
 
@@ -40,6 +43,47 @@ namespace {
 
     return result;
   }
+
+  std::expected<bpo::variables_map, std::string> parse_command_line(
+    int argc, char** argv, bpo::options_description const& desc)
+  {
+    bpo::variables_map vm;
+    try {
+      bpo::store(
+        bpo::command_line_parser(argc, argv)
+          .options(desc)
+          .style(bpo::command_line_style::default_style & ~bpo::command_line_style::allow_guessing)
+          .run(),
+        vm);
+      bpo::notify(vm);
+    } catch (bpo::error const& e) {
+      return std::unexpected{std::string{e.what()}};
+    }
+    return vm;
+  }
+
+  phlex::detail::overridable_configuration extract_overrides(json::object& configurations,
+                                                             bpo::variables_map const& vm)
+  {
+    phlex::detail::overridable_configuration overrides{.max_parallelism = vm["parallel"].as<int>()};
+    if (auto const* specified_concurrency = configurations.if_contains("max_concurrency")) {
+      overrides.max_parallelism = specified_concurrency->to_number<int>();
+      configurations.erase("max_concurrency"); // Remove consumed parameters
+    }
+    if (auto const* specified_stage = configurations.if_contains("stage")) {
+      overrides.stage = specified_stage->as_string().c_str();
+      configurations.erase("stage"); // Remove consumed parameters
+    }
+
+    // Command-line always wins.
+    if (not vm["parallel"].defaulted()) {
+      overrides.max_parallelism = vm["parallel"].as<int>();
+    }
+    if (vm.contains("stage")) {
+      overrides.stage = vm["stage"].as<std::string>();
+    }
+    return overrides;
+  }
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape) -- primary application entry point; exceptions
@@ -50,20 +94,13 @@ int main(int argc, char* argv[])
   auto desc = make_options_description(argv[0], config_file);
 
   // Parse the command line.
-  bpo::variables_map vm;
-  try {
-    bpo::store(
-      bpo::command_line_parser(argc, argv)
-        .options(desc)
-        .style(bpo::command_line_style::default_style & ~bpo::command_line_style::allow_guessing)
-        .run(),
-      vm);
-    bpo::notify(vm);
-  } catch (bpo::error const& e) {
-    std::cerr << "Exception from command line processing in " << argv[0] << ": " << e.what()
-              << '\n';
+  auto parsed = parse_command_line(argc, argv, desc);
+  if (not parsed) {
+    std::println(
+      std::cerr, "Exception from command line processing in {}: {}", argv[0], parsed.error());
     return 1;
   }
+  auto const& vm = *parsed;
 
   if (vm.contains("help")) {
     std::cout << desc << '\n';
@@ -71,56 +108,39 @@ int main(int argc, char* argv[])
   }
 
   if (vm.contains("version")) {
-    std::cout << "phlex " << phlex::detail::version() << '\n';
+    std::println("phlex {}", phlex::detail::version());
     return 0;
   }
 
   if (not vm.contains("config")) {
-    std::cerr << "Error: No configuration file given.\n";
+    std::println(std::cerr, "Error: No configuration file given.");
     return 2;
   }
 
   jsonnet::Jsonnet j;
   if (not j.init()) {
-    std::cerr << "Error: Could not initialize Jsonnet parser.\n";
+    std::println(std::cerr, "Error: Could not initialize Jsonnet parser.");
     return 2;
   }
 
-  std::cout << "Using configuration file: " << config_file << '\n';
+  std::println("Using configuration file: {}", config_file);
 
   std::string config_str;
   auto rc = j.evaluateFile(config_file, &config_str);
   if (not rc) {
-    std::cerr << j.lastError() << '\n';
+    std::println(std::cerr, "{}", j.lastError());
     return 2;
   }
 
-  // Check configuration...
-  phlex::detail::overridable_configuration overrides{.max_parallelism = vm["parallel"].as<int>()};
   auto configurations = json::parse(config_str).as_object();
-  if (auto const* specified_concurrency = configurations.if_contains("max_concurrency")) {
-    overrides.max_parallelism = specified_concurrency->to_number<int>();
-    configurations.erase("max_concurrency"); // Remove consumed parameters
-  }
-  if (auto const* specified_stage = configurations.if_contains("stage")) {
-    overrides.stage = specified_stage->as_string().c_str();
-    configurations.erase("stage"); // Remove consumed parameters
-  }
-
-  // ...but command-line always wins.
-  if (not vm["parallel"].defaulted()) {
-    overrides.max_parallelism = vm["parallel"].as<int>();
-  }
-  if (vm.contains("stage")) {
-    overrides.stage = vm["stage"].as<std::string>();
-  }
+  auto const overrides = extract_overrides(configurations, vm);
   try {
     phlex::detail::run(configurations, overrides);
   } catch (std::exception const& e) {
-    std::cerr << e.what() << '\n';
+    std::println(std::cerr, "{}", e.what());
     return 1;
   } catch (...) {
-    std::cerr << "Unknown exception caught.\n";
+    std::println(std::cerr, "Unknown exception caught.");
     return 1;
   }
 }

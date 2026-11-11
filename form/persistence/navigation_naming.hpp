@@ -59,7 +59,7 @@ namespace form::detail::experimental {
                                            form::technology::id tech)
   {
     std::string name{navigation_prefix};
-    name += technology_name(tech);
+    name += form::technology::on_disk_token(tech);
     name += "_cells_";
     name += hierarchy_key(hierarchy);
     return name;
@@ -69,7 +69,7 @@ namespace form::detail::experimental {
   inline std::string navigation_dictionary_name(form::technology::id tech)
   {
     std::string name{navigation_prefix};
-    name += technology_name(tech);
+    name += form::technology::on_disk_token(tech);
     name += "_products";
     return name;
   }

@@ -73,10 +73,10 @@ void storage_writer::create_containers(
       // Ensure the file exists
       auto file = files_.find(plcmnt.file_name());
       if (file == files_.end()) {
-        file =
-          files_
-            .insert({plcmnt.file_name(), create_file(plcmnt.technology(), plcmnt.file_name(), 'o')})
-            .first;
+        file = files_
+                 .insert({plcmnt.file_name(),
+                          create_file(plcmnt.technology().major, plcmnt.file_name(), 'o')})
+                 .first;
         for (auto const& [key, value] :
              get_file_table(settings, plcmnt.technology(), plcmnt.file_name())) {
           file->second->set_attribute(key, value);

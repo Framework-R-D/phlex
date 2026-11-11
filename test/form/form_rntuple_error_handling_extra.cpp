@@ -30,7 +30,7 @@ TEST_CASE("RNTuple open failure", "[form RNTuple]")
 {
   //TODO: create a read-only file and pass it to RNTuple write backend
   double test_data = 42.;
-  auto file = create_file(tech, "form_read_only_file_rntuple.root", 'z');
+  auto file = create_file(tech.major, "form_read_only_file_rntuple.root", 'z');
   auto assoc = create_write_association(tech, "test");
   assoc->set_file(file);
   assoc->setup_write(typeid(test_data));

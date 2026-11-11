@@ -35,12 +35,16 @@
 #include "root_storage/root_rfield_write_container.hpp"
 #include "root_storage/root_rntuple_write_container.hpp"
 #endif
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
@@ -245,7 +249,7 @@ TEST_CASE("token basics", "[form]")
   CHECK(t.id() == 42u);
 }
 
-TEST_CASE("technology::id string conversions", "[form]")
+TEST_CASE("technology::id configuration names", "[form]")
 {
   using namespace form::technology;
 
@@ -264,6 +268,90 @@ TEST_CASE("technology::id string conversions", "[form]")
   // An unknown name throws; an unknown id stringifies to the sentinel
   CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
   CHECK(to_string(id{}) == "UNKNOWN");
+
+  // An on-disk token is not a configuration name. The job configuration takes "ROOT_TTREE";
+  // "root_ttree" is what a file carries, and naming the confusion beats "Unknown technology".
+  CHECK_THROWS_AS(from_string("root_ttree"), std::runtime_error);
+  CHECK_THROWS_WITH(from_string("root_ttree"),
+                    Catch::Matchers::ContainsSubstring("on-disk token, not a configuration name"));
+  CHECK_THROWS_AS(from_string("ROOT_Ttree"), std::runtime_error);
+  CHECK_THROWS_AS(from_string(""), std::runtime_error);
+
+  // Generic:  not selectable from a configuration
+  CHECK_THROWS_AS(from_string("GENERIC"), std::runtime_error);
+  CHECK_THROWS_AS(from_string("generic"), std::runtime_error);
+}
+
+TEST_CASE("technology::id on-disk tokens", "[form]")
+{
+  using namespace form::technology;
+
+  static_assert(on_disk_token(root_ttree) == "root_ttree");
+  static_assert(on_disk_token(root_rntuple) == "root_rntuple");
+  static_assert(on_disk_token(id{}) == "generic");
+  // hdf5 has no backend, but fixing its spelling now stops a future implementation from
+  // picking a different one. Every registered token is pinned here.
+  static_assert(on_disk_token(hdf5) == "hdf5");
+
+  CHECK(on_disk_token(root_ttree) == "root_ttree");
+  CHECK(on_disk_token(root_rntuple) == "root_rntuple");
+  CHECK(on_disk_token(id{}) == "generic");
+
+  for (auto const tech : {root_ttree, root_rntuple, id{}}) {
+    CHECK(find_on_disk_token(on_disk_token(tech)) == std::optional{tech});
+    CHECK(from_on_disk_token(on_disk_token(tech)) == tech);
+  }
+
+  static_assert(find_on_disk_token("ROOT_TTREE") == std::nullopt);
+  CHECK(find_on_disk_token("ROOT_TTREE") == std::nullopt);
+  CHECK(find_on_disk_token("Root_TTree") == std::nullopt);
+  CHECK(find_on_disk_token("GENERIC") == std::nullopt);
+  CHECK_THROWS_AS(from_on_disk_token("ROOT_TTREE"), std::runtime_error);
+
+  CHECK(find_on_disk_token("not_a_token") == std::nullopt);
+  CHECK(find_on_disk_token("") == std::nullopt);
+  CHECK_THROWS_AS(from_on_disk_token("not_a_token"), std::runtime_error);
+  CHECK_THROWS_AS(from_on_disk_token(""), std::runtime_error);
+
+  CHECK(find_on_disk_token("hdf5") == std::optional{hdf5});
+  CHECK_THROWS_AS(from_on_disk_token("hdf5"), std::runtime_error);
+
+  CHECK_THROWS_AS(on_disk_token(id{.major = form::technology::major::root, .minor = 99}),
+                  std::runtime_error);
+}
+
+TEST_CASE("layout descriptor: only this build's layout version is readable", "[form]")
+{
+  // Only the current layout version is supported.
+  CHECK_NOTHROW(check_layout_version(form_layout_version, "f.root"));
+
+  for (auto const* const other :
+       {"", "0.0", "0.2", "0.9", "1.0", "1", "1.", ".1", "0.1.0", "x.1", " 0.1", "0.1 ", "-0.1"}) {
+    CAPTURE(other);
+    CHECK_THROWS_AS(check_layout_version(other, "f.root"), std::runtime_error);
+  }
+}
+
+TEST_CASE("layout descriptor: technologies field and entry lookup", "[form]")
+{
+  using namespace form::technology;
+
+  CHECK(parse_technologies("root_ttree", "f.root") == std::vector<id>{root_ttree});
+  CHECK(parse_technologies("root_ttree,root_rntuple", "f.root") ==
+        std::vector<id>{root_ttree, root_rntuple});
+  CHECK(parse_technologies("generic", "f.root") == std::vector<id>{id{}});
+
+  // Only valid on-disk technology tokens are accepted.
+  for (auto const* const bad :
+       {"", "ROOT_TTREE", "root_ttree,", ",root_ttree", "root_ttree,,root_rntuple", "nonsense"}) {
+    CAPTURE(bad);
+    CHECK_THROWS_AS(parse_technologies(bad, "f.root"), std::runtime_error);
+  }
+
+  std::vector<std::pair<std::string, std::string>> const entries{{"a", "1"}, {"b", "2"}};
+  CHECK(descriptor_entry(entries, "a") == std::optional<std::string>{"1"});
+  CHECK(descriptor_entry(entries, "b") == std::optional<std::string>{"2"});
+  CHECK(descriptor_entry(entries, "missing") == std::nullopt);
 }
 
 TEST_CASE("technology::id members and ordering", "[form]")
@@ -368,7 +456,7 @@ TEST_CASE("storage_associative_write_container basics", "[form]")
 
 TEST_CASE("Factories fallback", "[form]")
 {
-  auto f = create_file(form::technology::id{}, "test.root", 'o');
+  auto f = create_file(form::technology::major::generic, "test.root", 'o');
   CHECK(dynamic_cast<storage_file*>(f.get()) != nullptr);
 
   auto rc = create_read_container(form::technology::id{}, "cont");
@@ -382,7 +470,7 @@ TEST_CASE("Factories fallback", "[form]")
 
   // HDF5 is reserved but unimplemented: every factory must fail loudly on the
   // hdf5 dispatch branch rather than silently return generic storage.
-  CHECK_THROWS_AS(create_file(form::technology::hdf5, "test.h5", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_file(form::technology::major::hdf5, "test.h5", 'o'), std::runtime_error);
   CHECK_THROWS_AS(create_read_container(form::technology::hdf5, "cont"), std::runtime_error);
   CHECK_THROWS_AS(create_write_association(form::technology::hdf5, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(create_write_container(form::technology::hdf5, "cont"), std::runtime_error);
@@ -392,7 +480,7 @@ TEST_CASE("Factories fallback", "[form]")
   auto const unknown_major =
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     form::technology::id{.major = static_cast<form::technology::major>(99), .minor = 0};
-  CHECK_THROWS_AS(create_file(unknown_major, "test.dat", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_file(unknown_major.major, "test.dat", 'o'), std::runtime_error);
   CHECK_THROWS_AS(create_read_container(unknown_major, "cont"), std::runtime_error);
   CHECK_THROWS_AS(create_write_association(unknown_major, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(create_write_container(unknown_major, "cont"), std::runtime_error);
@@ -485,7 +573,7 @@ TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
     {placement{"file.root", "cont", form::technology::id{}}, &typeid(int)}};
   storage->create_containers(containers, settings);
 
-  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "1.0"}};
+  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "0.1"}};
   CHECK_NOTHROW(storage->write_descriptor("file.root", entries));
 
   // A file that was never created cannot be described; say so rather than drop the descriptor.
@@ -495,13 +583,20 @@ TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
 TEST_CASE("storage_file: the generic backend keeps the descriptor it is given", "[form]")
 {
   storage_file file{"generic.dat", 'o'};
-  CHECK(file.descriptor().empty());
+  CHECK_FALSE(file.read_descriptor().has_value());
 
   std::vector<std::pair<std::string, std::string>> const entries{
     {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
     {std::string{descriptor_technologies_key}, "generic"}};
   file.write_descriptor(entries);
-  CHECK(file.descriptor() == entries);
+  CHECK(file.read_descriptor() == entries);
+}
+
+TEST_CASE("storage_file: an empty descriptor is still a descriptor", "[form]")
+{
+  storage_file file{"generic_empty.dat", 'o'};
+  file.write_descriptor({});
+  CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
 }
 
 TEST_CASE("persistence_reader basic operations", "[form]")
@@ -1017,9 +1112,9 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
 
   SECTION("a navigation name carries the technology that wrote it")
   {
-    CHECK(technology_name(form::technology::root_ttree) == "root_ttree");
-    CHECK(technology_name(form::technology::root_rntuple) == "root_rntuple");
-    CHECK(technology_name(form::technology::id{}) == "generic");
+    CHECK(form::technology::on_disk_token(form::technology::root_ttree) == "root_ttree");
+    CHECK(form::technology::on_disk_token(form::technology::root_rntuple) == "root_rntuple");
+    CHECK(form::technology::on_disk_token(form::technology::id{}) == "generic");
 
     CHECK(navigation_table_name(cell_hierarchy{{"event"}}, form::technology::root_ttree) ==
           "nav_root_ttree_cells_event");

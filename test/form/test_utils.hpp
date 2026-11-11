@@ -71,7 +71,7 @@ namespace form::test {
   template <class... Prods>
   inline void write(form::technology::id const technology, Prods&... prods)
   {
-    auto file = create_file(technology, std::string(test_file_name), 'o');
+    auto file = create_file(technology.major, std::string(test_file_name), 'o');
     auto parent = create_write_association(technology, std::string(test_tree_name));
     parent->set_file(file);
     parent->setup_write();
@@ -99,7 +99,7 @@ namespace form::test {
   template <class... Prods>
   inline std::tuple<std::unique_ptr<Prods const>...> read(form::technology::id const technology)
   {
-    auto file = create_file(technology, std::string(test_file_name), 'i');
+    auto file = create_file(technology.major, std::string(test_file_name), 'i');
 
     return std::make_tuple(do_read<Prods>(file, technology)...);
   }

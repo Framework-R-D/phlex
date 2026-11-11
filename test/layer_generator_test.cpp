@@ -1,9 +1,13 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+
+#include <vector>
 
 using namespace phlex::experimental;
 using phlex::detail::framework_graph;
@@ -12,6 +16,10 @@ using namespace Catch::Matchers;
 TEST_CASE("Only job layer", "[layer-generation]")
 {
   auto gen = layer_generator::make();
+  auto const hierarchy = gen->hierarchy();
+  CHECK(hierarchy.layer_paths() == std::vector<layer_path>{"job"});
+  CHECK_NOTHROW(hierarchy.validate(phlex::data_cell_index::job()));
+  CHECK_THROWS(hierarchy.validate(phlex::data_cell_index::job()->make_child("spill", 0)));
 
   auto g = framework_graph::without_driver("test");
   g.add_driver(gen);

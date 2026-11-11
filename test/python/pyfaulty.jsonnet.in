@@ -1,0 +1,21 @@
+{
+  driver: {
+    cpp: 'generate_layers',
+    layers: {
+      event: { parent: 'job', total: 10, starting_number: 1 },
+    },
+  },
+  sources: {
+    cppdriver: {
+      cpp: 'cppsource4py',
+    },
+  },
+  modules: {
+    pyfaulty: {
+      py: 'faulty_types',
+      creator: 'input',
+      layer: 'event',
+      tag: '@FAULTY_CASE@'
+    },
+  },
+}

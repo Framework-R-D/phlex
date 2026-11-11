@@ -4,6 +4,7 @@
 #define FORM_PERSISTENCE_PERSISTENCE_READER_HPP
 
 #include "core/container_naming.hpp"
+#include "core/technology.hpp"
 #include "core/token.hpp"
 #include "ipersistence_reader.hpp"
 #include "storage/istorage.hpp"
@@ -11,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 // forward declaration for form config
 namespace form::experimental::config {
@@ -51,9 +53,17 @@ namespace form::detail::experimental {
                                      std::string const& label,
                                      std::string const& id);
 
+    /// Returns the storage technologies declared in the file's descriptor.
+    std::vector<form::technology::id> const& technologies_of(std::string const& file_name);
+
+    /// Returns the technology to use for the product, or throws if it cannot be determined.
+    form::technology::id technology_for_product(std::string const& file_name,
+                                                std::string const& label);
+
     std::unique_ptr<i_storage_reader> store_reader_;
     form::experimental::config::item_config config_items_;
     form::experimental::config::tech_setting_config tech_settings_{};
+    std::map<std::string, std::vector<form::technology::id>> file_technologies_;
   };
 
 } // namespace form::detail::experimental

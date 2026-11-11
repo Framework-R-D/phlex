@@ -2,6 +2,7 @@
 
 #include "storage_file.hpp"
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -26,7 +27,7 @@ void storage_file::write_descriptor(std::vector<std::pair<std::string, std::stri
   descriptor_ = entries;
 }
 
-std::vector<std::pair<std::string, std::string>> const& storage_file::descriptor() const
+std::optional<std::vector<std::pair<std::string, std::string>>> storage_file::read_descriptor()
 {
   return descriptor_;
 }

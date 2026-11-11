@@ -4,12 +4,14 @@
 #define FORM_STORAGE_ISTORAGE_HPP
 
 #include "core/placement.hpp"
+#include "core/technology.hpp"
 #include "core/token.hpp"
 #include "form/config.hpp"
 
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,6 +41,12 @@ namespace form::detail::experimental {
       void const** data,
       std::type_info const& type,
       form::experimental::config::tech_setting_config const& settings) = 0;
+
+    // Reads descriptor entries in their original order.
+    // Returns std::nullopt if no descriptor is present; throws if the file cannot be opened.
+    // The major technology selects the backend; the descriptor identifies the minor technologies.
+    virtual std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor(
+      std::string const& file_name, form::technology::major technology) = 0;
   };
 
   class i_storage_writer {
@@ -73,6 +81,8 @@ namespace form::detail::experimental {
 
     virtual void write_descriptor(
       std::vector<std::pair<std::string, std::string>> const& entries) = 0;
+
+    virtual std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor() = 0;
   };
 
   class i_storage_write_container {
