@@ -60,6 +60,7 @@ install(
     glue.hpp
     graph_proxy.hpp
     input_arguments.hpp
+    join_registration.hpp
     message.hpp
     multilayer_join_node.hpp
     index_router.hpp
