@@ -8,3 +8,14 @@ cet_test(
   TBB::tbb
   spdlog::spdlog
 )
+
+cet_test(
+  resource_limited_threads
+  USE_CATCH2_MAIN
+  SOURCE
+  resource_limited_threads_test.cpp
+  LIBRARIES
+  phlex::core
+  TBB::tbb
+  spdlog::spdlog
+)
