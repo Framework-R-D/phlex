@@ -305,7 +305,6 @@ PREP_SPACK_GROUP
 
 COPY packages.yaml /tmp/packages.yaml.template
 COPY upgrade_repos.py /tmp/upgrade_repos.py
-COPY overrides/ /tmp/llvm-amdgpu-overrides/
 
 ENV GNUPGHOME=/run/gpg
 ENV SPACK_GNUPGHOME=/run/gpg
@@ -316,13 +315,10 @@ set -euo pipefail
 SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT"
-git clone --depth=1 ${CI_SPACK_PACKAGES_TAG:+--branch ${CI_SPACK_PACKAGES_TAG}} https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
+git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
 git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
-git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
-mkdir -p "$SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides"
-cp -a /tmp/llvm-amdgpu-overrides/. \
-  "$SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides/"
-rm -rf /tmp/llvm-amdgpu-overrides
+git clone ${CI_SPACK_PACKAGES_TAG:+--branch ${CI_SPACK_PACKAGES_TAG}} \
+  https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
@@ -361,9 +357,6 @@ spack repo list
 chmod +x /tmp/upgrade_repos.py
 spack python /tmp/upgrade_repos.py
 rm -f /tmp/upgrade_repos.py
-# Prioritize the CI-local LLVM recipe tweak without changing precedence among the other repos.
-spack repo add --scope site \
-  $SPACK_REPO_ROOT/llvm-amdgpu-override/spack_repo/overrides
 spack repo list
 spack clean -m
 spack audit configs
@@ -570,43 +563,6 @@ fi
 
 spack clean -dfs
 SPACK_INSTALL_LLVM
-
-########################################################################
-# Install and cache llvm-amdgpu and its immediate dependencies
-# separately due to memory issues during parallel build/link.
-
-RUN <<'SPACK_INSTALL_LLVM_AMDGPU'
-set -euo pipefail
-
-. /entrypoint.sh
-
-# Recreate the environment view in this layer to avoid cross-layer rename
-# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
-rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
-rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
-
-spack --timestamp install --fail-fast -j $(nproc) \
-  --no-add --only-concrete --no-check-signature \
-  --only dependencies llvm-amdgpu
-
-spack --timestamp install --fail-fast -j $(nproc) \
-  --no-add --only-concrete --no-check-signature \
-  -j 1 --only package llvm-amdgpu
-
-if [ -d "/build-cache" ]; then
-  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
-  if [ -n "$key_id" ]; then
-    key_args=(--key "${key_id}")
-  else
-    key_args=(-u)
-  fi
-  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
-        /build-cache $(spack find --no-groups -LI | \
-        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
-fi
-
-spack clean -dfs
-SPACK_INSTALL_LLVM_AMDGPU
 
 ########################################################################
 # Install remaining tools (excluding phlex itself) in one layer

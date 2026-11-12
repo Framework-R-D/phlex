@@ -24,11 +24,6 @@ packages:
       "tbb:": [intel-tbb, intel-oneapi-tbb]
       "zlib-api:": [zlib]
 
-  # llvmlite needs libllvm here, not the Flang compiler or runtime.
-  llvm-amdgpu:
-    require:
-      - "~flang"
-
   c:
     prefer: ["gcc@${PHLEX_NATIVE_GCC_VERSION}"]
   cxx:

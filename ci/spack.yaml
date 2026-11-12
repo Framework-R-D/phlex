@@ -10,7 +10,7 @@ spack:
     - catch2
     - cetmodules
     - cmake
-    - lcov
+    - lcov ~xs
     - ninja
     - py-gcovr
     - py-pytest-cov # Needed for Python coverage reports
