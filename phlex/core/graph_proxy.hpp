@@ -102,17 +102,18 @@ namespace phlex::detail {
     /// For each parent data cell, an @p Unfolder is constructed from the products selected
     /// by @c input_family(...), in the order of its constructor parameters.  Starting from
     /// @c Unfolder::initial_value(), the node then repeatedly calls @p pred with the current
-    /// value and, while it returns @c true, calls @p unf, which returns a @c std::pair of the
-    /// next value and the product for a new child data cell.  Each call of @p pred and
-    /// @p unf may take the @p Unfolder as its first argument (for example, member-function
-    /// pointers).  @p unf may also take the child's @c data_cell_index after the value.
+    /// value and, while it returns @c true, calls the generator @p unf, which returns a
+    /// @c std::pair of the next value and the product for a new child data cell.  Each call of
+    /// @p pred and @p unf may take the @p Unfolder as its first argument (for example,
+    /// member-function pointers).  @p unf may also take the child's @c data_cell_index after
+    /// the value.
     ///
     /// Children are numbered from 0 for each parent and placed in @p destination_data_layer.
     /// A parent may have no children.  All input selectors must name the same data layer.
     ///
     /// @param name                    Algorithm name.
-    /// @param pred                    Returns whether to create another child.
-    /// @param unf                     Creates the next child's product.
+    /// @param pred                    Predicate: returns whether to create another child.
+    /// @param unf                     Generator: creates the next child's product.
     /// @param destination_data_layer  Name of the child data layer.
     /// @param c                       Maximum number of parents unfolded at the same time.
     template <typename Unfolder>

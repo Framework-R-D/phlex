@@ -1,16 +1,23 @@
 Unfolds
 =======
 
-An *unfold* splits one data cell into child data cells in a new, lower
-data layer: for example, a spill into the events it contains, or an event
-into track seeds.
-Each child gets one product, which downstream algorithms select in the
-child layer.
+An *unfold* generates a family of child data cells for a parent data cell,
+in a new, lower data layer, and populates each child with a data product
+created from the parent's input products: for example, the events contained
+in a spill, or the track seeds found in an event.
+The parent data cell is not modified.
+Downstream algorithms select the children's products in the child layer.
+
+In the current implementation each child receives exactly one data product.
+The design allows a generator to create several products per child, but
+returning a tuple of products is not supported yet.
 
 Registering an unfold
 ---------------------
 
-An unfold is described by a class (the *unfolder*) and two functions:
+An unfold is described by a class (the *unfolder*) and two operators: a
+*predicate*, which says whether to create another child, and a *generator*,
+which creates it:
 
 .. code-block:: cpp
 
@@ -20,7 +27,7 @@ An unfold is described by a class (the *unfolder*) and two functions:
 
      std::size_t initial_value() const { return 0; }
      bool predicate(std::size_t i) const { return i < values_.size(); }
-     std::pair<std::size_t, int> unfold(std::size_t i) const { return {i + 1, values_[i]}; }
+     std::pair<std::size_t, int> generate(std::size_t i) const { return {i + 1, values_[i]}; }
 
    private:
      std::vector<int> const& values_;
@@ -32,7 +39,7 @@ An unfold is described by a class (the *unfolder*) and two functions:
 
      m.unfold<VectorSplitter>("split",
                               &VectorSplitter::predicate,
-                              &VectorSplitter::unfold,
+                              &VectorSplitter::generate,
                               "number",                 // child layer
                               concurrency::unlimited)
        .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "numbers"})
@@ -48,9 +55,9 @@ For each parent data cell, Phlex:
 #. constructs a ``VectorSplitter`` from the products selected by
    ``input_family(...)``, passed to the constructor in order;
 #. sets a running value to ``initial_value()``;
-#. while ``predicate(value)`` returns ``true``, calls ``unfold(value)``,
-   which returns the next running value and the product for a new child
-   data cell.
+#. while the predicate returns ``true`` for the running value, calls the
+   generator, ``generate(value)``, which returns the next running value and
+   the product for a new child data cell.
 
 Phlex deduces the unfolder's inputs from its constructor parameters, one
 per selector.
@@ -58,11 +65,11 @@ Give the unfolder exactly one constructor: if it also has a default or a
 shorter constructor, Phlex picks that one, and registration fails to
 compile.
 
-The predicate and unfold functions may be member-function pointers of the
+The predicate and the generator may be member-function pointers of the
 unfolder, or callables that take the unfolder as their first argument, or
 callables that take only the running value.
-The unfold function may also take the new child's ``data_cell_index``
-after the running value.
+The generator may also take the new child's ``data_cell_index`` after the
+running value.
 
 The child layer does not need to be declared in the driver configuration;
 it is created by the unfold.
@@ -88,9 +95,9 @@ No children is allowed
 
 No skipping
    Every successful predicate call creates a child.
-   To leave out candidates, advance the running value past them inside the
-   unfolder (for example, store "index of the next accepted candidate" as
-   the running value), rather than creating a child and discarding it later.
+   To leave out candidates, have the generator advance the running value past
+   them (for example, store "index of the next accepted candidate" as the
+   running value), rather than creating a child and discarding it later.
 
 Products may refer to the inputs
    The unfolder is constructed and used within one call, while its input
@@ -132,6 +139,6 @@ Resources
 ---------
 
 ``resource<T>{}`` arguments given after the selectors in
-``input_family(...)`` are passed to the unfold function after its other
+``input_family(...)`` are passed to the generator after its other
 arguments, not to the unfolder's constructor
 (`issue #946 <https://github.com/Framework-R-D/phlex/issues/946>`_).
