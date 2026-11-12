@@ -4,6 +4,7 @@
 #include "phlex/model/data_product_concept.hpp"
 #include "phlex/phlex_model_export.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <shared_mutex>
 #include <string>
@@ -12,7 +13,7 @@
 
 namespace phlex::experimental {
 
-  enum class concept_status { added, updated };
+  enum class concept_status : std::uint8_t { added, unchanged, updated };
 
   // Registry for data product concepts.
   //
@@ -41,19 +42,19 @@ namespace phlex::experimental {
     //
     // Register a data product concept.
     //
-    // Returns concept_status::added if a new concept was inserted, or
-    // concept_status::updated if a concept with the same name was already
-    // registered. In the latter case, the incoming concept's concrete types
-    // are merged into the existing concept's set and the incoming concept is
-    // discarded, even if the set was unchanged by the merge.
+    // Returns concept_status::added if a new concept was inserted. If a concept
+    // with the same name was already registered, merges the incoming concrete
+    // types into the existing concept and discards the incoming concept.
+    // Returns concept_status::updated if any types were added, otherwise
+    // concept_status::unchanged.
     //
     // Throws std::invalid_argument if con is null.
     concept_status register_concept(std::unique_ptr<data_product_concept> con);
 
     // Register a concrete data product type with the concept of the given name.
-    // Returns concept_status::added if a new concept was registered, or
-    // concept_status::updated if the concept already existed, even if the
-    // type was already associated with it.
+    // Returns concept_status::added if a new concept was registered,
+    // concept_status::updated if a type was added to an existing concept, or
+    // concept_status::unchanged if the type was already associated with it.
     concept_status add_concrete_type(std::string const& name, concrete_product_id type);
 
     // Find a data product concept by name.

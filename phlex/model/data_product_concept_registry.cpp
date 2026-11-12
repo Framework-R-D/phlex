@@ -23,8 +23,10 @@ namespace phlex::experimental {
 
     std::unique_lock const lock{mutex_};
     if (auto* existing = find_concept_unlocked(name)) {
+      auto const previous_size = existing->concrete_types().size();
       existing->add_concrete_types(con->concrete_types());
-      return concept_status::updated;
+      return existing->concrete_types().size() == previous_size ? concept_status::unchanged
+                                                                : concept_status::updated;
     }
     concepts_.emplace(std::move(name), std::move(con));
     return concept_status::added;
@@ -35,6 +37,9 @@ namespace phlex::experimental {
   {
     std::unique_lock const lock{mutex_};
     if (auto* existing = find_concept_unlocked(name)) {
+      if (existing->has_concrete_type(type)) {
+        return concept_status::unchanged;
+      }
       existing->add_concrete_type(type);
       return concept_status::updated;
     }

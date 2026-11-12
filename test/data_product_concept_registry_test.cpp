@@ -81,7 +81,12 @@ TEST_CASE("register_concept merges concrete types on duplicate name",
 
   auto duplicate = std::make_unique<data_product_concept>("duplicate");
   duplicate->add_concrete_type(typeid(test_type_1));
-  CHECK(registry.register_concept(std::move(duplicate)) == concept_status::updated);
+  CHECK(registry.register_concept(std::move(duplicate)) == concept_status::unchanged);
+
+  auto identical = std::make_unique<data_product_concept>("duplicate");
+  identical->add_concrete_type(typeid(test_type_1));
+  identical->add_concrete_type(typeid(test_type_2));
+  CHECK(registry.register_concept(std::move(identical)) == concept_status::unchanged);
 
   auto const names = registry.all_concept_names();
   CHECK(names.size() == 1ull);
@@ -93,6 +98,22 @@ TEST_CASE("register_concept merges concrete types on duplicate name",
   auto const* found = registry.find_concept("duplicate");
   CHECK(found != nullptr);
   CHECK(found->concrete_types().size() == 2ull);
+}
+
+TEST_CASE("register_concept leaves an existing concept unchanged when no types are supplied",
+          "[data_product_concept_registry]")
+{
+  data_product_concept_registry registry;
+
+  CHECK(registry.register_concept(std::make_unique<data_product_concept>("empty")) ==
+        concept_status::added);
+  CHECK(registry.register_concept(std::make_unique<data_product_concept>("empty")) ==
+        concept_status::unchanged);
+
+  CHECK(registry.add_concrete_type("populated", typeid(test_type_1)) == concept_status::added);
+  CHECK(registry.register_concept(std::make_unique<data_product_concept>("populated")) ==
+        concept_status::unchanged);
+  CHECK(registry.type_matches_concept("populated", typeid(test_type_1)));
 }
 
 TEST_CASE("add_concrete_type adds a type to an empty registry", "[data_product_concept_registry]")
@@ -136,7 +157,8 @@ TEST_CASE("add_concrete_type is idempotent for a duplicate type", "[data_product
   data_product_concept_registry registry;
 
   CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::added);
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::updated);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) ==
+        concept_status::unchanged);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
