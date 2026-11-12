@@ -79,35 +79,6 @@ TEST_CASE("algorithm_name tests", "[model]")
   }
 }
 
-TEST_CASE("consumer tests", "[core]")
-{
-  using namespace phlex::experimental::literals;
-
-  SECTION("Qualified creator has a present plugin")
-  {
-    auto an = phlex::experimental::algorithm_name::create("p:a");
-    phlex::detail::consumer const c(an, {"pred1"});
-
-    CHECK(c.name().to_string() == "p:a");
-    CHECK_FALSE(c.plugin().empty());
-    CHECK(c.plugin().text() == "p");
-    CHECK(c.algorithm() == "a"_idq);
-    CHECK(c.when().size() == 1);
-  }
-
-  SECTION("Unqualified creator has an explicitly empty plugin")
-  {
-    auto an = phlex::experimental::algorithm_name::create("a");
-    phlex::detail::consumer const c(an, {});
-
-    CHECK(c.name().to_string() == "a");
-    CHECK(c.plugin().empty());
-    CHECK(c.plugin() == phlex::experimental::identifier_or_empty{});
-    CHECK(c.algorithm() == "a"_idq);
-    CHECK(c.when().empty());
-  }
-}
-
 TEST_CASE("make_algorithm_name tests", "[core]")
 {
   using namespace phlex::experimental;

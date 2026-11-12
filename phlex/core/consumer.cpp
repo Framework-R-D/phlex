@@ -73,16 +73,6 @@ namespace phlex::detail {
 
   phlex::experimental::algorithm_name const& consumer::name() const noexcept { return name_; }
 
-  phlex::experimental::identifier_or_empty const& consumer::plugin() const noexcept
-  {
-    return name_.plugin();
-  }
-
-  phlex::experimental::identifier const& consumer::algorithm() const noexcept
-  {
-    return name_.algorithm();
-  }
-
   std::vector<std::string> const& consumer::when() const noexcept { return predicates_; }
 
   tbb::flow::receiver<message>& consumer::port(product_selector const& input_product)
