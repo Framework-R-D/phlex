@@ -3,6 +3,7 @@
 #include "persistence_reader.hpp"
 
 #include "core/container_naming.hpp"
+#include "core/technology.hpp"
 #include "core/token.hpp"
 #include "descriptor.hpp"
 #include "persistence/ipersistence_reader.hpp"
