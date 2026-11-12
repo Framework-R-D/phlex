@@ -125,7 +125,7 @@ TEST_CASE("By-value inputs are copied or moved only into the adapter's parameter
 
   SECTION("lvalue argument")
   {
-    tracked in{3};
+    tracked const in{3};
     tracked::reset();
     fold(acc, in);
     // One copy into the adapter's parameter, then one move into the fold's parameter.
@@ -149,7 +149,7 @@ TEST_CASE("Const lvalue reference inputs are neither copied nor moved", "[make_f
 {
   auto fold = make_fold_like(&fold_by_cref);
   std::tuple<tracked, int> acc{};
-  tracked in{3};
+  tracked const in{3};
 
   tracked::reset();
   fold(acc, in);
@@ -163,7 +163,7 @@ TEST_CASE("Pointer-to-const inputs point at the caller's object", "[make_fold_li
 {
   auto fold = make_fold_like(&fold_by_cptr);
   std::tuple<tracked, int> acc{};
-  tracked in{3};
+  tracked const in{3};
 
   tracked::reset();
   fold(acc, &in);
