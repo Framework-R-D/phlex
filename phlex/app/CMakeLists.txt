@@ -12,7 +12,7 @@ cet_make_library(
   run_phlex
   SHARED
   SOURCE
-  load_module.cpp
+  plugin_loading.cpp
   run.cpp
   LIBRARIES
   PUBLIC
@@ -25,7 +25,7 @@ cet_make_library(
   version_obj
 )
 
-install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
+install(FILES plugin_loading.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 phlex_apply_symbol_visibility(run_phlex)
 phlex_apply_optimizations(run_phlex)
 

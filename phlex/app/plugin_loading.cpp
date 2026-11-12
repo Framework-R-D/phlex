@@ -1,4 +1,4 @@
-#include "phlex/app/load_module.hpp"
+#include "phlex/app/plugin_loading.hpp"
 
 #include "phlex/configuration.hpp"
 #include "phlex/core/framework_graph.hpp"

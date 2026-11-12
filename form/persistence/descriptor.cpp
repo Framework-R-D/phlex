@@ -2,6 +2,8 @@
 
 #include "descriptor.hpp"
 
+#include "core/technology.hpp"
+
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
