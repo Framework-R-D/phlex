@@ -2,6 +2,7 @@
 #define PHLEX_CORE_TRANSLATOR_NODE_HPP
 
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/declared_translator.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"

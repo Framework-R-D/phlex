@@ -1,6 +1,8 @@
 #include "phlex/core/declared_translator.hpp"
 
-#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/consumer.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
 
 #include <oneapi/tbb/flow_graph.h>
 
@@ -13,11 +15,11 @@ namespace phlex::detail {
                                            std::vector<std::string> predicates,
                                            product_selectors input_products,
                                            tbb::flow::graph& graph) :
-    products_consumer{std::move(name),
-                      std::move(predicates),
-                      std::move(input_products),
-                      graph,
-                      require_layers::multi_input_only}
+    consumer{std::move(name),
+             std::move(predicates),
+             std::move(input_products),
+             graph,
+             require_layers::multi_input_only}
   {
   }
 
