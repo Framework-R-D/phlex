@@ -183,7 +183,6 @@ cet_test(
   data_product_concept_registry_test.cpp
   LIBRARIES
   phlex::model
-  TBB::tbb
 )
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index_test.cpp LIBRARIES
          phlex::model_internal
