@@ -284,7 +284,7 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK_NOTHROW(catalog.limiter_for<value_token_resource>());
   }
 
-  SECTION("duplicate serialized registrations throw")
+  SECTION("duplicate serialized registrations throw without constructing another resource")
   {
     int constructions = 0;
     catalog.add_serialized<counted_serialized_resource>(constructions);
@@ -297,7 +297,7 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK(&catalog.limiter_for<counted_serialized_resource>() == &limiter);
   }
 
-  SECTION("duplicate unlimited registrations throw")
+  SECTION("duplicate unlimited registrations throw without constructing another resource")
   {
     int constructions = 0;
     catalog.add_unlimited<counted_unlimited_resource>(constructions);
