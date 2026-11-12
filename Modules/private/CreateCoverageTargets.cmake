@@ -139,7 +139,7 @@ function(_create_coverage_targets_impl)
     # Exclusion regex for llvm-cov (same as gcovr)
     set(
       LLVM_COV_EXCLUDE_REGEX
-      [=[.*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|.*/spack/.*|/usr/.*|/opt/.*|/scratch/.*|.*\.cxx$|.*\.hh$|.*\.hxx$]=]
+      [=[.*/test/.*|.*/_deps/.*|.*/src/catch2/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|.*/spack/.*|/usr/.*|/opt/.*|/scratch/.*|.*\.cxx$|.*\.hh$|.*\.hxx$]=]
     )
 
     set(LLVM_PROFDATA_MERGE_SCRIPT ${CMAKE_BINARY_DIR}/merge-profraw.sh)
