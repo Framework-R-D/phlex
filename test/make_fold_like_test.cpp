@@ -68,7 +68,7 @@ namespace {
 
 TEST_CASE("Leading non-const lvalue references are the accumulators", "[make_fold_like]")
 {
-  using traits = make_fold_like_traits<decltype(&fold_by_cref)>;
+  using traits = fold_like_traits<decltype(&fold_by_cref)>;
   STATIC_REQUIRE(traits::num_accumulators::value == 2);
   STATIC_REQUIRE(std::is_same_v<traits::accumulator_tuple_t, std::tuple<tracked, int>>);
   STATIC_REQUIRE(std::is_same_v<traits::input_args_t, std::tuple<tracked const&>>);

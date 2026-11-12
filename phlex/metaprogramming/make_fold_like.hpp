@@ -8,7 +8,7 @@
 namespace phlex::detail {
 
   template <typename Fn>
-  struct make_fold_like_traits {
+  struct fold_like_traits {
     // This is an std::tuple, so that's the list type that gets used when this is further transformed
     using all_args_t = function_parameter_types<Fn>;
     using num_accumulators =
@@ -30,12 +30,12 @@ namespace phlex::detail {
   class make_fold_like_impl<Fn, std::tuple<Args...>> {
   public:
     static_assert(
-      std::is_same_v<typename make_fold_like_traits<Fn>::input_args_t, std::tuple<Args...>>,
+      std::is_same_v<typename fold_like_traits<Fn>::input_args_t, std::tuple<Args...>>,
       "The second template argument to make_fold_like_impl must be a tuple of the input argument "
       "types");
     make_fold_like_impl(Fn f) : f_(std::move(f)) {}
 
-    return_type<Fn> operator()(make_fold_like_traits<Fn>::accumulator_tuple_t& acc, Args... args)
+    return_type<Fn> operator()(fold_like_traits<Fn>::accumulator_tuple_t& acc, Args... args)
     {
       return std::apply(
         [this, &args...](auto&... accumulators) -> decltype(auto) {
@@ -49,8 +49,7 @@ namespace phlex::detail {
   };
 
   template <typename Fn>
-  make_fold_like_impl(Fn f)
-    -> make_fold_like_impl<Fn, typename make_fold_like_traits<Fn>::input_args_t>;
+  make_fold_like_impl(Fn f) -> make_fold_like_impl<Fn, typename fold_like_traits<Fn>::input_args_t>;
 
   /// Convert a callable that takes M non const lvalue references and N other (input) arguments
   /// into a callable that takes one non const lvalue reference to a tuple and N input arguments.
@@ -61,7 +60,7 @@ namespace phlex::detail {
   {
     using namespace boost::mp11;
     if constexpr (std::is_member_function_pointer_v<std::remove_cvref_t<F>> ||
-                  make_fold_like_traits<F>::num_accumulators::value < 2) {
+                  fold_like_traits<F>::num_accumulators::value < 2) {
       return std::forward<F>(f);
     } else {
       return make_fold_like_impl(std::forward<F>(f));
