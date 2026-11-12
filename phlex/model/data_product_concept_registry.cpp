@@ -13,7 +13,8 @@
 
 namespace phlex::experimental {
 
-  bool data_product_concept_registry::register_concept(std::unique_ptr<data_product_concept> con)
+  concept_status data_product_concept_registry::register_concept(
+    std::unique_ptr<data_product_concept> con)
   {
     if (!con) {
       throw std::invalid_argument{"Cannot register null concept"};
@@ -23,25 +24,25 @@ namespace phlex::experimental {
     std::unique_lock const lock{mutex_};
     if (auto* existing = find_concept_unlocked(name)) {
       existing->add_concrete_types(con->concrete_types());
-      return false;
+      return concept_status::updated;
     }
     concepts_.emplace(std::move(name), std::move(con));
-    return true;
+    return concept_status::added;
   }
 
-  bool data_product_concept_registry::add_concrete_type(std::string const& name,
-                                                        concrete_product_id type)
+  concept_status data_product_concept_registry::add_concrete_type(std::string const& name,
+                                                                  concrete_product_id type)
   {
     std::unique_lock const lock{mutex_};
     if (auto* existing = find_concept_unlocked(name)) {
       existing->add_concrete_type(type);
-      return false;
+      return concept_status::updated;
     }
 
     auto con = std::make_unique<data_product_concept>(name);
     con->add_concrete_type(type);
     concepts_.emplace(name, std::move(con));
-    return true;
+    return concept_status::added;
   }
 
   data_product_concept* data_product_concept_registry::find_concept_unlocked(
@@ -88,18 +89,6 @@ namespace phlex::experimental {
       return false;
     }
     return con->has_concrete_type(type);
-  }
-
-  data_product_concept const* data_product_concept_registry::get_concept_for_type(
-    concrete_product_id type) const
-  {
-    std::shared_lock const lock{mutex_};
-    for (auto const& [name, con] : concepts_) {
-      if (con->has_concrete_type(type)) {
-        return con.get();
-      }
-    }
-    return nullptr;
   }
 
 } // namespace phlex::experimental

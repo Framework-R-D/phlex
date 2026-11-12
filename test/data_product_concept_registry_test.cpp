@@ -33,7 +33,7 @@ TEST_CASE("register_concept registers a new concept", "[data_product_concept_reg
 
   auto con = std::make_unique<data_product_concept>("test_concept");
   auto const registered = registry.register_concept(std::move(con));
-  CHECK(registered == true);
+  CHECK(registered == concept_status::added);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
@@ -49,7 +49,7 @@ TEST_CASE("register_concept preserves the concrete types of a pre-populated conc
   con->add_concrete_type(typeid(test_type_1));
   con->add_concrete_type(typeid(test_type_2));
 
-  CHECK(registry.register_concept(std::move(con)) == true);
+  CHECK(registry.register_concept(std::move(con)) == concept_status::added);
 
   auto const* found = registry.find_concept("populated_concept");
   CHECK(found != nullptr);
@@ -76,8 +76,12 @@ TEST_CASE("register_concept merges concrete types on duplicate name",
   con2->add_concrete_type(typeid(test_type_1));
   con2->add_concrete_type(typeid(test_type_2));
 
-  CHECK(registry.register_concept(std::move(con1)) == true);
-  CHECK(registry.register_concept(std::move(con2)) == false);
+  CHECK(registry.register_concept(std::move(con1)) == concept_status::added);
+  CHECK(registry.register_concept(std::move(con2)) == concept_status::updated);
+
+  auto duplicate = std::make_unique<data_product_concept>("duplicate");
+  duplicate->add_concrete_type(typeid(test_type_1));
+  CHECK(registry.register_concept(std::move(duplicate)) == concept_status::updated);
 
   auto const names = registry.all_concept_names();
   CHECK(names.size() == 1ull);
@@ -95,7 +99,7 @@ TEST_CASE("add_concrete_type adds a type to an empty registry", "[data_product_c
 {
   data_product_concept_registry registry;
 
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == true);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::added);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
@@ -106,8 +110,8 @@ TEST_CASE("add_concrete_type adds a type to an existing concept", "[data_product
 {
   data_product_concept_registry registry;
 
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == true);
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_2)) == false);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::added);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_2)) == concept_status::updated);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
@@ -131,8 +135,8 @@ TEST_CASE("add_concrete_type is idempotent for a duplicate type", "[data_product
 {
   data_product_concept_registry registry;
 
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == true);
-  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == false);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::added);
+  CHECK(registry.add_concrete_type("test_concept", typeid(test_type_1)) == concept_status::updated);
 
   auto const* found = registry.find_concept("test_concept");
   CHECK(found != nullptr);
@@ -252,38 +256,4 @@ TEST_CASE("type_matches_concept is true under both names for a shared type",
 
   CHECK(registry.type_matches_concept("concept_a", typeid(test_type_1)));
   CHECK(registry.type_matches_concept("concept_b", typeid(test_type_1)));
-}
-
-TEST_CASE("get_concept_for_type returns the associated concept", "[data_product_concept_registry]")
-{
-  data_product_concept_registry registry;
-
-  auto con = std::make_unique<data_product_concept>("type_a");
-  con->add_concrete_type(typeid(test_type_1));
-  registry.register_concept(std::move(con));
-
-  auto const* found = registry.get_concept_for_type(typeid(test_type_1));
-  CHECK(found != nullptr);
-  CHECK(found->name() == "type_a");
-}
-
-TEST_CASE("get_concept_for_type returns nullptr for an unknown type",
-          "[data_product_concept_registry]")
-{
-  data_product_concept_registry const registry;
-  CHECK(registry.get_concept_for_type(typeid(int)) == nullptr);
-}
-
-TEST_CASE("get_concept_for_type returns a non-null match when a type belongs to multiple "
-          "concepts",
-          "[data_product_concept_registry]")
-{
-  data_product_concept_registry registry;
-
-  registry.add_concrete_type("concept_a", typeid(test_type_1));
-  registry.add_concrete_type("concept_b", typeid(test_type_1));
-
-  auto const* found = registry.get_concept_for_type(typeid(test_type_1));
-  CHECK(found != nullptr);
-  CHECK(found->has_concrete_type(typeid(test_type_1)));
 }

@@ -12,6 +12,8 @@
 
 namespace phlex::experimental {
 
+  enum class concept_status { added, updated };
+
   // Registry for data product concepts.
   //
   // This registry stores data_product_concept instances and allows
@@ -22,31 +24,37 @@ namespace phlex::experimental {
   // a registry-level std::shared_mutex protects the map and every access to
   // a stored concept's concrete-type set that is made through the registry's
   // own methods. This guarantee does not extend past the return of a call.
-  // In particular, the non-const find_concept overload and
-  // get_concept_for_type return a pointer to a stored concept; the caller
-  // must not dereference or mutate through that pointer concurrently with a
-  // registry write, or concurrently with another caller's mutation via a
-  // similarly obtained pointer, since such access is not covered by the
+  // In particular, find_concept returns a pointer to a stored concept; the
+  // caller must not dereference or mutate through that pointer concurrently
+  // with a registry write, or concurrently with another caller's mutation via
+  // a similarly obtained pointer, since such access is not covered by the
   // registry's lock.
   class PHLEX_MODEL_EXPORT data_product_concept_registry {
   public:
     data_product_concept_registry() = default;
     ~data_product_concept_registry() = default;
 
+    // NOTE: It is unclear whether both register_concept and add_concrete_type
+    // are necessary. In later revisions of the code we will try to make all
+    // manipulations of data_product_concept instances be private to the
+    // data_product_concept_registry.
+    //
     // Register a data product concept.
     //
-    // Returns true if a new concept was inserted. Returns false if a
-    // concept with the same name was already registered, in which case
-    // the incoming concept's concrete types are merged into the existing
-    // concept's set and the incoming concept is discarded.
+    // Returns concept_status::added if a new concept was inserted, or
+    // concept_status::updated if a concept with the same name was already
+    // registered. In the latter case, the incoming concept's concrete types
+    // are merged into the existing concept's set and the incoming concept is
+    // discarded, even if the set was unchanged by the merge.
     //
     // Throws std::invalid_argument if con is null.
-    bool register_concept(std::unique_ptr<data_product_concept> con);
+    concept_status register_concept(std::unique_ptr<data_product_concept> con);
 
     // Register a concrete data product type with the concept of the given name.
-    // If necessary, a new concept is added to the registry.
-    // Return true if a new concept was registered.
-    bool add_concrete_type(std::string const& name, concrete_product_id type);
+    // Returns concept_status::added if a new concept was registered, or
+    // concept_status::updated if the concept already existed, even if the
+    // type was already associated with it.
+    concept_status add_concrete_type(std::string const& name, concrete_product_id type);
 
     // Find a data product concept by name.
     //
@@ -61,12 +69,6 @@ namespace phlex::experimental {
 
     // Check if a concrete type is associated with a concept.
     bool type_matches_concept(std::string const& concept_name, concrete_product_id type) const;
-
-    // Get the concept associated with a concrete type.
-    //
-    // The returned pointer is not safe to dereference concurrently with a
-    // registry write after this method returns.
-    data_product_concept const* get_concept_for_type(concrete_product_id type) const;
 
     // data_product_concept_registry objects can be neither copied nor moved.
     data_product_concept_registry(data_product_concept_registry const&) = delete;
