@@ -1,5 +1,5 @@
-#ifndef PHLEX_APP_LOAD_MODULE_HPP
-#define PHLEX_APP_LOAD_MODULE_HPP
+#ifndef PHLEX_APP_PLUGIN_LOADING_HPP
+#define PHLEX_APP_PLUGIN_LOADING_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/driver.hpp"
@@ -27,4 +27,4 @@ namespace phlex::detail {
   RUN_PHLEX_EXPORT void load_driver(framework_graph& g, boost::json::object const& config);
 }
 
-#endif // PHLEX_APP_LOAD_MODULE_HPP
+#endif // PHLEX_APP_PLUGIN_LOADING_HPP

@@ -68,7 +68,7 @@ namespace phlex::detail {
     // Module (plugin) loading time
     // ----------------------------
     // Most registrations originate from dynamically loaded *modules*.  At graph
-    // construction time, load_module() (phlex/app/load_module.cpp) loads each
+    // construction time, load_module() (phlex/app/plugin_loading.cpp) loads each
     // configured plugin shared library found on PHLEX_PLUGIN_PATH. For each
     // plugin, the `create_module` entry point is found (usually defined via the
     // macro PHLEX_REGISTER_ALGORITHMS).
