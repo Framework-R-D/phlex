@@ -37,12 +37,11 @@ namespace phlex::detail {
 
     return_type<Fn> operator()(make_fold_like_traits<Fn>::accumulator_tuple_t& acc, Args... args)
     {
-      auto bound = std::apply(
-        [this](auto&&... acc_args) mutable -> decltype(auto) {
-          return std::bind_front(std::ref(f_), std::ref(acc_args)...);
+      return std::apply(
+        [this, &args...](auto&... accumulators) -> decltype(auto) {
+          return std::invoke(f_, accumulators..., std::forward<Args>(args)...);
         },
         acc);
-      return std::invoke(bound, std::forward<Args>(args)...);
     }
 
   private:
