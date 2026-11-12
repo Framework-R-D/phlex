@@ -1,6 +1,6 @@
 #include "phlex/app/run.hpp"
 
-#include "phlex/app/load_module.hpp"
+#include "phlex/app/plugin_loading.hpp"
 #include "phlex/core/framework_graph.hpp"
 
 #include <boost/json/object.hpp>
