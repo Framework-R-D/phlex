@@ -30,6 +30,9 @@ namespace phlex::experimental {
   void data_product_concept::add_concrete_types(
     std::unordered_set<concrete_product_id> const& types)
   {
+    // Inserting a set into itself is undefined behavior: the range insert iterates over
+    // `types` while modifying the same container, and a rehash would invalidate those
+    // iterators. Every element is already present in that case, so return early.
     if (&types == &concrete_types_) {
       return;
     }
