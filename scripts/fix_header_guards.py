@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check and fix header guards to enforce naming convention."""
+"""Check and fix missing header guards and enforce their naming convention."""
 
 from __future__ import annotations
 
@@ -7,6 +7,14 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+# ROOT selection inputs contain tool directives, not ordinary header declarations.
+LINKDEF_SUFFIXES = ("LinkDef.h", "Linkdef.h", "linkdef.h")
+
+PRAGMA_ONCE = re.compile(
+    r"^[ \t]*#[ \t]*pragma[ \t]+once[ \t]*(?://[^\n]*|/\*[^\n]*\*/[ \t]*)?(?:\n|$)",
+    re.MULTILINE,
+)
 
 
 def normalize_guard_component(component: str) -> str:
@@ -27,20 +35,30 @@ def compute_expected_guard(file_path: Path, root: Path) -> str:
     return "_".join(parts)
 
 
+def leading_comment_lines(content: str) -> int:
+    """Count lines before the first token, ignoring whitespace and leading comments."""
+    prefix = re.match(r"(?:\s+|//[^\n]*(?:\n|$)|/\*.*?\*/)*", content, re.DOTALL)
+    assert prefix is not None
+    return prefix.group().count("\n")
+
+
 def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
     """Check if header guard is correct. Returns (is_valid, expected_guard)."""
+    if file_path.name.endswith(LINKDEF_SUFFIXES):
+        return True, None
+
     content = file_path.read_text(encoding="utf-8")
     lines = content.splitlines(keepends=True)
 
-    if len(lines) < 3:
-        return True, None
-
     expected = compute_expected_guard(file_path, root)
+
+    if PRAGMA_ONCE.search(content):
+        return False, expected
 
     ifndef_idx = define_idx = None
     ifndef_macro = define_macro = endif_macro = None
 
-    for i in range(min(10, len(lines))):
+    for i in range(leading_comment_lines(content), len(lines)):
         if m := re.match(r"#ifndef\s+(\S+)\s*$", lines[i]):
             ifndef_idx, ifndef_macro = i, m.group(1)
         elif m := re.match(r"#define\s+(.+?)\s*$", lines[i]):
@@ -55,7 +73,7 @@ def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
             break
 
     if ifndef_idx is None or define_idx is None:
-        return True, None
+        return False, expected
 
     if ifndef_macro == define_macro == endif_macro == expected:
         return True, None
@@ -65,17 +83,18 @@ def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
 
 def fix_header_guard(file_path: Path, root: Path) -> bool:
     """Fix header guard. Returns True if modified."""
-    content = file_path.read_text(encoding="utf-8")
-    lines = content.splitlines(keepends=True)
-
-    if len(lines) < 3:
+    if file_path.name.endswith(LINKDEF_SUFFIXES):
         return False
+
+    content = file_path.read_text(encoding="utf-8")
+    content, pragma_count = PRAGMA_ONCE.subn("", content)
+    lines = content.splitlines(keepends=True)
 
     expected = compute_expected_guard(file_path, root)
 
     ifndef_idx = define_idx = endif_idx = None
 
-    for i in range(min(10, len(lines))):
+    for i in range(leading_comment_lines(content), len(lines)):
         if re.match(r"#ifndef\s+\S+\s*$", lines[i]):
             ifndef_idx = i
         elif re.match(r"#define\s+.+\s*$", lines[i]):
@@ -89,9 +108,15 @@ def fix_header_guard(file_path: Path, root: Path) -> bool:
             break
 
     if ifndef_idx is None or define_idx is None:
-        return False
+        if content and not content.endswith("\n"):
+            content += "\n"
+        file_path.write_text(
+            f"#ifndef {expected}\n#define {expected}\n\n{content}\n#endif // {expected}\n",
+            encoding="utf-8",
+        )
+        return True
 
-    modified = False
+    modified = pragma_count > 0
     if lines[ifndef_idx] != f"#ifndef {expected}\n":
         lines[ifndef_idx] = f"#ifndef {expected}\n"
         modified = True
