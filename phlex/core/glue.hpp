@@ -11,6 +11,7 @@
 #include "phlex/core/source.hpp"
 #include "phlex/core/transform_node.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
+#include "phlex/metaprogramming/make_fold_like.hpp"
 #include "phlex/phlex_core_export.hpp"
 
 #include <oneapi/tbb/flow_graph.h>
@@ -77,7 +78,7 @@ namespace phlex::detail {
       return fold_api{config_,
                       name,
                       stage_,
-                      algorithm_bits(bound_obj_, std::move(f)),
+                      algorithm_bits(bound_obj_, make_fold_like(f)),
                       c,
                       graph_,
                       nodes_,

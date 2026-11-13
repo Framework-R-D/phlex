@@ -10,7 +10,10 @@ cet_make_library(
   Boost::boost
 )
 
-install(FILES delegate.hpp type_deduction.hpp DESTINATION include/phlex/metaprogramming)
+install(
+  FILES delegate.hpp make_fold_like.hpp type_deduction.hpp
+  DESTINATION include/phlex/metaprogramming
+)
 
 install(FILES detail/ctor_reflect_types.hpp DESTINATION include/phlex/metaprogramming/detail)
 
