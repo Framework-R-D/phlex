@@ -33,7 +33,7 @@ namespace {
   template <typename T>
   product_specification spec(algorithm_name const& creator)
   {
-    return {creator, ""_id, make_type_id<T>()};
+    return {creator, suffix_t{}, make_type_id<T>()};
   }
 
   template <typename T>

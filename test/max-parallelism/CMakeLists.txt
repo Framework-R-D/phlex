@@ -95,7 +95,7 @@ cet_test(
   phlex::phlex
   TEST_ARGS
   -c ${CMAKE_CURRENT_BINARY_DIR}/check_stage_cli_over_config.jsonnet
-  --stage command-line-stage
+  --stage command_line_stage
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"

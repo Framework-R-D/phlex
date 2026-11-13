@@ -22,8 +22,70 @@ using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
 using namespace std::string_view_literals;
 
+TEST_CASE("Identifier rejects punctuation", "[identifier]")
+{
+  CHECK_THROWS(identifier{"run-name"});
+  CHECK_THROWS(identifier{"run.name"});
+  CHECK_THROWS(identifier{"run/name"});
+  CHECK_THROWS(identifier{"run:name"});
+}
+
+TEST_CASE("Identifier must begin with a letter", "[identifier]")
+{
+  CHECK_THROWS(identifier{""});
+  CHECK_THROWS(identifier{"_run"});
+  CHECK_THROWS(identifier{"2run"});
+}
+
+TEST_CASE("Identifier rejects non-ASCII and non-name characters", "[identifier]")
+{
+  CHECK_THROWS(identifier{"run name"});
+  CHECK_THROWS(identifier{std::string{"run\0name", 8}});
+  CHECK_THROWS(identifier{"run\xc3\xa9"});
+}
+
+TEST_CASE("Identifier accepts ASCII letters, digits, and underscores", "[identifier]")
+{
+  for (auto const name : {"A"sv, "z"sv, "AbC_012"sv, "class"sv, "CURRENT"sv}) {
+    identifier const from_view{name};
+    identifier const from_string{std::string{name}};
+    CHECK(std::string_view{from_view} == name);
+    CHECK(from_view == from_string);
+    CHECK(from_view.hash() == from_string.hash());
+    CHECK(fmt::format("{}", from_view) == name);
+  }
+  CHECK(std::string_view{"AbC_012"_id} == "AbC_012"sv);
+  CHECK("AbC_012"_id == "AbC_012"_idq);
+}
+
+TEST_CASE("Identifier validates every length-bearing construction path", "[identifier]")
+{
+  CHECK_THROWS(identifier{"bad name"sv});
+  CHECK_THROWS(identifier{std::string{"bad name"}});
+  CHECK_THROWS("bad name"_id);
+  CHECK_THROWS("abc\0def"_id);
+  CHECK_THROWS(identifier_or_empty{"bad name"sv});
+  CHECK_THROWS(suffix_t{std::string{"abc\0def", 7}});
+  CHECK(identifier_or_empty{""}.empty());
+}
+
+TEST_CASE("Moved identifiers remain valid names", "[identifier]")
+{
+  identifier original{"hits"};
+  identifier moved{std::move(original)};
+  CHECK(std::string_view{moved} == "hits"sv);
+  CHECK(std::string_view{original} == "hits"sv);
+  CHECK(original == "hits"_idq);
+  CHECK(identifier_or_empty{std::move(original)}.text() == "hits"sv);
+  identifier assigned{"other"};
+  assigned = std::move(original);
+  CHECK(assigned == "hits"_idq);
+  CHECK(std::string_view{original} == "hits"sv);
+}
+
 TEST_CASE("Identifier equality and inequality", "[identifier]")
 {
+  STATIC_CHECK_FALSE(std::is_default_constructible_v<identifier>);
   identifier a = "a"_id;
   identifier a_copy = a;
   identifier a2 = "a"_id;
@@ -50,7 +112,7 @@ TEST_CASE("Identifier reassignment", "[identifier]")
 {
   identifier a = "a"_id;
   identifier a_copy = a;
-  a = "new a"_id;
+  a = "new_a"_id;
   a_copy = a;
   CHECK(a == a_copy);
 }
@@ -58,14 +120,14 @@ TEST_CASE("Identifier reassignment", "[identifier]")
 TEST_CASE("Identifier sorting is not lexical", "[identifier]")
 {
   std::array<std::string_view, 9> strings{
-    "a"sv, "b"sv, "c"sv, "d"sv, "e"sv, "long-id-1"sv, "long-id-2"sv, "test"sv, "other_test"sv};
+    "a"sv, "b"sv, "c"sv, "d"sv, "e"sv, "long_id_1"sv, "long_id_2"sv, "test"sv, "other_test"sv};
   std::array<identifier, 9> identifiers{"a"_id,
                                         "b"_id,
                                         "c"_id,
                                         "d"_id,
                                         "e"_id,
-                                        "long-id-1"_id,
-                                        "long-id-2"_id,
+                                        "long_id_1"_id,
+                                        "long_id_2"_id,
                                         "test"_id,
                                         "other_test"_id};
   std::ranges::sort(identifiers);
@@ -193,13 +255,8 @@ TEST_CASE("identifier_or_empty equality distinguishes empty from named", "[ident
 {
   identifier_or_empty const empty{};
   identifier_or_empty const hits{"hits"_id};
-  // A named value holding an identifier with empty text is still not equal to an empty value.
-  identifier_or_empty const named_with_empty_text{identifier{}};
-
   CHECK(empty != hits);
   CHECK(hits != empty);
-  CHECK(empty != named_with_empty_text);
-  CHECK(named_with_empty_text != empty);
 }
 
 TEST_CASE("identifier_or_empty hash of empty values is shared", "[identifier]")

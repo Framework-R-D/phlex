@@ -11,6 +11,7 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -42,9 +43,9 @@ namespace phlex {
 
       operator bool() const noexcept { return content_.has_value(); }
       experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      friend experimental::identifier format_as(creator_name const& me) noexcept
+      friend std::string_view format_as(creator_name const& me) noexcept
       {
-        return me.content_.value_or("[ANY]");
+        return me.content_ ? std::string_view(*me.content_) : "[ANY]";
       }
       auto operator<=>(creator_name const&) const noexcept = default;
 
@@ -109,7 +110,7 @@ namespace phlex {
     /// folds and unfolds; products from other layers are not delivered.
     detail::layer_name layer;
     /// Product suffix, as given to @c output_product_suffixes(...).
-    std::optional<experimental::identifier> suffix;
+    std::optional<experimental::suffix_t> suffix;
     /// Stage that created the product; @c "CURRENT" means the job's own stage.
     std::optional<experimental::identifier> stage;
     /// Product type; set by the framework from the algorithm's parameter type.

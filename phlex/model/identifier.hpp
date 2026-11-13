@@ -16,6 +16,24 @@
 #include <utility>
 #include <variant>
 
+namespace phlex::detail {
+  // This implementation does not use std::regex for the validation because
+  // std::regex does not support compile-time regular expressions.
+  constexpr bool valid_identifier(std::string_view text) noexcept
+  {
+    auto const letter = [](char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); };
+    if (text.empty() || !letter(text.front())) {
+      return false;
+    }
+    for (char const c : text) {
+      if (!letter(c) && !(c >= '0' && c <= '9') && c != '_') {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
 namespace phlex::experimental {
   /// If you're comparing to an identifier you know at compile time, you're probably not going to need
   /// to print it.
@@ -26,8 +44,8 @@ namespace phlex::experimental {
     bool operator()(identifier const& id) const noexcept;
   };
 
-  /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
-  /// along with a precomputed hash used for all comparisons
+  /// A non-empty ASCII name beginning with a letter and containing only letters, digits,
+  /// and underscores, together with a precomputed hash.
   class PHLEX_MODEL_EXPORT identifier {
   public:
     static constexpr std::uint64_t hash_string(std::string_view str)
@@ -38,11 +56,9 @@ namespace phlex::experimental {
       hash_append(h, {}, str);
       return h.result();
     }
-    // The default constructor is necessary so other classes containing identifiers
-    // can have default constructors.
-    identifier() = default;
+    identifier() = delete;
     identifier(identifier const& other) = default;
-    identifier(identifier&& other) noexcept = default;
+    identifier(identifier&& other) : identifier(static_cast<identifier const&>(other)) {}
 
     explicit identifier(std::string_view str);
 
@@ -55,7 +71,7 @@ namespace phlex::experimental {
     identifier(char const* lit) : identifier(std::string_view(lit)) {}
 
     identifier& operator=(identifier const& rhs) = default;
-    identifier& operator=(identifier&& rhs) noexcept = default;
+    identifier& operator=(identifier&& rhs) { return *this = static_cast<identifier const&>(rhs); }
 
     ~identifier() = default;
 
@@ -81,7 +97,7 @@ namespace phlex::experimental {
 
   private:
     std::string content_;
-    std::uint64_t hash_{hash_string("")};
+    std::uint64_t hash_;
   };
 
   // Identifier UDL
@@ -89,6 +105,9 @@ namespace phlex::experimental {
     PHLEX_MODEL_EXPORT identifier operator""_id(char const* lit, std::size_t len);
     consteval PHLEX_MODEL_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len)
     {
+      if (!phlex::detail::valid_identifier(std::string_view(lit, len))) {
+        throw "Invalid identifier query";
+      }
       return {identifier::hash_string(std::string_view(lit, len))};
     }
 
@@ -114,7 +133,7 @@ namespace phlex::experimental {
   ///
   /// Value semantics:
   /// - Equality holds only between two empty values or two named values with equal text.
-  ///   An empty value never equals a named value, even one whose text is empty.
+  ///   An empty value never equals a named value.
   /// - Ordering places every empty value before every named value; named values are ordered by
   ///   `identifier`'s ordering.
   /// - Hashing gives all empty values the same hash, and named values the hash of their
@@ -124,7 +143,7 @@ namespace phlex::experimental {
   ///
   /// The lasting textual construction policy mirrors `identifier`: C strings convert implicitly,
   /// while `std::string` and `std::string_view` require explicit construction. Empty text produces
-  /// `empty_string`; non-empty text is passed to `identifier`, including its validation when enabled.
+  /// `empty_string`; non-empty text is validated as an `identifier`.
   /// C strings must be non-null and null-terminated; only text before the first NUL is consumed.
   /// Length-bearing inputs retain their full length and are never routed through a C-string boundary.
   class PHLEX_MODEL_EXPORT identifier_or_empty {
@@ -138,7 +157,7 @@ namespace phlex::experimental {
     identifier_or_empty(identifier const& id) : value_{id} {}
 
     // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-    identifier_or_empty(identifier&& id) noexcept : value_{std::move(id)} {}
+    identifier_or_empty(identifier&& id) : value_{std::move(id)} {}
 
     explicit identifier_or_empty(std::string_view str)
     {
