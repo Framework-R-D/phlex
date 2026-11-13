@@ -108,6 +108,8 @@ ARG PHLEX_LLVM_TARGET=auto
 ARG PHLEX_GCC_VERSION=15.3
 ARG PHLEX_LLVM_VERSION=22.1.8
 ARG PHLEX_DEFAULT_COMPILER=gcc
+ARG CI_SPACK_TAG=
+ARG CI_SPACK_PACKAGES_TAG=
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -120,6 +122,8 @@ ENV PHLEX_LLVM_SOURCE_TARGET=${PHLEX_LLVM_TARGET}
 ENV PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}
 ENV PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}
 ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
+ENV CI_SPACK_TAG=${CI_SPACK_TAG}
+ENV CI_SPACK_PACKAGES_TAG=${CI_SPACK_PACKAGES_TAG}
 
 SHELL ["/bin/bash", "-c"]
 
@@ -278,7 +282,8 @@ RUN <<'CLONE_SPACK'
 set -euo pipefail
 
 # Clone Spack checkout used by both CI and dev images
-git clone https://github.com/spack/spack.git /spack
+git clone ${CI_SPACK_TAG:+--branch ${CI_SPACK_TAG}} \
+  https://github.com/spack/spack.git /spack
 CLONE_SPACK
 
 ########################################################################
@@ -312,7 +317,8 @@ rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPAC
 mkdir -p "$SPACK_REPO_ROOT"
 git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
 git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
-git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
+git clone ${CI_SPACK_PACKAGES_TAG:+--branch ${CI_SPACK_PACKAGES_TAG}} \
+  https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
@@ -381,23 +387,6 @@ spack buildcache keys -it
 SPACK_CONFIGURE_MIRRORS
 
 ########################################################################
-# Ensure intel-tbb@2023.0.0 has a checksum in the Spack recipe
-
-RUN <<'ENSURE_INTEL_TBB_CHECKSUM'
-set -euo pipefail
-
-# intel-tbb@2023.0.0 may not be present in the spack-packages recipe that
-# was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
-# and add its checksum to the package file so that Spack can install it.
-. /spack/share/spack/setup-env.sh
-. /etc/profile.d/phlex-targets.sh
-
-if spack versions -n intel-tbb | grep -Fwq '2023.0.0'; then
-  EDITOR=true spack checksum -ab intel-tbb 2023.0.0
-fi
-ENSURE_INTEL_TBB_CHECKSUM
-
-########################################################################
 # Use Spack to install the GCC we want to use
 
 RUN <<'SPACK_INSTALL_GCC'
@@ -436,6 +425,22 @@ spack compiler find $(spack location -i gcc@${PHLEX_GCC_VERSION})
 
 spack clean -dfs
 SPACK_INSTALL_GCC
+
+########################################################################
+# Ensure `llvm@${PHLEX_LLVM_VERSION}` has a checksum in the recipe
+
+RUN <<'ENSURE_LLVM_CHECKSUM'
+set -euo pipefail
+
+# llvm@${PHLEX_LLVM_VERSION} may not be present in the spack-packages recipe that
+# was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
+# and add its checksum to the package file so that Spack can install it.
+. /spack/share/spack/setup-env.sh
+
+if spack versions -n llvm | grep -Fwq "${PHLEX_LLVM_VERSION}"; then
+  EDITOR=true spack checksum -ab llvm ${PHLEX_LLVM_VERSION}
+fi
+ENSURE_LLVM_CHECKSUM
 
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
