@@ -34,6 +34,7 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "plugins/layer_generator.hpp"
+#include "test/fold_test_algorithms.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_message.hpp>
@@ -41,7 +42,6 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
-#include <atomic>
 #include <cstddef>
 #include <sstream>
 #include <string>
@@ -49,13 +49,9 @@
 #include <vector>
 
 using namespace phlex;
+using namespace phlex::test;
 
 namespace {
-  // Provider function
-  unsigned int provide_number(data_cell_index const& index) { return index.number(); }
-
-  void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
-
   class split {
   public:
     explicit split(unsigned int count) : count_{count} {}

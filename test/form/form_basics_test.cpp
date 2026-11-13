@@ -24,7 +24,8 @@
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
-#include "test_helpers.hpp"
+#include "test/form/cell_helpers.hpp"
+#include "test/form/test_helpers.hpp"
 #ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
@@ -193,23 +194,9 @@ namespace {
 
   std::string num(std::uint64_t value) { return std::to_string(value); }
 
-  /// Single-layer data cell.
-  cell_index event_cell(std::uint64_t event)
-  {
-    return cell_index{.id = "[event:" + std::to_string(event) + "]",
-                      .hierarchy = {{"event"}},
-                      .layer_values = {event}};
-  }
-
-  /// Two-layer data cell.
-  cell_index event_segment_cell(std::uint64_t event, std::uint64_t segment)
-  {
-    return cell_index{.id = "[event:" + std::to_string(event) +
-                            ", segment:" + std::to_string(segment) + "]",
-                      .hierarchy = {{"event", "segment"}},
-                      .layer_values = {event, segment}};
-  }
-
+  using form::test::event_cell;
+  using form::test::event_segment_cell;
+  using form::test::product_of;
   using form::test::test_stage;
 
   placement product_place(std::string const& creator,
@@ -221,12 +208,6 @@ namespace {
       "nav_test.root", build_full_label(build_row_space_name(tech, creator, stage), label), tech};
   }
 
-  product_identity product_of(std::string const& creator,
-                              std::string const& label,
-                              std::string const& stage = test_stage)
-  {
-    return product_identity{.creator = creator, .stage = stage, .label = label};
-  }
 }
 
 TEST_CASE("token default constructor", "[form]")
