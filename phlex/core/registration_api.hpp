@@ -202,7 +202,7 @@ namespace phlex::detail {
     }
 
     auto output_product(phlex::experimental::algorithm_name creator,
-                        phlex::experimental::identifier suffix,
+                        phlex::experimental::suffix_t suffix,
                         phlex::experimental::identifier output_layer,
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {

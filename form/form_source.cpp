@@ -105,7 +105,7 @@ namespace {
 
       for (auto const& name : products_) {
         product_specification spec{
-          algorithm_name::create(advertised_creator_), identifier{name}, selector.type};
+          algorithm_name::create(advertised_creator_), suffix_t{name}, selector.type};
 
         // Read and provide products at the configured stage.
         identifier const selector_layer = selector.layer;

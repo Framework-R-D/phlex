@@ -21,6 +21,7 @@ namespace phlex {
     static data_cell_index_ptr job();
 
     using hash_type = std::size_t;
+    /// The child layer must have a valid, non-empty identifier as its name.
     data_cell_index_ptr make_child(std::string layer_name, std::size_t data_cell_number) const;
     experimental::identifier const& layer_name() const noexcept;
     experimental::layer_path layer_path() const;

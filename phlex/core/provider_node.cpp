@@ -11,11 +11,23 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <utility>
+
+namespace {
+  phlex::experimental::algorithm_name provider_creator(
+    phlex::experimental::product_specification const& spec)
+  {
+    if (!spec.creator()) {
+      throw std::runtime_error("Cannot create a provider without a product creator.");
+    }
+    return *spec.creator();
+  }
+}
 
 namespace phlex::detail {
   provider_node::provider_node(tbb::flow::graph& g, provider_bundle bundle) :
-    provider_node{bundle.spec.creator(),
+    provider_node{provider_creator(bundle.spec),
                   bundle.max_concurrency.value,
                   g,
                   std::move(bundle.provider_function),

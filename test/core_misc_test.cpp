@@ -21,11 +21,6 @@ TEST_CASE("algorithm_name tests", "[model]")
   using namespace phlex::detail;
   using namespace phlex::experimental;
 
-  SECTION("Default constructor")
-  {
-    algorithm_name const an;
-    CHECK(an.to_string().empty());
-  }
   SECTION("Create from string with colon")
   {
     auto an = algorithm_name::create("plugin:algo");

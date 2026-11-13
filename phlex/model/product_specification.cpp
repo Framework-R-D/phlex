@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 
 #include <cassert>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <utility>
@@ -26,18 +27,23 @@ namespace phlex::experimental {
   product_specification::product_specification(std::string_view name) { *this = create(name); }
 
   product_specification::product_specification(experimental::algorithm_name creator,
-                                               experimental::identifier suffix,
+                                               experimental::suffix_t suffix,
                                                type_id type) :
     creator_{std::move(creator)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
   {
   }
 
+  product_specification::product_specification(std::nullopt_t, suffix_t suffix, type_id type) :
+    suffix_{std::move(suffix)}, type_id_{std::move(type)}
+  {
+  }
+
   std::string product_specification::to_string() const
   {
-    if (creator_.plugin().empty() && creator_.algorithm().empty()) {
+    if (!creator_) {
       return fmt::format("{}", suffix_);
     }
-    return fmt::format("{}/{}", creator_.to_string(), suffix_);
+    return fmt::format("{}/{}", creator_->to_string(), suffix_);
   }
 
   product_specification product_specification::create(char const* c)
@@ -49,11 +55,14 @@ namespace phlex::experimental {
   {
     auto forward_slash = s.find('/');
     if (forward_slash != std::string_view::npos) {
+      if (forward_slash == 0) {
+        return {std::nullopt, suffix_t(s.substr(1)), type_id{}};
+      }
       return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
-              experimental::identifier(s.substr(forward_slash + 1)),
+              experimental::suffix_t(s.substr(forward_slash + 1)),
               type_id{}};
     }
-    return {experimental::algorithm_name::create(""), experimental::identifier(s), type_id{}};
+    return {std::nullopt, experimental::suffix_t(s), type_id{}};
   }
 
 }
@@ -81,7 +90,7 @@ namespace phlex::detail {
     return std::views::zip(output_suffixes, output_types) |
            std::views::transform([&algo_name](auto const& p) {
              return experimental::product_specification{
-               algo_name, experimental::identifier(std::get<0>(p)), std::get<1>(p)};
+               algo_name, experimental::suffix_t(std::get<0>(p)), std::get<1>(p)};
            }) |
            std::ranges::to<experimental::product_specifications>();
   }

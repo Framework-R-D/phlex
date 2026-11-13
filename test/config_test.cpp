@@ -76,8 +76,8 @@ TEST_CASE("Retrieve product_selector", "[config]")
                       ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
-                      ContainsSubstring("Cannot specify the empty string as a data layer."));
+                      ContainsSubstring("Invalid identifier"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
                     ContainsSubstring("Error retrieving parameter 'malformed3'") &&
-                      ContainsSubstring("Cannot specify product with empty creator name."));
+                      ContainsSubstring("Invalid identifier"));
 }

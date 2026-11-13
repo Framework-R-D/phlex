@@ -38,7 +38,7 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_selector::match(experimental::product_specification const& spec) const
   {
-    if (!creator_match(spec.creator())) {
+    if (creator && (!spec.creator() || !creator_match(*spec.creator()))) {
       return false;
     }
     if (type.valid() && type != spec.type()) {
@@ -76,15 +76,14 @@ namespace phlex {
       return true; // empty creator matches everything
     }
     experimental::identifier const& creator{*(this->creator)};
-    return alg.plugin() == creator || alg.algorithm() == creator;
+    return (alg.plugin().named() && *alg.plugin().named() == creator) || alg.algorithm() == creator;
   }
 
   std::string product_selector::to_string() const
   {
     // Will generate <<suffix>::<concept> by <creator> (of <stage>) in <layer>>
     using experimental::identifier;
-    std::string_view suffix_str =
-      suffix.transform(&identifier::operator std::string_view).value_or("[ANY]");
+    std::string_view suffix_str = suffix ? suffix->text() : "[ANY]";
     std::string type_str = this->type.valid() ? fmt::format("<{}>", this->type)
                                               : "[UNSET TYPE]"; // will later be concept
     auto layer_str = std::string_view(layer);

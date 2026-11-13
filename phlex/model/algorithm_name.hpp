@@ -9,17 +9,15 @@
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT algorithm_name {
   public:
-    algorithm_name();
-
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     algorithm_name(char const* spec);
     algorithm_name(std::string const& spec);
     algorithm_name(std::string_view spec);
     // NOLINTEND(google-explicit-constructor)
-    algorithm_name(identifier plugin, identifier algorithm);
+    algorithm_name(identifier_or_empty plugin, identifier algorithm);
 
     std::string to_string() const;
-    identifier const& plugin() const noexcept { return plugin_; }
+    identifier_or_empty const& plugin() const noexcept { return plugin_; }
     identifier const& algorithm() const noexcept { return algorithm_; }
 
     bool match(algorithm_name const& other) const;
@@ -29,7 +27,7 @@ namespace phlex::experimental {
     static algorithm_name create(std::string_view spec);
 
   private:
-    identifier plugin_;
+    identifier_or_empty plugin_;
     identifier algorithm_;
   };
 

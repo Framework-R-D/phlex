@@ -33,14 +33,11 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   CHECK(h.count_for("/job/run/spill") == 2);
 }
 
-TEST_CASE("Data layer hierarchy with unnamed layer", "[data model]")
+TEST_CASE("Data layer hierarchy requires named layers", "[data model]")
 {
-  // Exercises the maybe_name() fallback to "(unnamed)" for layers with empty names.
-  // Invoke print() explicitly so the test body, rather than teardown side effects,
-  // traverses the hierarchy and reaches maybe_name("") for the unnamed child.
   data_layer_hierarchy h;
   auto job_index = data_cell_index::job();
   CHECK_NOTHROW(h.increment_count(job_index));
-  CHECK_NOTHROW(h.increment_count(job_index->make_child("", 0)));
+  CHECK_THROWS(job_index->make_child("", 0));
   CHECK_NOTHROW(h.print());
 }
