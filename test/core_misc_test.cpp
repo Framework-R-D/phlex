@@ -8,6 +8,7 @@
 
 #include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
@@ -140,5 +141,24 @@ TEST_CASE("Moving a registrar transfers node creation", "[core]")
     CHECK(outputs.get("output") != nullptr);
   }
 
+  CHECK(errors.empty());
+}
+
+TEST_CASE("A throwing registrar creator is not retried by the destructor", "[core]")
+{
+  using namespace phlex::detail;
+
+  declared_outputs outputs;
+  std::vector<std::string> errors;
+  int creations = 0;
+  {
+    registrar<declared_output_ptr> reg{outputs, errors};
+    reg.set_creator([&](auto const&, auto const&) -> declared_output_ptr {
+      ++creations;
+      throw std::runtime_error{"creator failed"};
+    });
+    CHECK_THROWS_WITH(reg.set_output_product_suffixes({}), "creator failed");
+  }
+  CHECK(creations == 1);
   CHECK(errors.empty());
 }
