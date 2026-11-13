@@ -662,16 +662,32 @@ def test_kilo_env_exit_paths_preserve_callers(tmp_path, sourced, self_test):
     assert ("survived" in result.stdout) == sourced
 
 
+@pytest.mark.parametrize("shell", ["bash", "dash"])
 @pytest.mark.parametrize("options", ["-e", "-u", "-eu"])
-def test_entrypoint_is_source_only(options):
+def test_entrypoint_is_source_only(shell, options):
     """Executing the environment entrypoint fails before loading Spack or configuring exports."""
     result = subprocess.run(
-        ["bash", options, str(DEVCONTAINER.parent / "ci/entrypoint.sh")],
+        [shell, options, str(DEVCONTAINER.parent / "ci/entrypoint.sh")],
         text=True,
         capture_output=True,
     )
     assert result.returncode == 1
     assert result.stderr.strip() == "ERROR: entrypoint.sh must be sourced, not executed"
+
+
+def test_entrypoint_can_be_sourced_under_dash(tmp_path):
+    """Sourcing the entrypoint under dash passes its source-only guard."""
+    entrypoint = DEVCONTAINER.parent / "ci/entrypoint.sh"
+    guard = entrypoint.read_text().split("# Disable Spack's user scope", 1)[0]
+    fixture = tmp_path / "entrypoint.sh"
+    fixture.write_text(guard)
+    result = subprocess.run(
+        ["dash", "-c", '. "$1"; printf sourced', "dash", str(fixture)],
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "sourced"
 
 
 @pytest.mark.parametrize("compiler", ["gcc", "clang"])

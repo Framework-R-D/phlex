@@ -1,15 +1,17 @@
-#!/bin/bash
-# vi: set ft=sh b:is_bash=1 fenc=utf-8 :
+# vi: set ft=sh fenc=utf-8 :
 # -*- Local Variables:
 # -*- mode: shell-script
 # -*- coding: utf-8
-# -*- sh-shell: bash
+# -*- sh-shell: sh
 # -*- End:
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
-  exit 1
-fi
+# shellcheck shell=sh
+case ${0##*/} in
+  entrypoint.sh)
+    printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
+    exit 1
+    ;;
+esac
 
 # Disable Spack's user scope to prevent user-level config interference
 export SPACK_USER_CONFIG_PATH=/dev/null
