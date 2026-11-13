@@ -5,7 +5,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <numeric>
 #include <vector>
@@ -89,7 +88,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_result", [](double actual) { assert(actual == 6.); })
+  g.observe("verify_result", [](double actual) { CHECK(actual == 6.); })
     .input_family(product_selector{.creator = "sqrt_sum", .layer = "job", .suffix = "result"});
   g.execute();
 }
