@@ -25,9 +25,8 @@
 
 #include <TBranch.h>
 #include <TFile.h>
-#include <TList.h>
+#include <TKey.h>
 #include <TNamed.h>
-#include <TObjString.h>
 #include <TTree.h>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_session.hpp>
@@ -575,6 +574,7 @@ TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "
   SECTION("a writable file records the descriptor")
   {
     std::string const file_name = "form_descriptor_ok_" + suffix + ".root";
+    std::string const object_name{descriptor_object_name};
     {
       root_tfile_imp file{file_name, 'o'};
       CHECK_NOTHROW(file.write_descriptor(entries));
@@ -584,17 +584,37 @@ TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "
     REQUIRE(reopened != nullptr);
     REQUIRE_FALSE(reopened->IsZombie());
 
-    std::unique_ptr<TList> const descriptor{
-      dynamic_cast<TList*>(reopened->Get(std::string{descriptor_object_name}.c_str()))};
-    REQUIRE(descriptor != nullptr);
-    descriptor->SetOwner(true); // the list owns the TNamed entries it just read back
-    CHECK(descriptor->GetSize() == static_cast<int>(entries.size()));
+    TKey const* const key = reopened->GetKey(object_name.c_str());
+    REQUIRE(key != nullptr);
+    CHECK(std::string{key->GetClassName()} == "map<string,string>");
 
-    for (auto const& [key, value] : entries) {
-      auto const* named = dynamic_cast<TNamed const*>(descriptor->FindObject(key.c_str()));
-      REQUIRE(named != nullptr);
-      CHECK(std::string{named->GetTitle()} == value);
+    // Read without any FORM machinery, as an outside tool would.
+    std::unique_ptr<std::map<std::string, std::string> const> const descriptor{
+      reopened->Get<std::map<std::string, std::string>>(object_name.c_str())};
+    REQUIRE(descriptor != nullptr);
+    CHECK(descriptor->size() == entries.size());
+
+    for (auto const& [key_text, value] : entries) {
+      auto const found = descriptor->find(key_text);
+      REQUIRE(found != descriptor->end());
+      CHECK(found->second == value);
     }
+  }
+
+  SECTION("a repeated key is rejected rather than silently dropped")
+  {
+    std::string const file_name = "form_descriptor_duplicate_" + suffix + ".root";
+    std::vector<std::pair<std::string, std::string>> const repeated{
+      {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+      {std::string{descriptor_technologies_key}, "root_ttree"},
+      {std::string{descriptor_technologies_key}, "root_rntuple"}};
+
+    root_tfile_imp file{file_name, 'o'};
+    CHECK_THROWS_WITH(file.write_descriptor(repeated),
+                      Catch::Matchers::ContainsSubstring("appears more than once"));
+
+    // The write is refused outright, so the file holds no half-formed descriptor.
+    CHECK_FALSE(file.read_descriptor().has_value());
   }
 }
 
@@ -622,15 +642,35 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     CHECK_FALSE(file.read_descriptor().has_value());
   }
 
-  SECTION("the entries read back in the order they were written")
+  SECTION("the entries are recovered by key, not in the order they were written")
   {
     std::string const file_name = "form_descriptor_read_" + suffix + ".root";
+
+    // Deliberately use unsorted input to verify that the ROOT backend's std::map representation
+    // returns entries in key order.
+    std::vector<std::pair<std::string, std::string>> const unsorted{
+      {"zeta", "written first"},
+      {std::string{descriptor_technologies_key}, "root_ttree,root_rntuple"},
+      {"alpha", "written third"},
+      {std::string{descriptor_layout_version_key}, std::string{form_layout_version}}};
     {
       root_tfile_imp file{file_name, 'o'};
-      file.write_descriptor(entries);
+      file.write_descriptor(unsorted);
     }
     root_tfile_imp file{file_name, 'i'};
-    CHECK(file.read_descriptor() == entries);
+    auto const read_back = file.read_descriptor();
+    REQUIRE(read_back.has_value());
+
+    auto const key_of = [](auto const& entry) { return std::string_view{entry.first}; };
+
+    CHECK(read_back->size() == unsorted.size());
+    for (auto const& [key_text, value] : unsorted) {
+      auto const found = std::ranges::find(*read_back, std::string_view{key_text}, key_of);
+      REQUIRE(found != read_back->end());
+      CHECK(found->second == value);
+    }
+
+    CHECK(std::ranges::is_sorted(*read_back, {}, key_of));
   }
 
   SECTION("an empty descriptor is still a descriptor")
@@ -650,26 +690,12 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     {
       std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
       REQUIRE(raw != nullptr);
-      TNamed const impostor{object_name.c_str(), "not a list"};
+      TNamed const impostor{object_name.c_str(), "not a descriptor"};
       REQUIRE(raw->WriteObject(&impostor, object_name.c_str()) > 0);
     }
     root_tfile_imp file{file_name, 'i'};
-    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
-  }
-
-  SECTION("a descriptor entry that is not a key/value pair is rejected")
-  {
-    std::string const file_name = "form_descriptor_bad_entry_" + suffix + ".root";
-    {
-      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
-      REQUIRE(raw != nullptr);
-      TObjString entry{"form_layout_version=1.0"};
-      TList list;
-      list.Add(&entry);
-      REQUIRE(raw->WriteObject(&list, object_name.c_str()) > 0);
-    }
-    root_tfile_imp file{file_name, 'i'};
-    CHECK_THROWS_AS(file.read_descriptor(), std::runtime_error);
+    CHECK_THROWS_WITH(file.read_descriptor(),
+                      Catch::Matchers::ContainsSubstring("map<string,string>"));
   }
 }
 
