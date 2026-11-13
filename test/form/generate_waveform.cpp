@@ -5,6 +5,7 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
+#include "form/form_source_type_registry.hpp"
 
 #include <chrono>
 #include <random>
@@ -39,4 +40,5 @@ PHLEX_REGISTER_ALGORITHMS(graph, config)
                 }).input_family(product_selector{.creator = "test_waveforms",
                                                  .layer = "wire",
                                                  .suffix = "test_waveforms"});
+  form::experimental::register_form_product_cpp_type<form::test::waveform>("form::test::waveform");
 }

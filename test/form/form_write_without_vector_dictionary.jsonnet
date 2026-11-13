@@ -17,6 +17,7 @@
     output: {
       cpp: 'form_module',
       output_file: 'form_write_without_vector_dictionary_test.root',
+      technology: 'ROOT_RNTUPLE',
       products: ['test_waveforms',],
     },
   },

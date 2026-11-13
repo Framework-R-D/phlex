@@ -220,7 +220,28 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
     -c
     ${CMAKE_CURRENT_SOURCE_DIR}/form_write_without_vector_dictionary.jsonnet
     --stage test
+    TEST_WORKDIR
+    form_without_vector_dictionary
     TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+
+  cet_test(
+    job::form_read_without_vector_dictionary
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_read_without_vector_dictionary.jsonnet
+    --stage test2
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_without_vector_dictionary
+    TEST_PROPERTIES
+    DEPENDS
+    job:form_write_without_vector_dictionary
     ENVIRONMENT
     "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
   )
