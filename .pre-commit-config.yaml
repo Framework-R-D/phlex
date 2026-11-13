@@ -43,16 +43,16 @@ repos:
         language: system
         files: \.(h|hpp)$
       - id: scripts-unit-tests
-        name: scripts, CI, and devcontainer unit tests
-        entry: pytest scripts/test/ -v
+        name: scripts, CI, and devcontainer affected unit tests
+        entry: python scripts/run_script_tests.py
         language: python
         language_version: python3.12
         additional_dependencies:
           - pytest
           - PyYAML
-        files: ^(scripts/|ci/|\.devcontainer/)
-        types_or: [python, shell]
-        pass_filenames: false
+        files: >-
+          (?x)^ (scripts/|ci/|\.devcontainer/|\.github/workflows/|\.dockerignore$|
+          \.pre-commit-config\.yaml$|pyproject\.toml$)
   - repo: https://github.com/BlankSpruce/gersemi-pre-commit
     rev: 0.28.0
     hooks:
