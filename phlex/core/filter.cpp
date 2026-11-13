@@ -50,7 +50,7 @@ namespace phlex::detail {
 
   flow::continue_msg filter::execute(tag_t const& t)
   {
-    // FIXME: This implementation is horrible!  Because there are two data structures that
+    // TODO: This implementation is horrible!  Because there are two data structures that
     //        have to work together.
     unsigned int msg_id{};
     if (t.is_a<message>()) {

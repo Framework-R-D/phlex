@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_TRANSFORM_NODE_HPP
 #define PHLEX_CORE_TRANSFORM_NODE_HPP
 
-// FIXME: Add comments explaining the process.  For each implementation, explain what part
+// TODO: Add comments explaining the process.  For each implementation, explain what part
 //        of the process a given section of code is addressing.
 
 #include "phlex/core/concepts.hpp"

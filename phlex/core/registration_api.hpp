@@ -378,7 +378,7 @@ namespace phlex::detail {
 
     static_assert(num_inputs > 0, "input_family requires at least one product selector.");
 
-    // FIXME: Should maybe use some type of static assert, but not in a way that
+    // TODO: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.
     //
     // static_assert(
@@ -410,7 +410,7 @@ namespace phlex::detail {
     }
 
     // The selectors configure Object's constructor while trailing resources configure Unfold.
-    // FIXME: Evaluate whether input_family(...) should apply only to the constructor and a
+    // TODO: Evaluate whether input_family(...) should apply only to the constructor and a
     // separate registration clause should declare resources for the unfold operation.
     template <std::size_t NProducts, typename... Resources>
     auto input_family(std::array<product_selector, NProducts> input_args, std::tuple<Resources...>)
