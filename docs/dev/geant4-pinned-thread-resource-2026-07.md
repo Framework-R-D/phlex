@@ -1,197 +1,178 @@
 # Geant4 and the `dedicated_worker_pool` resource design
 
-*Status: design analysis, July 2026; terminology and prototype status updated
-November 2026. Investigates whether the dedicated-worker resource model
-prototyped in `test/tbb-preview/resource_limited_threads_test.cpp` can accommodate
-Geant4's multi-threading constraints.*
+*Status: design analysis, July 2026; revised November 2026 for typed synchronous
+resource tokens. No real Geant4 backend has been built or tested. The revised
+mock and its verification are separate from the backend proposal.*
 
-This note analyzes three inputs:
+The [November proposal](geant4-thread-affine-resource-proposal-2026-11.md)
+supersedes both the earlier per-run adapter and the subsequent whole-node
+handoff design. The current design leaves framework execution unchanged:
+ordinary algorithms receive tokens, and typed token methods dispatch only the
+resource operation to a dedicated worker.
+
+This note preserves analysis of three inputs:
 
 - The Geant4 multi-threading design page (Book For Toolkit Developers,
-  "Parallelism in Geant4: multi-threading capabilities").
+  ["Parallelism in Geant4: multi-threading capabilities"](https://geant4.web.cern.ch/documentation/pipelines/master/bftd_html/ForToolkitDeveloper/OOAnalysisDesign/Multithreading/mt.html)).
 - CMSSW's `SimG4Core/Application/plugins/OscarMTProducer.cc` (revision
-  `b8fdcd5`), which adapts an event-processing framework to Geant4's threading
-  model, together with its `edm::ThreadHandoff` helper
-  (`FWCore/Utilities/interface/ThreadHandoff.h`).
-- The `dedicated_worker_pool` + `flow::resource_limiter` prototype in
-  `test/tbb-preview/resource_limited_threads_test.cpp` (the "std::threads as
-  limited resources" test case), with `managed_thread` as the underlying worker.
-
-The question: can the `dedicated_worker_pool` approach, in which algorithm
-writers do *not* explicitly manage thread state and merely use a dedicated-worker
-handle acquired through a resource limiter, work given Geant4's constraints?
+  `b8fdcd5`) and `edm::ThreadHandoff`
+  (`FWCore/Utilities/interface/ThreadHandoff.h`). These are earlier source
+  observations, not a fresh upstream review.
+- The dedicated-worker prototype in
+  `test/tbb-preview/resource_limited_threads_test.cpp`. Earlier adapter and
+  direct-handle evaluations are historical, not validation of the revised design.
 
 ## Short answer
 
-Yes. The `dedicated_worker_pool` approach is not only possible under Geant4's
-constraints, it is a cleaner realization of the same mechanism CMSSW implements
-by hand. The `managed_thread` in the prototype is functionally the same object
-as CMSSW's `edm::ThreadHandoff`. Geant4's binding requirement — that all Geant4
-calls for a given worker happen on one specific OS thread — maps exactly onto
-what a dedicated-worker handle provides. The design goal (algorithm
-writers do not manage thread state) is achievable, with one important caveat
-about *what* gets pinned.
+A persistent dedicated thread can supply the OS-thread identity that Geant4's
+worker-local state requires. A synchronous token method such as
+`token.process_event(p)` can hide that dispatch from an ordinary `g.transform`
+algorithm. The method returns detached data, not a Geant4 pointer or reference.
+This is a transport design, not proof of a valid Geant4 master/worker lifecycle.
 
-## What Geant4 actually requires
+The framework forwards the token normally. Neither the entire algorithm nor the
+framework node body moves to the worker. The algorithm submits no execution
+lambda. A raw Geant4 pointer is not the desired interface: pointer access cannot
+redirect subsequent member calls to another thread.
 
-From the MT design page, the binding constraints are:
+## What Geant4 requires
 
-1. **Event-level parallelism, master/worker model.** One `G4MTRunManager`
-   (master) creates and controls N `G4WorkerRunManager` instances. Users must
-   never instantiate a worker directly.
-2. **Thread-local storage is the thread-safety mechanism.** Split-classes
-   (`G4LogicalVolume`, `G4ParticleDefinition`, `G4VUserPhysicsList`, ...),
-   `G4ThreadLocal` statics, `G4Cache`, and thread-private singletons all key off
-   the *identity of the executing OS thread*. Geant4's `G4ThreadLocalSingleton`
-   and `G4Cache` cleanup fire at thread exit / program exit.
-3. **Worker initialization is per-thread and stateful.** A worker's TLS must be
-   initialized *on the thread that will run it* (copying constant state from the
-   fully-configured master), before any event work.
+From the previously examined MT design page, the binding constraints are:
 
-The critical consequence: **a given Geant4 worker's event processing must
-always run on the same OS thread** from `initializeG4` through every `produce`
-to `endRun`. TBB tasks migrate across worker threads freely, so a TBB task
-cannot call Geant4 directly — the TLS a task sees depends on which TBB worker
-happens to run it.
+1. **Event-level parallelism and master/worker control.** Stock
+   `G4MTRunManager` creates and controls `G4WorkerRunManager` instances. The
+   documented interface says users must never instantiate a worker directly.
+2. **Thread-local state.** Split-classes (`G4LogicalVolume`,
+   `G4ParticleDefinition`, `G4VUserPhysicsList`, ...), `G4ThreadLocal` statics,
+   `G4Cache`, and thread-private singletons depend on the identity of the
+   executing OS thread.
+3. **Per-thread initialization.** A worker's TLS must be initialized on the
+   thread that will process its events, using the configured master's state.
+4. **Separate cleanup rules.** The cited documentation describes program-exit
+   cleanup for registered objects and thread-private singletons, not universal
+   thread-exit cleanup.
 
-## What CMSSW does, and why it looks obscure
+Exclusive checkout alone does not satisfy these requirements. Successive TBB
+tasks may run on different threads, so all thread-affine Geant4 construction,
+event processing, result extraction, and cleanup must stay inside the backend's
+worker-thread operations. Detached results may then leave that thread safely.
 
-`OscarMTProducer` is a `stream::EDProducer` (one instance per stream = per
-concurrent event slot). The obscurity is entirely `edm::ThreadHandoff
-m_handoff`:
+## CMSSW precedent
 
-- `ThreadHandoff` spawns **one dedicated `pthread`** (with a configurable stack
-  size — Geant4 needs a big stack, default 10 MiB) and parks it on a condition
-  variable.
-- Every Geant4 interaction is wrapped: `m_handoff.runAndWait([...]{ ... })` in
-  the constructor, `beginRun`, `endRun`, `produce`, and the destructor.
-- `runAndWait` ships a type-erased functor to the parked thread, wakes it,
-  blocks the TBB thread until the functor completes, and rethrows any exception.
+In the examined revision, `OscarMTProducer` is a `stream::EDProducer`, with one
+instance per concurrent event slot. Its `edm::ThreadHandoff`:
 
-So CMSSW guarantees "same OS thread for all Geant4 calls" by owning that thread
-explicitly and handing work to it. The handshaking between the master thread,
-TBB threads, and Geant4 worker threads is exactly this condition-variable
-handoff, plus the `ServiceRegistry::Operate guard{token}` dance to re-propagate
-CMSSW services across the thread boundary, plus the `StaticRandomEngineSetUnset`
-juggling of the CLHEP global engine. The algorithm writer is fully exposed to
-all of it.
+- Owns a dedicated `pthread`, with configurable stack size (10 MiB by default
+  in this integration), parked on a condition variable.
+- Wraps Geant4 interactions in `runAndWait(...)`, including construction,
+  `beginRun`, `produce`, `endRun`, and destruction.
+- Blocks the caller until the operation completes and rethrows captured
+  exceptions on that caller.
 
-## The mapping to `dedicated_worker_pool` / `pinned_work_resource`
+CMSSW also re-establishes services with `ServiceRegistry::Operate` and manages
+the CLHEP RNG context with `StaticRandomEngineSetUnset`. These are backend
+integration obligations, not effects provided automatically by a thread handoff.
+The proposed Phlex resource would hide dispatch and worker-side context setup
+behind typed methods rather than expose `runAndWait` to algorithm authors.
 
-Comparing `ThreadHandoff` to the pool's underlying `managed_thread` in
-`test/tbb-preview/resource_limited_threads_test.cpp`:
+## Mapping to the dedicated-worker pool
 
-| CMSSW `ThreadHandoff` | Phlex `managed_thread` |
+The pool owns persistent worker threads and their state. A concrete pooled
+resource wraps internal worker handles in ordinary copyable, non-owning tokens.
+The limiter grants exclusive use of each token while the framework invocation
+runs. The resource and pool must outlive all token use; copying a token is not
+permission to retain it beyond checkout or use it concurrently.
+
+| Layer | Responsibility |
 | --- | --- |
-| dedicated `pthread m_thread` | `std::jthread thread_` |
-| `m_threadHandoff` condition_variable + mutex | `work_ready_` / `slot_ready_` binary semaphores |
-| `runAndWait(F&&)` ships type-erased functor, blocks caller | `execute(Args...)` sets args, releases `work_ready_`, blocks on `slot_ready_` |
-| `stopThread()` / `m_stopThread` | destructor sets `gear_ = park`, releases `work_ready_` |
-| rethrows `exception_ptr` | `run` captures `exception_`; `execute` clears and rethrows it on the caller thread |
+| Framework and limiter | Normal token checkout, forwarding to algorithms, and release |
+| Algorithm | Prepare ordinary inputs, call typed token methods, consume detached results |
+| Concrete resource token | Synchronously dispatch a typed operation to its associated worker |
+| Internal worker transport | On-thread state lifetime, semaphore handoff, completion, exception transport |
+| Geant4 backend | Master/worker protocol, worker-side RNG/context, Geant4 operations and cleanup |
 
-They are the same pattern. The difference is *who drives it*:
+An internal `execute(operation)` may privately accept a callable that receives
+worker state. It is not an algorithm-facing token API. The transport contract is:
 
-- In CMSSW, the producer author writes every `runAndWait(...)` call by hand.
-- In the Phlex prototype, `dedicated_worker_pool` owns the `managed_thread`
-  objects, and `pinned_work_resource` is a `flow::resource_limiter` over their
-  handles. The `resource_limited_node` machinery acquires a handle, hands the
-  algorithm a `decltype(pinned_work)::handle_type` (a `managed_thread*`), and the
-  algorithm merely calls `geant4_resource->execute(i)`. The worker handles the
-  handoff and blocking; the limiter serializes access to each worker.
+- Semaphores publish the operation and signal completion; the caller blocks
+  until the worker is finished using caller-local state.
+- For value returns, caller-local `std::optional<Result>` storage is populated
+  on the worker and moved out after completion. `void` needs no value storage;
+  move-only values are supported. Reference returns are not supported.
+- `std::exception_ptr` carries an operation failure back to the caller, which
+  rethrows after completion. No `std::future`, `std::promise`,
+  `std::packaged_task`, or `std::async` is used.
+- Operation captures and returned values may be destroyed on the caller. They
+  must not own objects whose destruction requires the Geant4 worker thread.
 
-The pool hides worker construction and storage behind this interface:
+There is no `thread_affine_token` concept, handle substitution, or special
+single-affine-resource limit. Product retrieval, algorithm code surrounding a
+token call, and framework output construction stay on the invoking thread.
+Only the typed resource operation crosses the boundary. With N checked-out
+workers, up to N callers can block while their dedicated threads do work; this
+does not establish a global bound on runnable threads or avoid scheduler costs.
 
-```cpp
-auto f = [](unsigned int const i) { /* Work executed on a dedicated thread. */ };
-std::size_t const num_workers = 2;
-dedicated_worker_pool const pinned_work{f, num_workers};
-flow::resource_limiter<decltype(pinned_work)::handle_type> pinned_work_resource{
-  pinned_work.handles()};
-```
+## Separate backend proposal: one Geant4 run per job
 
-Each worker owns a copy of `f`, whose argument types are inferred. The pool owns
-workers through a vector of `unique_ptr`s, preserving their addresses.
-`handles()` exposes non-owning handles; the pool must outlive the limiter and all
-work using those handles. A zero-worker pool is rejected.
+The token interface does not decide Geant4 run semantics. A separate, unvalidated
+backend proposal would begin one job-long Geant4 run during worker setup and
+end it during worker teardown. Neither transition would correspond to a Phlex
+run boundary. The older `geant4_worker_pool` per-run adapter and broadcast hooks
+have been removed; their manual `begin_run`/drain/`end_run` tests did not establish
+integration with framework resource checkout.
 
-Crucially, the pool and limiter express Geant4's "N workers" model:
-construct a `dedicated_worker_pool` with N workers and initialize the limiter
-with `pinned_work.handles()`, and TBB admits at most N
-concurrent event tasks into the Geant4 node, each pinned to a distinct
-dedicated OS thread. That is a direct structural analog of `G4MTRunManager`
-owning N `G4WorkerRunManager`s.
+Under the job-long assumption, run-layer products supply event context and folds
+produce per-run summaries. A fold completes for its own inputs and pending
+invocations; it is not a global drain or a safe point for shared Geant4 geometry
+or physics changes. Per-Phlex-run Geant4 actions or run-dependent geometry would
+require another lifecycle design, not merely a fold.
 
-## Is it possible under the constraints? Yes, with these design points
+## Backend caveats
 
-It works because the pinned thread is a real, persistent OS thread. Geant4's
-TLS, split-classes, and `G4Cache` only require thread *identity stability*,
-which `std::jthread` provides for its lifetime. As long as worker G4
-initialization and all subsequent event calls for that worker are routed
-through the *same* `managed_thread`, Geant4 is satisfied and cannot tell the
-difference between this and `G4THREADCREATE`.
+1. **One thread per worker lifecycle.** Initialize, process events, and tear down
+   each worker on its own persistent OS thread. Eager on-thread factories do
+   not authorize bypassing the master's required initialization protocol.
+2. **Master ownership and ordering.** The proposed kernel-level route would
+   configure the master before workers start and destroy it after all workers,
+   on its creating thread. Master and workers belong in one resource object;
+   ordering between separately registered resources is not sufficient. Stock
+   `G4MTRunManager` owns its threads and is not this proposed route.
+3. **Stack size.** Geant4 tracking can need large stacks. `std::jthread` provides
+   no portable stack-size control; production support may need a pthread-backed
+   worker or another platform-specific mechanism. Mock success says nothing
+   about adequate Geant4 stacks.
+4. **Failures and partial initialization.** Exception transport is not backend
+   recovery. A production resource must define whether a failed worker can be
+   reused, handle Geant4 errors that are not C++ exceptions, and provide
+   non-throwing cleanup after partial initialization.
+5. **Cleanup protocol.** Worker-owned state must be destroyed on its thread
+   before joining, respecting Geant4 ownership. Do not assume `G4AutoDelete` or
+   singleton cleanup universally runs at thread exit, or delete objects owned by
+   Geant4 cleanup machinery. Sequential worker setup/teardown cannot satisfy a
+   collective barrier without a different backend protocol.
+6. **Context propagation.** Typed methods must arrange worker-side event RNG and
+   other required ambient context. Algorithms supply explicit event/run data;
+   ordinary framework token forwarding does not propagate TLS or services.
 
-To make it fully work, the design must address:
+## Validation boundary
 
-1. **Pin the whole Geant4 worker lifecycle to the handle, not just `produce`.**
-   The worker referenced by a handle must run `initializeG4`/`beginRun`, every
-   event, and `endRun`/teardown. If a handle can be handed to different algorithm
-   invocations that correspond to *different* Geant4 workers, the TLS will not
-   match. The cleanest model: **one `managed_thread` == one Geant4 worker**, with
-   its worker state initialized lazily on first `execute` (Geant4's own
-   `G4WorkerRunManager` construction happens on that thread). The
-   `dedicated_worker_pool` owns N workers, while `pinned_work_resource` limits
-   access to their handles. The prototype does not yet provide lifecycle hooks.
-2. **Master thread / global initialization.** Geant4 requires a single
-   `G4MTRunManager` created and configured before workers spawn (CMSSW's
-   `OscarMTMasterThread` global cache, driven on its own handoff thread). Phlex
-   needs an equivalent job-level/run-level hook that constructs and configures
-   the master before the dedicated workers run anything. This is orthogonal
-   to the per-event resource mechanism but must exist.
-3. **Stack size.** `ThreadHandoff` takes a `stackSize` (default 10 MiB). Geant4
-   tracking is stack-hungry. `std::jthread` gives no portable control over stack
-   size, so a production `managed_thread` for Geant4 likely needs a
-   pthread-based implementation (or a platform-specific attribute) rather than
-   raw `std::jthread`.
-4. **Exception propagation (implemented in the prototype).** Like
-   `ThreadHandoff::runAndWait`, `managed_thread::run` captures `exception_ptr`,
-   and `execute` clears and rethrows it on the caller thread. The tests verify
-   propagation and successful reuse of a worker after an exception. A Geant4
-   integration must retain this behavior and define how callers handle errors.
-5. **Thread-exit cleanup ordering.** Geant4 registers cleanup via `G4AutoDelete`
-   / `G4ThreadLocalSingleton` that fires at thread termination. The pinned
-   thread must run Geant4 worker teardown *before* the `jthread` joins, and
-   teardown must itself run on that thread. `managed_thread`'s destructor
-   currently just parks and stops; a Geant4 variant needs a "run teardown
-   functor, then stop" step.
-6. **Service/context re-propagation across the boundary.** CMSSW re-establishes
-   its `ServiceRegistry` inside each `runAndWait` (`Operate guard{token}`) and
-   manages the CLHEP global RNG engine per event. Phlex's analog: whatever
-   ambient context an algorithm needs (RNG, logging context) must be
-   re-established inside the pinned execution, or the pinned-thread body must be
-   given it. This is a framework responsibility, not the algorithm writer's —
-   which is precisely the win.
+The revised mock exposes `token.process_event(unsigned)`, returning
+a detached struct containing a value and the worker thread ID, and `token.fail()`,
+which throws on the worker. Checks use ordinary-token algorithms through
+the real framework and a helper test for the node-body thread boundary.
+
+The configured workspace passed all 195 CTests via `scripts/verify.sh` on
+November 16, 2026; the revised resource test also passed 50 consecutive runs.
+The graph-level exception test uses a single event: repeated multi-event failure
+exposed an unresolved cancellation crash in the installed TBB preview limiter.
+See the November note's validation section for the scope and reproduction setup.
+Passing mock tests do not validate Geant4 lifecycle, RNG reproducibility, stack
+requirements, error recovery, or cleanup.
 
 ## Bottom line
 
-The `dedicated_worker_pool` resource design is compatible with Geant4's thread
-identity requirements: algorithm writers acquire a dedicated-worker handle and
-call `execute(...)`, with no visible TLS handshaking. It is the same core mechanism
-as CMSSW's `ThreadHandoff`, but inverted — instead of every author hand-writing
-`runAndWait`, the pool's underlying `managed_thread` performs the handoff and
-the `resource_limiter` enforces the N-worker concurrency limit. The obscurity in
-CMSSW is not fundamental to Geant4; it is a consequence of `ThreadHandoff` being
-a manual, per-producer construct rather than a first-class framework resource.
-
-The non-negotiables to get right are:
-
-1. **One pinned thread == one Geant4 worker for its entire lifecycle** (init →
-   events → teardown all on that thread).
-2. A **master/global init hook** for `G4MTRunManager`.
-3. **Configurable stack size** (favoring a pthread-backed `managed_thread` over
-   raw `std::jthread`).
-4. **Exception propagation** from the dedicated thread (already implemented in
-   the prototype).
-5. **On-thread teardown** honoring Geant4's TLS cleanup.
-
-None of these conflict with the resource-limiter model; they are implementation
-requirements of the dedicated workers and their lifecycle integration.
+Keep the framework's ordinary resource-token model. Put synchronous, typed
+dispatch in the resource implementation and keep all thread-affine Geant4 state
+behind it. The dedicated-worker mechanism addresses thread identity; the
+job-long-run lifecycle and kernel-level Geant4 integration remain separate,
+unvalidated backend proposals.

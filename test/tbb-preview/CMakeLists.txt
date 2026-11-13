@@ -15,7 +15,7 @@ cet_test(
   SOURCE
   resource_limited_threads_test.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   TBB::tbb
   spdlog::spdlog
 )
