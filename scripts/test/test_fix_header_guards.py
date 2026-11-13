@@ -161,15 +161,18 @@ class TestCheckHeaderGuard:
         assert valid is False
         assert expected == "PHLEX_FOO_HPP"
 
-    def test_too_short_file_is_valid(self, tmp_path: Path) -> None:
-        """A file with fewer than 3 lines is treated as valid (no guard expected)."""
-        f = _make_header(tmp_path, "phlex", "empty.hpp", "// no guard\n")
+    @pytest.mark.parametrize(
+        "content", ["", "void foo();", "// no guard\n", "#include <string>\n\nvoid foo();\n"]
+    )
+    def test_missing_guard_is_invalid(self, tmp_path: Path, content: str) -> None:
+        """Unguarded headers are invalid, including empty and short files."""
+        f = _make_header(tmp_path, "phlex", "foo.hpp", content)
         valid, expected = M.check_header_guard(f, tmp_path)
-        assert valid is True
-        assert expected is None
+        assert valid is False
+        assert expected == "PHLEX_FOO_HPP"
 
-    def test_no_ifndef_is_valid(self, tmp_path: Path) -> None:
-        """A file without #ifndef is treated as valid (pragmatic approach)."""
+    def test_pragma_once_is_invalid(self, tmp_path: Path) -> None:
+        """#pragma once does not satisfy the project's macro-guard convention."""
         content = textwrap.dedent(
             """\
             #pragma once
@@ -179,7 +182,8 @@ class TestCheckHeaderGuard:
         )
         f = _make_header(tmp_path, "phlex", "pragma.hpp", content)
         valid, expected = M.check_header_guard(f, tmp_path)
-        assert valid is True
+        assert valid is False
+        assert expected == "PHLEX_PRAGMA_HPP"
 
     def test_missing_endif_comment_makes_guard_invalid(self, tmp_path: Path) -> None:
         """If #endif has no comment, endif_macro is None and the guard is invalid."""
@@ -223,6 +227,27 @@ class TestCheckHeaderGuard:
 class TestFixHeaderGuard:
     """Tests for M.fix_header_guard."""
 
+    @pytest.mark.parametrize(
+        "prefix",
+        [
+            "// license\n" * 15 + "\n",
+            "/*\n" + "license\n" * 15 + "#ifndef COMMENT_ONLY\n#define COMMENT_ONLY\n*/\n\n",
+        ],
+    )
+    @pytest.mark.parametrize("correct", [False, True])
+    def test_guard_after_leading_comments(
+        self, tmp_path: Path, prefix: str, correct: bool
+    ) -> None:
+        """Long comments must not cause existing guards to be duplicated."""
+        guard = "PHLEX_FOO_HPP"
+        body = _correct_guard_content(guard) if correct else _wrong_guard_content(guard)
+        f = _make_header(tmp_path, "phlex", "foo.hpp", prefix + body)
+        assert M.check_header_guard(f, tmp_path) == ((True, None) if correct else (False, guard))
+        assert M.fix_header_guard(f, tmp_path) is not correct
+        assert f.read_text(encoding="utf-8") == prefix + _correct_guard_content(guard)
+        assert M.check_header_guard(f, tmp_path) == (True, None)
+        assert M.fix_header_guard(f, tmp_path) is False
+
     def test_malformed_top_level_guard_is_fixed(self, tmp_path: Path) -> None:
         """A malformed top-level guard is normalized and then validates."""
         content = """\
@@ -261,21 +286,52 @@ class TestFixHeaderGuard:
         assert modified is False
         assert f.read_text(encoding="utf-8") == original
 
-    def test_short_file_not_modified(self, tmp_path: Path) -> None:
-        """A file with fewer than 3 lines is not touched."""
-        f = _make_header(tmp_path, "phlex", "short.hpp", "// one line\n")
+    @pytest.mark.parametrize(
+        "content",
+        [
+            "",
+            "void foo();",
+            "// one line\n",
+            "// license\n#include <string>\n\nvoid foo();\n",
+            "#define ANSWER 42\n\nvoid foo();\n",
+            "#ifdef FEATURE\nvoid foo();\n#endif\n",
+        ],
+    )
+    def test_missing_guard_is_added(self, tmp_path: Path, content: str) -> None:
+        """Fixing an unguarded header wraps its entire content and is idempotent."""
+        f = _make_header(tmp_path, "phlex", "foo.hpp", content)
+        assert M.fix_header_guard(f, tmp_path) is True
+        body = content + "\n" if content and not content.endswith("\n") else content
+        assert f.read_text(encoding="utf-8") == (
+            f"#ifndef PHLEX_FOO_HPP\n#define PHLEX_FOO_HPP\n\n{body}\n#endif // PHLEX_FOO_HPP\n"
+        )
+        assert M.check_header_guard(f, tmp_path) == (True, None)
         assert M.fix_header_guard(f, tmp_path) is False
 
-    def test_no_ifndef_not_modified(self, tmp_path: Path) -> None:
-        """A file without a guard structure is not modified."""
-        content = textwrap.dedent(
-            """\
-            #pragma once
-            void foo();
-            // end
-            """
-        )
+    @pytest.mark.parametrize(
+        "pragma", ["#pragma once", "  # pragma once // guard", "#pragma once /* guard */"]
+    )
+    def test_pragma_once_replaced(self, tmp_path: Path, pragma: str) -> None:
+        """#pragma once is replaced with the expected macro guard."""
+        content = f"{pragma}\nvoid foo();\n// end\n"
         f = _make_header(tmp_path, "phlex", "prag.hpp", content)
+        assert M.check_header_guard(f, tmp_path) == (False, "PHLEX_PRAG_HPP")
+        assert M.fix_header_guard(f, tmp_path) is True
+        assert f.read_text(encoding="utf-8") == (
+            "#ifndef PHLEX_PRAG_HPP\n#define PHLEX_PRAG_HPP\n\n"
+            "void foo();\n// end\n\n#endif // PHLEX_PRAG_HPP\n"
+        )
+        assert M.check_header_guard(f, tmp_path) == (True, None)
+        assert M.fix_header_guard(f, tmp_path) is False
+
+    def test_pragma_once_removed_from_macro_guarded_header(self, tmp_path: Path) -> None:
+        """Reject and remove #pragma once even when a valid macro guard also exists."""
+        guarded = _correct_guard_content("PHLEX_PRAG_HPP")
+        f = _make_header(tmp_path, "phlex", "prag.hpp", "#pragma once\n" + guarded)
+        assert M.check_header_guard(f, tmp_path) == (False, "PHLEX_PRAG_HPP")
+        assert M.fix_header_guard(f, tmp_path) is True
+        assert f.read_text(encoding="utf-8") == guarded
+        assert M.check_header_guard(f, tmp_path) == (True, None)
         assert M.fix_header_guard(f, tmp_path) is False
 
     def test_only_ifndef_fixed(self, tmp_path: Path) -> None:
@@ -340,6 +396,48 @@ class TestFixHeaderGuard:
 
 class TestMain:
     """Integration tests for M.main() (check and fix modes)."""
+
+    @pytest.mark.parametrize("filename", ["LinkDef.h", "My_LinkDef.h", "Linkdef.h", "linkdef.h"])
+    @pytest.mark.parametrize("direct_file", [False, True])
+    def test_linkdef_is_exempt(self, tmp_path: Path, filename: str, direct_file: bool) -> None:
+        """ROOT selection inputs are exempt in the API and both CLI invocation forms."""
+        content = "#ifdef __CLING__\n#pragma link C++ class Foo+;\n#endif\n"
+        f = _make_header(tmp_path, "phlex", filename, content)
+        assert M.check_header_guard(f, tmp_path) == (True, None)
+        assert M.fix_header_guard(f, tmp_path) is False
+        target = f if direct_file else f.parent
+        for flags in (["--check"], []):
+            with patch("sys.argv", ["prog", *flags, "--root", str(tmp_path), str(target)]):
+                M.main()
+            assert f.read_text(encoding="utf-8") == content
+
+    @pytest.mark.parametrize("filename", ["dict.h", "LinkDef.hpp", "LinkDef_mine.h"])
+    def test_other_headers_are_not_exempt(self, tmp_path: Path, filename: str) -> None:
+        """Dictionary umbrellas and names outside ROOT's suffix convention need guards."""
+        f = _make_header(tmp_path, "phlex", filename, "void foo();\n")
+        assert M.check_header_guard(f, tmp_path)[0] is False
+        assert M.fix_header_guard(f, tmp_path) is True
+        assert M.check_header_guard(f, tmp_path) == (True, None)
+
+    @pytest.mark.parametrize("content", ["void foo();\n", "#pragma once\nvoid foo();\n"])
+    def test_missing_guard_check_fix_check(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str], content: str
+    ) -> None:
+        """CLI check fails for missing guards, then passes after fix mode adds them."""
+        f = _make_header(tmp_path, "form/root_storage", "demangle_name.hpp", content)
+        args = ["--root", str(tmp_path), str(tmp_path / "form")]
+        with patch("sys.argv", ["prog", "--check", *args]):
+            with pytest.raises(SystemExit) as exc_info:
+                M.main()
+        assert exc_info.value.code == 1
+        assert "FORM_ROOT_STORAGE_DEMANGLE_NAME_HPP" in capsys.readouterr().out
+        assert f.read_text(encoding="utf-8") == content
+        with patch("sys.argv", ["prog", *args]):
+            M.main()
+        assert "Fixed 1 files" in capsys.readouterr().out
+        with patch("sys.argv", ["prog", "--check", *args]):
+            M.main()
+        assert "All header guards are correct" in capsys.readouterr().out
 
     # ------------------------------------------------------------------
     # Check mode

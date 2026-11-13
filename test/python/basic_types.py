@@ -50,6 +50,7 @@ class TypeSpec:
     np_dtype: Any = None
     rel_tol: float = 0.0
 
+
 # fmt: off
 TYPES = [
     #        tag       annotation       inputs          scalar operation             numpy dtype  rel_tol
@@ -89,12 +90,12 @@ OUTPUT_KINDS = [
     ),
     OutputKind(
         "numpy",
-        lambda t: None if t.np_dtype is None else npt.NDArray[t.np_dtype], # type: ignore # noqa: F821
+        lambda t: None if t.np_dtype is None else npt.NDArray[t.np_dtype],  # type: ignore # noqa: F821
         lambda t, a, b: np.array([a, b], dtype=t.np_dtype),
     ),
     OutputKind(
         "list",
-        lambda t: None if t.np_dtype is None else list[t.annotation], # type: ignore # noqa: F821
+        lambda t: None if t.np_dtype is None else list[t.annotation],  # type: ignore # noqa: F821
         lambda t, a, b: [a, b],
     ),
 ]
@@ -115,6 +116,7 @@ def _check_unique_names():
     if dupes:
         raise ValueError(f"duplicate generated product names: {sorted(dupes)}")
 
+
 _check_unique_names()
 
 
@@ -123,8 +125,7 @@ def _same_values(got, want, rel_tol: float) -> bool:
     got = np.atleast_1d(np.asarray(got)).tolist()
     want = np.atleast_1d(np.asarray(want)).tolist()
     return len(got) == len(want) and all(
-        math.isclose(g, w, rel_tol=rel_tol, abs_tol=0.0)
-        for g, w in zip(got, want, strict=True)
+        math.isclose(g, w, rel_tol=rel_tol, abs_tol=0.0) for g, w in zip(got, want, strict=True)
     )
 
 
