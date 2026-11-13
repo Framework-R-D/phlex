@@ -21,7 +21,13 @@
 // Provides chrono literals used below but attributed to a transitive include by include-cleaner.
 #include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <memory>
+#include <ranges>
+#include <span>
+#include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;
@@ -70,12 +76,12 @@ namespace {
     int token() const { return 24; }
   };
 
-  // A mutable-only tokens() member does not affect the unlimited classification.
+  // A malformed pooled declaration must not fall back to unlimited registration.
   struct mutable_tokens_unlimited_resource {
     void tokens() {}
   };
 
-  // A mutable-only tokens() member does not make a token-bearing resource bounded.
+  // A mutable-only tokens() declaration makes this resource invalid.
   struct mutable_tokens_serialized_resource {
     using token_type = mutable_tokens_serialized_resource const*;
 
@@ -83,14 +89,88 @@ namespace {
   };
 
   struct pooled_token_resource {
-    using token_type = int*;
-
     static auto tokens() { return std::array<int*, 1>{}; }
+  };
+
+  struct pooled_view_resource {
+    static auto tokens() { return std::span<int const>{}; }
+  };
+
+  struct pooled_object_view_resource {
+    std::array<int, 2> values{11, 29};
+
+    auto tokens() const
+    {
+      return values | std::views::transform([](int const& value) { return &value; });
+    }
+  };
+
+  struct pooled_object_reference_resource {
+    std::vector<int> values{11, 29};
+
+    std::vector<int> const& tokens() const { return values; }
+  };
+
+  struct temporary_pooled_objects_resource {
+    static std::vector<int> tokens() { return {11, 29}; }
+  };
+
+  struct filtered_pooled_resource {
+    std::array<int, 3> values{11, 0, 29};
+
+    auto tokens() const
+    {
+      return values | std::views::filter([](int value) { return value != 0; });
+    }
+  };
+
+  struct proxy_pooled_objects_resource {
+    std::vector<bool> values{true, false};
+
+    auto tokens() const { return std::views::all(values); }
+  };
+
+  struct prvalue_pooled_objects_resource {
+    static auto tokens() { return std::views::iota(11) | std::views::take(2); }
+  };
+
+  struct counting_pooled_resource {
+    counting_pooled_resource(int& calls, std::vector<int> values) :
+      calls{calls}, values{std::move(values)}
+    {
+    }
+
+    std::vector<int> tokens() const
+    {
+      ++calls;
+      return values;
+    }
+
+    int& calls; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::vector<int> values;
+  };
+
+  struct invalid_pooled_range_resource {
+    static int tokens() { return 42; }
+  };
+
+  struct noncopyable_pooled_token_resource {
+    static auto tokens() { return std::array<std::unique_ptr<int>, 1>{}; }
+  };
+
+  struct nonassignable_pooled_token_resource {
+    struct token {
+      // NOLINTNEXTLINE(readability-identifier-naming, cppcoreguidelines-avoid-const-or-ref-data-members)
+      int const value;
+    };
+
+    static auto tokens() { return std::array<token, 1>{{{42}}}; }
   };
 
   using mixed_dependencies = resource_dependencies<catch2_resource, unlimited_resource_type>;
   using reversed_dependencies = resource_dependencies<unlimited_resource_type, catch2_resource>;
   using serialized_dependencies = resource_dependencies<catch2_resource, catch2_resource>;
+  using pooled_dependencies = resource_dependencies<pooled_token_resource, unlimited_resource_type>;
 
   template <typename T>
   concept graph_accepts_unlimited =
@@ -107,6 +187,14 @@ namespace {
   template <typename T>
   concept catalog_accepts_serialized =
     requires(resource_catalog& catalog) { catalog.template add_serialized<T>(); };
+
+  template <typename T>
+  concept graph_accepts_pooled =
+    requires(framework_graph& graph) { graph.template add_pooled_resource<T>(); };
+
+  template <typename T>
+  concept catalog_accepts_pooled =
+    requires(resource_catalog& catalog) { catalog.template add_pooled<T>(); };
 
   static_assert(graph_accepts_unlimited<default_unlimited_resource>);
   static_assert(not graph_accepts_serialized<default_unlimited_resource>);
@@ -128,20 +216,22 @@ namespace {
   static_assert(not catalog_accepts_unlimited<const_member_token_resource>);
   static_assert(catalog_accepts_serialized<const_member_token_resource>);
 
-  static_assert(graph_accepts_unlimited<mutable_tokens_unlimited_resource>);
+  static_assert(not graph_accepts_unlimited<mutable_tokens_unlimited_resource>);
   static_assert(not graph_accepts_serialized<mutable_tokens_unlimited_resource>);
-  static_assert(catalog_accepts_unlimited<mutable_tokens_unlimited_resource>);
+  static_assert(not catalog_accepts_unlimited<mutable_tokens_unlimited_resource>);
   static_assert(not catalog_accepts_serialized<mutable_tokens_unlimited_resource>);
 
   static_assert(not graph_accepts_unlimited<mutable_tokens_serialized_resource>);
-  static_assert(graph_accepts_serialized<mutable_tokens_serialized_resource>);
+  static_assert(not graph_accepts_serialized<mutable_tokens_serialized_resource>);
   static_assert(not catalog_accepts_unlimited<mutable_tokens_serialized_resource>);
-  static_assert(catalog_accepts_serialized<mutable_tokens_serialized_resource>);
+  static_assert(not catalog_accepts_serialized<mutable_tokens_serialized_resource>);
 
   static_assert(not graph_accepts_unlimited<pooled_token_resource>);
   static_assert(not graph_accepts_serialized<pooled_token_resource>);
+  static_assert(graph_accepts_pooled<pooled_token_resource>);
   static_assert(not catalog_accepts_unlimited<pooled_token_resource>);
   static_assert(not catalog_accepts_serialized<pooled_token_resource>);
+  static_assert(catalog_accepts_pooled<pooled_token_resource>);
 
   static_assert(not graph_accepts_unlimited<invalid_serialized_resource>);
   static_assert(not graph_accepts_serialized<invalid_serialized_resource>);
@@ -180,37 +270,103 @@ namespace {
   // Invalid token types.
   static_assert(not resource_token_constructible<invalid_serialized_resource>);
   static_assert(not serialized_resource<invalid_serialized_resource>);
-  static_assert(not phase_1_supported_resource<invalid_serialized_resource>);
 
-  // Pooled resources, deferred in Phase 1.
+  // Pooled handles are inferred from range values, not range references.
   static_assert(pooled_resource<pooled_token_resource>);
+  static_assert(pooled_resource_registration<pooled_token_resource>);
   static_assert(not serialized_resource<pooled_token_resource>);
-  static_assert(not phase_1_supported_resource<pooled_token_resource>);
+  static_assert(pooled_resource<pooled_view_resource>);
+  static_assert(pooled_resource_registration<pooled_view_resource>);
+  static_assert(not pooled_resource_registration<pooled_view_resource const>);
+  static_assert(not pooled_resource_registration<pooled_view_resource, int>);
+  static_assert(not serialized_resource<pooled_view_resource>);
+
+  static_assert(pooled_resource<pooled_object_view_resource>);
+  static_assert(graph_accepts_pooled<pooled_object_view_resource>);
+  static_assert(catalog_accepts_pooled<pooled_object_view_resource>);
+  static_assert(pooled_resource<pooled_object_reference_resource>);
+  static_assert(pooled_resource<temporary_pooled_objects_resource>);
+  static_assert(graph_accepts_pooled<temporary_pooled_objects_resource>);
+  static_assert(catalog_accepts_pooled<temporary_pooled_objects_resource>);
+  static_assert(not serialized_resource<temporary_pooled_objects_resource>);
+  static_assert(pooled_resource<filtered_pooled_resource>);
+  static_assert(pooled_resource<proxy_pooled_objects_resource>);
+  static_assert(pooled_resource<prvalue_pooled_objects_resource>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<pooled_object_view_resource>, int const*>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<pooled_object_reference_resource>, int>);
+  static_assert(
+    std::same_as<internal::resource_access_type_t<proxy_pooled_objects_resource>, bool>);
+
+  // Malformed token ranges are neither pooled nor eligible for serialized fallback.
+  static_assert(not pooled_resource<invalid_pooled_range_resource>);
+  static_assert(not unlimited_resource<invalid_pooled_range_resource>);
+  static_assert(not graph_accepts_unlimited<invalid_pooled_range_resource>);
+  static_assert(not serialized_resource<invalid_pooled_range_resource>);
+  static_assert(not graph_accepts_serialized<invalid_pooled_range_resource>);
+  static_assert(not catalog_accepts_serialized<invalid_pooled_range_resource>);
+  static_assert(not pooled_resource<noncopyable_pooled_token_resource>);
+  static_assert(not serialized_resource<noncopyable_pooled_token_resource>);
+  static_assert(not pooled_resource<nonassignable_pooled_token_resource>);
+  static_assert(not serialized_resource<nonassignable_pooled_token_resource>);
+  static_assert(not pooled_resource<mutable_tokens_serialized_resource>);
+  static_assert(not serialized_resource<mutable_tokens_serialized_resource>);
 
   // Resource dependency partitioning.
-  static_assert(mixed_dependencies::has_serialized_resources);
+  static_assert(mixed_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<mixed_dependencies::serialized_resources, boost::mp11::mp_list<catch2_resource>>);
+    std::same_as<mixed_dependencies::limited_resources, boost::mp11::mp_list<catch2_resource>>);
   static_assert(std::same_as<mixed_dependencies::unlimited_resources,
                              boost::mp11::mp_list<unlimited_resource_type>>);
-  static_assert(
-    std::same_as<mixed_dependencies::serialized_resource_indices, std::index_sequence<0>>);
+  static_assert(std::same_as<mixed_dependencies::limited_resource_indices, std::index_sequence<0>>);
   static_assert(
     std::same_as<mixed_dependencies::unlimited_resource_indices, std::index_sequence<1>>);
 
-  static_assert(reversed_dependencies::has_serialized_resources);
+  static_assert(reversed_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<reversed_dependencies::serialized_resource_indices, std::index_sequence<1>>);
+    std::same_as<reversed_dependencies::limited_resource_indices, std::index_sequence<1>>);
   static_assert(
     std::same_as<reversed_dependencies::unlimited_resource_indices, std::index_sequence<0>>);
 
-  static_assert(serialized_dependencies::has_serialized_resources);
+  static_assert(serialized_dependencies::has_limited_resources);
   static_assert(
-    std::same_as<serialized_dependencies::serialized_resource_indices, std::index_sequence<0, 1>>);
+    std::same_as<serialized_dependencies::limited_resource_indices, std::index_sequence<0, 1>>);
   static_assert(
     std::same_as<serialized_dependencies::unlimited_resource_indices, std::index_sequence<>>);
-  static_assert(not resource_dependencies<unlimited_resource_type>::has_serialized_resources);
-  static_assert(not resource_dependencies<>::has_serialized_resources);
+  static_assert(not resource_dependencies<unlimited_resource_type>::has_limited_resources);
+  static_assert(not resource_dependencies<>::has_limited_resources);
+
+  static_assert(pooled_dependencies::has_limited_resources);
+  static_assert(std::same_as<pooled_dependencies::limited_resources,
+                             boost::mp11::mp_list<pooled_token_resource>>);
+  static_assert(
+    std::same_as<pooled_dependencies::limited_resource_indices, std::index_sequence<0>>);
+  static_assert(std::same_as<internal::resource_access_type_t<pooled_token_resource>, int*>);
+
+  template <typename Resource, typename IsValid>
+  void verify_pooled_tokens(resource_catalog& catalog,
+                            IsValid is_valid,
+                            unsigned int number_of_messages = 2)
+  {
+    catalog.add_pooled<Resource>();
+    tbb::flow::graph graph;
+    std::atomic<unsigned int> valid_tokens{};
+    tbb::flow::resource_limited_node<int, std::tuple<>> node{
+      graph,
+      tbb::flow::serial,
+      std::tie(catalog.limiter_for<Resource>()),
+      [&valid_tokens, is_valid](int, auto&, internal::resource_access_type_t<Resource> token) {
+        if (is_valid(token)) {
+          ++valid_tokens;
+        }
+      }};
+    for (unsigned int i = 0; i < number_of_messages; ++i) {
+      REQUIRE(node.try_put(static_cast<int>(i)));
+    }
+    graph.wait_for_all();
+    CHECK(valid_tokens == number_of_messages);
+  }
 }
 
 TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
@@ -274,6 +430,72 @@ TEST_CASE("resource catalog", "[resource]")
     CHECK_NOTHROW(catalog.limiter_for<value_token_resource>());
   }
 
+  SECTION("pooled resources materialize a temporary token range once")
+  {
+    int calls{};
+    catalog.add_pooled<counting_pooled_resource>(calls, std::vector{11, 29, 47});
+    CHECK(calls == 1);
+    CHECK_NOTHROW(catalog.limiter_for<counting_pooled_resource>());
+    CHECK(calls == 1);
+  }
+
+  SECTION("explicit pointer handles refer to resource-owned elements")
+  {
+    verify_pooled_tokens<pooled_object_view_resource>(
+      catalog, [](int const* token) { return token && (*token == 11 || *token == 29); });
+  }
+
+  SECTION("owning ranges and views supply copied value handles")
+  {
+    auto is_expected_value = [](int token) { return token == 11 || token == 29; };
+    verify_pooled_tokens<pooled_object_reference_resource>(catalog, is_expected_value);
+    verify_pooled_tokens<temporary_pooled_objects_resource>(catalog, is_expected_value);
+    verify_pooled_tokens<filtered_pooled_resource>(catalog, is_expected_value);
+  }
+
+  SECTION("prvalue input ranges with distinct sentinels supply value handles")
+  {
+    verify_pooled_tokens<prvalue_pooled_objects_resource>(
+      catalog, [](int token) { return token == 11 || token == 12; }, 1);
+  }
+
+  SECTION("pointer ranges supply pointer values rather than their addresses")
+  {
+    catalog.add_pooled<pooled_token_resource>();
+    tbb::flow::graph graph;
+    std::atomic<bool> received_null_token{};
+    tbb::flow::resource_limited_node<int, std::tuple<>> node{
+      graph,
+      tbb::flow::serial,
+      std::tie(catalog.limiter_for<pooled_token_resource>()),
+      [&received_null_token](int, auto&, int const* token) {
+        received_null_token = token == nullptr;
+      }};
+    REQUIRE(node.try_put(0));
+    graph.wait_for_all();
+    CHECK(received_null_token);
+  }
+
+  SECTION("empty pooled resources throw during registration")
+  {
+    int calls{};
+    CHECK_THROWS_WITH(catalog.add_pooled<counting_pooled_resource>(calls, std::vector<int>{}),
+                      Catch::Matchers::ContainsSubstring("counting_pooled_resource") &&
+                        Catch::Matchers::ContainsSubstring("empty token pool"));
+    CHECK(calls == 1);
+    CHECK_THROWS_WITH(catalog.limiter_for<counting_pooled_resource>(),
+                      Catch::Matchers::ContainsSubstring("has not been registered"));
+  }
+
+  SECTION("duplicate pooled registrations throw")
+  {
+    int calls{};
+    catalog.add_pooled<counting_pooled_resource>(calls, std::vector{11});
+    CHECK_THROWS_WITH(catalog.add_pooled<counting_pooled_resource>(calls, std::vector{29}),
+                      Catch::Matchers::ContainsSubstring("has already been registered"));
+    CHECK(calls == 1);
+  }
+
   SECTION("duplicate serialized registrations throw")
   {
     catalog.add_serialized<catch2_resource>();
@@ -296,6 +518,9 @@ TEST_CASE("resource catalog", "[resource]")
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
     CHECK_THROWS_WITH(catalog.access_for<unlimited_resource_type>(),
+                      Catch::Matchers::ContainsSubstring("Resource of type '") &&
+                        Catch::Matchers::ContainsSubstring("' has not been registered"));
+    CHECK_THROWS_WITH(catalog.limiter_for<pooled_token_resource>(),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
   }

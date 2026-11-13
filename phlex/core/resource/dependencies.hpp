@@ -10,29 +10,26 @@
 #include <tuple>
 
 namespace phlex::detail {
-  // Retains the registration order while deriving the serialized and unlimited subsets needed
-  // by node construction. The index sequences let the invocation layer restore the original
-  // order after TBB has acquired only the serialized-resource tokens.
+  // Retains registration order while deriving the limited and unlimited subsets needed by node
+  // construction. The index sequences restore the original order after TBB acquires limited tokens.
   template <typename... Resources>
   struct resource_dependencies {
-    static_assert((phase_1_supported_resource<Resources> && ...),
-                  "resource<T> dependencies currently support only unlimited or serialized "
-                  "resources.");
+    static_assert(((unlimited_resource<Resources> || limited_resource<Resources>) && ...),
+                  "resource<T> dependencies must be unlimited, serialized, or pooled resources.");
 
     using all_resources = boost::mp11::mp_list<Resources...>;
-    using serialized_resources =
-      boost::mp11::mp_copy_if<all_resources, internal::is_serialized_resource>;
+    using limited_resources = boost::mp11::mp_copy_if<all_resources, internal::is_limited_resource>;
     using unlimited_resources =
       boost::mp11::mp_copy_if<all_resources, internal::is_unlimited_resource>;
-    using serialized_resource_indices =
-      internal::matching_indices<internal::is_serialized_resource, Resources...>;
+    using limited_resource_indices =
+      internal::matching_indices<internal::is_limited_resource, Resources...>;
     using unlimited_resource_indices =
       internal::matching_indices<internal::is_unlimited_resource, Resources...>;
 
-    static constexpr bool has_serialized_resources = serialized_resource_indices::size() != 0;
+    static constexpr bool has_limited_resources = limited_resource_indices::size() != 0;
 
     // Unlimited resources are cached once per node (access pointers are stable); serialized
-    // resources are looked up as the TBB resource_limiter references resource_limited_node needs.
+    // resources are looked up as the TBB resource_limiter references limited_resource_node needs.
     static auto unlimited_resource_accesses(resource_catalog const& resources)
     {
       return [&resources]<typename... Unlimited>(boost::mp11::mp_list<Unlimited...>) {
@@ -42,17 +39,16 @@ namespace phlex::detail {
       }(unlimited_resources{});
     }
 
-    static auto serialized_resource_limiters(resource_catalog& resources)
+    static auto limited_resource_limiters(resource_catalog& resources)
     {
-      return [&resources]<typename... Serialized>(boost::mp11::mp_list<Serialized...>) {
-        return std::tie(resources.template limiter_for<Serialized>()...);
-      }(serialized_resources{});
+      return [&resources]<typename... Limited>(boost::mp11::mp_list<Limited...>) {
+        return std::tie(resources.template limiter_for<Limited>()...);
+      }(limited_resources{});
     }
   };
 
   template <typename... Resources>
-  inline constexpr bool has_serialized =
-    resource_dependencies<Resources...>::has_serialized_resources;
+  inline constexpr bool has_limited = resource_dependencies<Resources...>::has_limited_resources;
 }
 
 #endif // PHLEX_CORE_RESOURCE_DEPENDENCIES_HPP

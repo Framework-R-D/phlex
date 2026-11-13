@@ -27,6 +27,7 @@ cet_make_library(
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
+  resource/entries.cpp
   LIBRARIES
   PUBLIC
   TBB::tbb
@@ -35,7 +36,9 @@ cet_make_library(
   phlex::model
   phlex::utilities
   PRIVATE
+  Boost::headers
   Boost::json
+  fmt::fmt
   spdlog::spdlog
 )
 
@@ -119,7 +122,7 @@ phlex_make_internal_library(
   phlex::metaprogramming
   phlex_model_internal
   phlex_utilities_internal
-  PRIVATE Boost::json spdlog::spdlog
+  PRIVATE Boost::headers Boost::json fmt::fmt spdlog::spdlog
 )
 target_compile_definitions(
   phlex_core_internal
