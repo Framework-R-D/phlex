@@ -65,23 +65,26 @@ FAULTY_CASES = [
 def _faulty_product(case: FaultyCase) -> str:
     return f"faulty_{case.tag}"
 
+
 def _check_unique_names():
     names = [_faulty_product(g) for g in FAULTY_CASES]
     dupes = {n for n in names if names.count(n) > 1}
     if dupes:
         raise ValueError(f"duplicate generated product names: {sorted(dupes)}")
 
+
 _check_unique_names()
 _FAULTY_BY_TAG = {g.tag: g for g in FAULTY_CASES}
+
 
 def _same_values(got, want, rel_tol: float) -> bool:
     """Compare scalars, numpy arrays, and lists element-wise."""
     got = np.atleast_1d(np.asarray(got)).tolist()
     want = np.atleast_1d(np.asarray(want)).tolist()
     return len(got) == len(want) and all(
-        math.isclose(g, w, rel_tol=rel_tol, abs_tol=0.0)
-        for g, w in zip(got, want, strict=True)
+        math.isclose(g, w, rel_tol=rel_tol, abs_tol=0.0) for g, w in zip(got, want, strict=True)
     )
+
 
 def _input(config, suffix: str) -> dict:
     return {"creator": config["creator"], "layer": config["layer"], "suffix": suffix}
@@ -122,4 +125,3 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             {"creator": product, "layer": config["layer"], "suffix": product},
         ],
     )
-
