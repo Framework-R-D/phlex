@@ -5,6 +5,7 @@
 # -*- sh-shell: sh
 # -*- End:
 
+# shellcheck shell=sh
 case ${0##*/} in
   entrypoint.sh)
     printf '%s\n' 'ERROR: entrypoint.sh must be sourced, not executed' >&2
