@@ -2,5 +2,5 @@
   <class name="track_start"/>
   <class name="std::vector<track_start>"/>
   <class name="unserializable"/>
-  <class name="waveform"/>
+  <class name="form::test::waveform"/>
 </lcgdict>

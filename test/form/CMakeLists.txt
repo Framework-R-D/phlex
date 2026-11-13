@@ -424,7 +424,7 @@ add_library(passthrough_vector MODULE passthrough_vector.cpp)
 target_link_libraries(passthrough_vector PRIVATE phlex::module)
 
 add_library(generate_waveform MODULE generate_waveform.cpp)
-target_link_libraries(generate_waveform PRIVATE phlex::module)
+target_link_libraries(generate_waveform PRIVATE phlex::module phlex::form form_test_data_products)
 
 cet_test(
   job:form_source_coverage_write_ttree
