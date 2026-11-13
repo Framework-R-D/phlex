@@ -191,7 +191,7 @@ namespace {
     }
     // LCOV_EXCL_STOP
 
-    // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
+    // TODO: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
     //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
     //        to sys.path so Python can find packages in Spack views.
     // NOLINTNEXTLINE(concurrency-mt-unsafe) - Single-threaded context

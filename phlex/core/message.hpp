@@ -40,7 +40,7 @@ namespace phlex::detail {
   };
 
   struct message {
-    // FIXME: Maybe consider adding an 'index' data member?
+    // TODO: Maybe consider adding an 'index' data member?
     phlex::experimental::product_store_const_ptr store;
     std::size_t id{};
   };

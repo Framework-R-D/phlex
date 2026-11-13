@@ -1,4 +1,4 @@
-# FIXME: Replace this implementation with cetmodules COMPILE_ONLY tests once its
+# TODO: Replace this implementation with cetmodules COMPILE_ONLY tests once its
 # data-file list quoting is fixed.
 set(fold_accumulator_only_diagnostic "at_least_two_input_parameters")
 set(

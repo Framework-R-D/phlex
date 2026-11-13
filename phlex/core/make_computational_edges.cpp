@@ -70,7 +70,7 @@ namespace phlex::detail {
     {
       provider_bundles result;
       for (auto const& src : sources | std::views::values) {
-        // FIXME: Eventually, make it impossible to create a stage named "CURRENT"
+        // TODO: Eventually, make it impossible to create a stage named "CURRENT"
         // so that we can remove this check.
         auto implicit_providers = src->create_providers(input_product);
         for (auto const& provider : implicit_providers) {

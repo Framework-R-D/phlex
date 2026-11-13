@@ -49,7 +49,7 @@ namespace phlex {
     depth_{parent_->depth_ + 1},
     hash_{phlex::detail::hash(parent_->hash_, number_, layer_hash_)}
   {
-    // FIXME: Should it be an error to create an ID with an empty name?
+    // TODO: Should it be an error to create an ID with an empty name?
   }
 
   data_cell_index_ptr data_cell_index::job()
@@ -126,7 +126,7 @@ namespace phlex {
 
   std::string data_cell_index::to_string() const
   {
-    // FIXME: prefix needs to be adjusted esp. if a root name can be supplied by the user.
+    // TODO: prefix needs to be adjusted esp. if a root name can be supplied by the user.
     std::string const prefix{"["}; //"root: ["};
     std::string result;
     std::string const suffix{"]"};

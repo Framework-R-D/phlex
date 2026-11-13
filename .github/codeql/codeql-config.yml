@@ -1,12 +1,27 @@
-# CodeQL configuration tuned for this repository (C++ + Python).
-# Adjust the query packs and path excludes for your needs.
+# CodeQL configuration tuned for this repository (C++ + Python + Actions).
 
 queries:
   - uses: security-extended
   - uses: code-quality
 
+query-filters:
+  # Track planned work in source comments without generating quality alerts.
+  - exclude:
+      id:
+        - cpp/todo-comment
+
 paths-ignore:
   - "*-build/**"
   - build/**
+  - "build-*/**"
+  - _build/**
+  - _deps/**
+  - out/**
+  - "**/CMakeFiles/**"
+  - "**/node_modules/**"
+  - "**/.venv/**"
+  - "**/py_virtual_env/**"
+  - "**/__pycache__/**"
   - doc/**
+  - docs/**
   - test/**
