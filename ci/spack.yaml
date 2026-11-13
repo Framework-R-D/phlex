@@ -63,6 +63,10 @@ spack:
       require:
         - "build_system=python_pip"
 
+    py-llvmlite:
+      require:
+        - "%libllvm=llvm"
+
     py-pytest-cov:
       require:
         - "build_system=python_pip"
