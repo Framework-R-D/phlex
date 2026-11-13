@@ -33,6 +33,7 @@ def ensure_native_image(image: str) -> None:
     """Make a linux/arm64 member of the image available locally without emulation."""
     image_platform: str | None
     inspection_error = None
+    pulled = False
     try:
         image_platform = local_image_platform(image)
     except subprocess.CalledProcessError as exc:
@@ -48,6 +49,7 @@ def ensure_native_image(image: str) -> None:
                 text=True,
                 stderr=subprocess.PIPE,
             )
+            pulled = True
         except subprocess.CalledProcessError as exc:
             raise ValueError(
                 f"pull failed for {image}: {subprocess_cause(exc)}; "
@@ -71,9 +73,12 @@ def ensure_native_image(image: str) -> None:
             f"local inspection failed: {cause}; {advice}"
         )
     if image_platform != NATIVE_PLATFORM:
+        hint = ""
+        if not pulled and not image.startswith("localhost/"):
+            hint = f"run: podman pull --platform {NATIVE_PLATFORM} {image}, or "
         raise ValueError(
             f"{image} resolves to {image_platform}, not {NATIVE_PLATFORM}; "
-            "select a native image with PHLEX_DEV_IMAGE"
+            f"{hint}select a native image with PHLEX_DEV_IMAGE"
         )
 
 
@@ -129,7 +134,7 @@ def main() -> None:
     target = Path(__file__).with_name("docker-compose.host.yml")
     try:
         service = host_service(platform.system(), Path.home())
-    except (ValueError, subprocess.CalledProcessError) as exc:
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
         # The Dev Containers log shows stderr; a one-line cause beats a traceback.
         message = str(exc)
         if isinstance(exc, subprocess.CalledProcessError):

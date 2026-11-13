@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import runpy
 import shutil
 import subprocess
@@ -28,6 +29,14 @@ def clean_image_override(monkeypatch):
 REGISTRY_IMAGE = "ghcr.io/framework-r-d/phlex-dev:latest"
 PODMAN_INFO = "arm64 true unix:///run/user/550/podman/podman.sock"
 INSPECT_FAILURE = subprocess.CalledProcessError(125, "podman image inspect")
+
+
+def test_default_image_matches_dockerfile():
+    """Keep the initializer and test defaults aligned with the Dockerfile base image."""
+    text = (DEVCONTAINER / "Dockerfile").read_text()
+    match = re.search(r"^ARG PHLEX_DEV_IMAGE=(\S+)$", text, re.MULTILINE)
+    assert match is not None
+    assert match.group(1) == CONFIGURE_HOST["DEFAULT_IMAGE"] == REGISTRY_IMAGE
 
 
 def inspect_command(image):
@@ -320,6 +329,17 @@ def test_main_reports_selection_errors_without_traceback(
     assert command.call_count == 1
 
 
+def test_main_reports_missing_podman_without_traceback(tmp_path, monkeypatch, capsys):
+    """A missing Podman executable follows the one-line initializer error contract."""
+    with patch(
+        "subprocess.check_output",
+        side_effect=[FileNotFoundError(2, "No such file or directory", "podman")],
+    ) as command:
+        captured = _check_host_main_failure(tmp_path, monkeypatch, capsys, command, "podman")
+    assert command.call_count == 1
+    assert "No such file or directory" in captured.err
+
+
 @pytest.mark.parametrize("after_pull", [False, True])
 @pytest.mark.parametrize(
     "image_platform", ["linux/amd64", "windows/arm64", "", "arm64", "linux/\namd64"]
@@ -348,6 +368,24 @@ def test_main_rejects_wrong_image_platform(
         else [inspect_command(REGISTRY_IMAGE)]
     )
     assert "not linux/arm64" in captured.err
+    pull_hint = f"run: podman pull --platform linux/arm64 {REGISTRY_IMAGE}"
+    assert (pull_hint in captured.err) == (not after_pull)
+
+
+def test_main_rejects_wrong_localhost_platform_without_pull_hint(tmp_path, monkeypatch, capsys):
+    """A wrong-platform localhost image cannot be repaired with a registry pull."""
+    image = "localhost/phlex-dev:wrong-platform"
+    monkeypatch.setenv("PHLEX_DEV_IMAGE", image)
+    with patch("subprocess.check_output", side_effect=[PODMAN_INFO, "linux/amd64"]) as command:
+        captured = _check_host_main_failure(
+            tmp_path,
+            monkeypatch,
+            capsys,
+            command,
+            "select a native image with PHLEX_DEV_IMAGE",
+        )
+    assert command.call_count == 2
+    assert f"run: podman pull --platform linux/arm64 {image}" not in captured.err
 
 
 @pytest.mark.parametrize("stage", ["info", "pull", "reinspection", "localhost"])
@@ -615,7 +653,7 @@ bash "$1" dev
         assert f"--tag phlex-dev:fixture-{expected}" in result.stdout
         assert f"--build-arg PHLEX_SPACK_TARGET={expected}" in result.stdout
         assert f"PHLEX_DEV_IMAGE=localhost/phlex-dev:fixture-{expected} code ." in result.stdout
-        assert "ghcr.io/framework-r-d/phlex-dev:latest" in result.stdout
+        assert "instead of the published devcontainer image" in result.stdout
 
 
 @pytest.mark.parametrize("option", ["-h", "--help"])
