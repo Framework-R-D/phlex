@@ -106,7 +106,7 @@ cmake --preset clang-tidy -B build-clang-tidy
 
 # Local verification: MPD workspace (run from the workspace root)
 bash srcs/phlex/scripts/verify.sh --project phlex-work-dir
-bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit$' --verbose
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit' --verbose
 
 # Local verification: standalone repository
 bash scripts/verify.sh --build-dir build

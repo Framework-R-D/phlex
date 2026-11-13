@@ -168,8 +168,8 @@ testing without coverage.
 # MPD: discover the build directory and select/build in the same shell.
 bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^identifier$'
 
-# MPD: build and run the scripts unit test.
-bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit$'
+# MPD: build and run the scripts unit tests in parallel.
+bash srcs/phlex/scripts/verify.sh --project phlex-work-dir --tests '^scripts:unit'
 
 # Standalone: use an explicitly selected configured build directory.
 bash scripts/verify.sh --build-dir build --tests '^identifier$' --verbose
@@ -194,9 +194,12 @@ ctest --test-dir build -R '^identifier$' -N && \
 
 # MPD: select the project and run both commands in the same shell invocation.
 spack mpd select --project phlex-work-dir && \
-  spack mpd test -- -R '^scripts:unit$' -N && \
-  spack mpd test -- -R '^scripts:unit$' --output-on-failure --no-tests=error
+  spack mpd test -- -R '^scripts:unit' -N && \
+  spack mpd test -- -R '^scripts:unit' --parallel --output-on-failure --no-tests=error
 ```
+
+The `scripts:unit:<module>` CTest entries run each pytest module as a separate
+test, allowing `ctest --parallel` to distribute modules across available jobs.
 
 ## Coverage Testing
 
