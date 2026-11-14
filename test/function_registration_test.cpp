@@ -112,15 +112,15 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 
 TEST_CASE("Register and execute a translator", "[programming model]")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver("translator-test");
+  auto g = phlex::detail::framework_graph::with_default_driver("translator_test");
   data_cell_index const* input_index{};
 
   g.provide("provide_number", provide_number)
-    .output_product("input", "number", "job", "input-stage");
+    .output_product("input", "number", "job", "input_stage");
   g.translate("translate_number",
               [&input_index](handle<int> number) {
                 input_index = &number.data_cell_index();
-                CHECK(number.stage() == "input-stage");
+                CHECK(number.stage() == "input_stage");
                 return *number * 0.5;
               })
     .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"})
@@ -131,7 +131,7 @@ TEST_CASE("Register and execute a translator", "[programming model]")
               CHECK(number.creator().algorithm == "translate_number");
               CHECK(number.suffix() == "translated_number");
               CHECK(number.layer() == "job");
-              CHECK(number.stage() == "translator-test");
+              CHECK(number.stage() == "translator_test");
               REQUIRE(input_index != nullptr);
               CHECK(&number.data_cell_index() == input_index);
             })
