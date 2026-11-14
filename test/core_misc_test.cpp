@@ -8,6 +8,7 @@
 
 #include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
@@ -40,6 +41,11 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Create error - trailing colon")
   {
     CHECK_THROWS_AS(algorithm_name::create("plugin:"), std::runtime_error);
+  }
+  SECTION("Create error - empty name")
+  {
+    CHECK_THROWS_AS(algorithm_name::create(""), std::runtime_error);
+    CHECK_THROWS_WITH(algorithm_name::create(""), "Cannot create an empty algorithm name.");
   }
   SECTION("Match both")
   {
