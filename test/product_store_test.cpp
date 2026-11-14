@@ -21,6 +21,15 @@
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
 
+TEST_CASE("Product store default source", "[data model]")
+{
+  auto const source = product_store::default_source();
+  CHECK(source.to_string() == "Source");
+  CHECK(source.algorithm() == "Source"_id);
+  CHECK(source.plugin().empty());
+  CHECK(product_store::default_source() == source);
+}
+
 TEST_CASE("Product store insertion", "[data model]")
 {
   auto const creator = algorithm_name::create("test_algorithm");
