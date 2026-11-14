@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -1590,9 +1591,9 @@ namespace {
     bool const registered = register_provider(src,
                                               registration->name,
                                               callable.get(),
-                                              *creator,
+                                              creator.value(),
                                               suffix.value_or(suffix_t{}),
-                                              *layer,
+                                              layer.value(),
                                               registration->output_type);
     if (!registered) {
       if (!PyErr_Occurred()) {
