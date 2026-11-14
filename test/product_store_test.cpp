@@ -25,6 +25,14 @@
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
 
+TEST_CASE("Product specification leading slash omits the creator", "[data model]")
+{
+  auto const spec = product_specification::create("/number");
+  CHECK_FALSE(spec.creator().has_value());
+  CHECK(spec.suffix() == "number"_id);
+  CHECK_FALSE(spec.type().valid());
+}
+
 TEST_CASE("Product specification hash and equality", "[data model]")
 {
   auto const creator = algorithm_name::create("plugin:producer");
