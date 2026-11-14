@@ -14,10 +14,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cstddef>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -93,6 +96,22 @@ namespace {
   };
 
   unsigned pass_on(vertex_collection const& vertices) { return vertices.data; }
+}
+
+TEST_CASE("Provider nodes reject product specifications without a creator")
+{
+  tbb::flow::graph graph;
+  provider_bundle const bundle{
+    .provider_function = give_me_vertices_erased,
+    .max_concurrency = concurrency::unlimited,
+    .spec = experimental::product_specification{
+      std::nullopt, "happy_vertices", experimental::make_type_id<vertex_collection>()},
+    .layer = "spill",
+    .stage = "previous_process"};
+
+  CHECK_THROWS_AS((detail::provider_node{graph, bundle}), std::runtime_error);
+  CHECK_THROWS_WITH((detail::provider_node{graph, bundle}),
+                    "Cannot create a provider without a product creator.");
 }
 
 TEST_CASE("Explicit providers")

@@ -133,6 +133,17 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   CHECK(h.stage() == "test_stage");
 }
 
+TEST_CASE("Retrieve absent creator from handle", "[data model]")
+{
+  int const number{3};
+  spec_t const spec{"three"};
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
+
+  CHECK(h.creator().plugin.empty());
+  CHECK(h.creator().algorithm.empty());
+  CHECK(h.suffix() == "three");
+}
+
 TEST_CASE("Retrieve stage from handle", "[data model]")
 {
   int const number{3};
