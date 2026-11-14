@@ -17,6 +17,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
@@ -69,18 +70,30 @@ TEST_CASE("Identifier validates every length-bearing construction path", "[ident
   CHECK(identifier_or_empty{""}.empty());
 }
 
-TEST_CASE("Moved identifiers remain valid names", "[identifier]")
+TEST_CASE("Moving identifiers preserves the destination value", "[identifier]")
 {
-  identifier original{"hits"};
-  identifier moved{std::move(original)};
-  CHECK(std::string_view{moved} == "hits"sv);
-  CHECK(std::string_view{original} == "hits"sv);
-  CHECK(original == "hits"_idq);
-  CHECK(identifier_or_empty{std::move(original)}.text() == "hits"sv);
-  identifier assigned{"other"};
-  assigned = std::move(original);
-  CHECK(assigned == "hits"_idq);
-  CHECK(std::string_view{original} == "hits"sv);
+  STATIC_CHECK(std::is_nothrow_move_constructible_v<identifier>);
+  STATIC_CHECK(std::is_nothrow_move_assignable_v<identifier>);
+  for (auto const name : {"hits"sv, "a_long_identifier_that_requires_heap_storage"sv}) {
+    identifier const expected{name};
+    identifier original{name};
+    identifier moved{std::move(original)};
+    CHECK(std::string_view{moved} == name);
+    CHECK(moved == expected);
+    CHECK(moved.hash() == expected.hash());
+    CHECK(fmt::format("{}", moved) == name);
+    identifier assigned{"other"};
+    assigned = std::move(moved);
+    CHECK(assigned == expected);
+    CHECK(std::string_view{assigned} == name);
+    CHECK(assigned.hash() == expected.hash());
+    CHECK(fmt::format("{}", assigned) == name);
+    identifier_or_empty const wrapped{std::move(assigned)};
+    CHECK(wrapped == identifier_or_empty{expected});
+    CHECK(wrapped.text() == name);
+    CHECK(wrapped.hash() == expected.hash());
+    CHECK(fmt::format("{}", wrapped) == name);
+  }
 }
 
 TEST_CASE("Identifier equality and inequality", "[identifier]")

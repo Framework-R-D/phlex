@@ -8,6 +8,7 @@
 #include <boost/json/fwd.hpp>
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <compare>
 #include <cstddef>
 #include <cstdint>
@@ -25,12 +26,8 @@ namespace phlex::detail {
     if (text.empty() || !letter(text.front())) {
       return false;
     }
-    for (char const c : text) {
-      if (!letter(c) && !(c >= '0' && c <= '9') && c != '_') {
-        return false;
-      }
-    }
-    return true;
+    return std::ranges::all_of(
+      text, [letter](char c) { return letter(c) || (c >= '0' && c <= '9') || c == '_'; });
   }
 }
 
@@ -46,6 +43,7 @@ namespace phlex::experimental {
 
   /// A non-empty ASCII name beginning with a letter and containing only letters, digits,
   /// and underscores, together with a precomputed hash.
+  /// Moved-from identifiers are only guaranteed to be safely destructible.
   class PHLEX_MODEL_EXPORT identifier {
   public:
     static constexpr std::uint64_t hash_string(std::string_view str)
@@ -58,7 +56,7 @@ namespace phlex::experimental {
     }
     identifier() = delete;
     identifier(identifier const& other) = default;
-    identifier(identifier&& other) : identifier(static_cast<identifier const&>(other)) {}
+    identifier(identifier&& other) noexcept = default;
 
     explicit identifier(std::string_view str);
 
@@ -71,7 +69,7 @@ namespace phlex::experimental {
     identifier(char const* lit) : identifier(std::string_view(lit)) {}
 
     identifier& operator=(identifier const& rhs) = default;
-    identifier& operator=(identifier&& rhs) { return *this = static_cast<identifier const&>(rhs); }
+    identifier& operator=(identifier&& rhs) noexcept = default;
 
     ~identifier() = default;
 
@@ -81,9 +79,7 @@ namespace phlex::experimental {
     bool operator==(identifier const& rhs) const noexcept;
     std::strong_ordering operator<=>(identifier const& rhs) const noexcept;
 
-    // check if empty
     bool empty() const noexcept { return content_.empty(); }
-    // get hash
     std::size_t hash() const noexcept { return hash_; }
 
     // transitional access to contained string
