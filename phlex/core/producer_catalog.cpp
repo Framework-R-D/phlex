@@ -167,7 +167,8 @@ namespace phlex::detail {
     if (b == e) {
       spdlog::debug(
         "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
-        query.suffix ? query.suffix->text() : "*");
+        // The empty catalog returned above, so b == e implies a specified suffix.
+        query.suffix->text()); // NOLINT(bugprone-unchecked-optional-access)
       return {};
     }
     std::vector<named_output_port const*> candidates;
