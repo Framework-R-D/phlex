@@ -5,6 +5,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -12,14 +13,43 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <gsl/pointers>
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <vector>
 
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
+
+TEST_CASE("Product specification hash and equality", "[data model]")
+{
+  auto const creator = algorithm_name::create("plugin:producer");
+  product_specification const named{creator, "number"_id, make_type_id<int>()};
+  product_specification const unnamed{std::nullopt, "number"_id, make_type_id<int>()};
+  std::hash<product_specification> const hash;
+
+  CHECK(hash(named) == hash(product_specification{creator, "number"_id, make_type_id<int>()}));
+  CHECK(hash(unnamed) ==
+        hash(product_specification{std::nullopt, "number"_id, make_type_id<int>()}));
+
+  std::unordered_set<product_specification> specs;
+  CHECK(specs.insert(named).second);
+  CHECK(specs.insert(unnamed).second);
+  CHECK_FALSE(specs.insert(product_specification{creator, "number"_id, make_type_id<int>()}).second);
+  CHECK_FALSE(
+    specs.insert(product_specification{std::nullopt, "number"_id, make_type_id<int>()}).second);
+  CHECK(specs.size() == 2u);
+  CHECK(specs.contains(product_specification{creator, "number"_id, make_type_id<int>()}));
+  CHECK(specs.contains(product_specification{std::nullopt, "number"_id, make_type_id<int>()}));
+  CHECK_FALSE(specs.contains(product_specification{creator, "other"_id, make_type_id<int>()}));
+  CHECK_FALSE(specs.contains(product_specification{creator, "number"_id, make_type_id<double>()}));
+  CHECK_FALSE(specs.contains(product_specification{
+    algorithm_name::create("plugin:other"), "number"_id, make_type_id<int>()}));
+}
 
 TEST_CASE("Product store default source", "[data model]")
 {
