@@ -25,15 +25,14 @@ TEST_CASE("Unresolved provider layers do not receive concrete indices", "[graph]
   tbb::flow::queue_node<detail::index_message> second_unresolved{graph};
   tbb::flow::queue_node<detail::index_message> resolved{graph};
   detail::index_router router{graph};
-  router.finalize(
-    graph,
-    {experimental::layer_path{"/job/run"}},
-    {},
-    {{"first_unresolved", {.input_product = {}, .port = &first_unresolved}},
-     {"second_unresolved", {.input_product = {}, .port = &second_unresolved}},
-     {"resolved", {.input_product = {.layer = "run"}, .port = &resolved}}},
-    {},
-    {});
+  router.finalize(graph,
+                  {experimental::layer_path{"/job/run"}},
+                  {},
+                  {{"first_unresolved", {.input_product = {}, .port = &first_unresolved}},
+                   {"second_unresolved", {.input_product = {}, .port = &second_unresolved}},
+                   {"resolved", {.input_product = {.layer = "run"}, .port = &resolved}}},
+                  {},
+                  {});
 
   auto const job = data_cell_index::job();
   auto const run = job->make_child("run", 0);

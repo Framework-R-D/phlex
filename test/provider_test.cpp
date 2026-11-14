@@ -104,8 +104,9 @@ TEST_CASE("Provider nodes reject product specifications without a creator")
   provider_bundle const bundle{
     .provider_function = give_me_vertices_erased,
     .max_concurrency = concurrency::unlimited,
-    .spec = experimental::product_specification{
-      std::nullopt, "happy_vertices", experimental::make_type_id<vertex_collection>()},
+    .spec = experimental::product_specification{std::nullopt,
+                                                "happy_vertices",
+                                                experimental::make_type_id<vertex_collection>()},
     .layer = "spill",
     .stage = "previous_process"};
 
