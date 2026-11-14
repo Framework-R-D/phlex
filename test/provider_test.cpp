@@ -14,10 +14,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cstddef>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -93,6 +96,53 @@ namespace {
   };
 
   unsigned pass_on(vertex_collection const& vertices) { return vertices.data; }
+}
+
+TEST_CASE("Provider construction requires a creator", "[graph]")
+{
+  using namespace phlex::experimental;
+  using namespace phlex::experimental::literals;
+
+  tbb::flow::graph g;
+  auto const type = make_type_id<vertex_collection>();
+
+  SECTION("A bundle with a present creator is accepted")
+  {
+    provider_bundle bundle{
+      .provider_function = give_me_vertices_erased,
+      .max_concurrency = concurrency::serial,
+      .spec = product_specification{algorithm_name::create("reco:find_hits"), "hits"_id, type},
+      .layer = "job",
+      .stage = "test"};
+    phlex::detail::provider_node const node{g, std::move(bundle)};
+    CHECK(node.name().to_string() == "reco:find_hits");
+    CHECK(node.name().plugin().text() == "reco");
+    CHECK(node.output_product().to_string() == "reco:find_hits/hits");
+  }
+
+  SECTION("A bundle with an absent creator is an error")
+  {
+    provider_bundle bundle{.provider_function = give_me_vertices_erased,
+                           .max_concurrency = concurrency::serial,
+                           .spec = product_specification{std::nullopt, "hits"_id, type},
+                           .layer = "job",
+                           .stage = "test"};
+    CHECK_THROWS_WITH(phlex::detail::provider_node(g, std::move(bundle)),
+                      ContainsSubstring("has no creator"));
+  }
+
+  SECTION("An output specification with an absent creator is an error")
+  {
+    CHECK_THROWS_AS(
+      phlex::detail::provider_node(algorithm_name::create("find_hits"),
+                                   1,
+                                   g,
+                                   give_me_vertices_erased,
+                                   product_specification{std::nullopt, "hits"_id, type},
+                                   "job"_id,
+                                   "test"_id),
+      std::runtime_error);
+  }
 }
 
 TEST_CASE("Explicit providers")

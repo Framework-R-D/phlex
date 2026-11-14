@@ -19,6 +19,9 @@ namespace phlex::detail {
   class producer;
   using product_suffix_t = phlex::experimental::suffix_t;
 
+  /// Catalogs independent producers by their explicit empty or named `suffix_t` outputs.
+  /// An omitted selector suffix searches all keys; an explicit suffix searches only that key.
+  /// Creator values retain both plugin and algorithm components, and output ports are borrowed.
   class PHLEX_CORE_EXPORT producer_catalog {
   public:
     explicit producer_catalog(std::span<producer* const> producers);
@@ -36,7 +39,7 @@ namespace phlex::detail {
     auto values() const { return producers_ | std::views::values; }
 
   private:
-    std::multimap<product_suffix_t, named_output_port> producers_;
+    std::multimap<phlex::experimental::suffix_t, named_output_port> producers_;
   };
 }
 

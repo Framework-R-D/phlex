@@ -7,8 +7,14 @@
 #include <cstdint>
 
 namespace phlex::experimental {
+  /// The creator of a product or the name of an algorithm.
+  ///
+  /// An algorithm name always has a non-empty algorithm component. Its plugin component is either
+  /// a non-empty plugin name or explicitly empty (for an unqualified name). A default-constructed
+  /// algorithm name is not valid, so one must always be constructed from a name.
   class PHLEX_MODEL_EXPORT algorithm_name {
   public:
+    algorithm_name() = delete;
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     algorithm_name(char const* spec);
     algorithm_name(std::string const& spec);
@@ -23,6 +29,16 @@ namespace phlex::experimental {
     bool match(algorithm_name const& other) const;
     auto operator<=>(algorithm_name const&) const noexcept = default;
 
+    /// Parses a creator name.
+    ///
+    /// Accepted forms:
+    /// - `algorithm`: the plugin component is explicitly empty.
+    /// - `plugin:algorithm`: both components are non-empty names.
+    ///
+    /// Each component must begin with an ASCII letter and contain only ASCII letters, digits,
+    /// and underscores. Rejected inputs include the empty string, a leading colon (`:algorithm`),
+    /// a trailing colon (`plugin:`), and any empty component. Malformed specifications throw
+    /// `std::runtime_error`; invalid identifiers throw `std::invalid_argument`.
     static algorithm_name create(char const* spec);
     static algorithm_name create(std::string_view spec);
 

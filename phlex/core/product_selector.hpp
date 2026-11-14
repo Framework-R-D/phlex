@@ -105,11 +105,16 @@ namespace phlex {
   /// from a configuration object with @c config.get<product_selector>(key).
   struct PHLEX_CORE_EXPORT product_selector {
     /// Plugin label (configuration key) or algorithm name of the product's creator.
+    /// An omitted creator is unrestricted, including specifications without a creator.
+    /// A supplied name matches either the plugin or algorithm of a present creator.
     detail::creator_name creator;
     /// Data layer of the product.  Required for every input of multi-input algorithms,
     /// folds and unfolds; products from other layers are not delivered.
     detail::layer_name layer;
     /// Product suffix, as given to @c output_product_suffixes(...).
+    /// Omitted matches any suffix; empty matches only empty; named matches only that name.
+    /// C-string literals convert implicitly; runtime strings require explicit suffix_t construction.
+    /// Equality, ordering, and diagnostics distinguish all three states.
     std::optional<experimental::suffix_t> suffix;
     /// Stage that created the product; @c "CURRENT" means the job's own stage.
     std::optional<experimental::identifier> stage;

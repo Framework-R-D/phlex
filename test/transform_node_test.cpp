@@ -76,7 +76,7 @@ namespace {
   template <typename T>
   product_specification spec(algorithm_name const& creator)
   {
-    return {creator, suffix_t{}, make_type_id<T>()};
+    return {creator, empty_string{}, make_type_id<T>()};
   }
 
   template <typename T>
@@ -105,6 +105,19 @@ namespace {
 
 TEST_CASE("transform_node directly transforms one input product", "[transform_node]")
 {
+  std::string expected_name{"double_value"};
+  identifier_or_empty expected_plugin{empty_string{}};
+  std::vector<std::string> predicates;
+
+  SECTION("Qualified name with ordered predicate metadata")
+  {
+    expected_name = "test_plugin:double_value";
+    expected_plugin = "test_plugin";
+    predicates = {"pred2", "pred1"};
+  }
+  SECTION("Unqualified name with no predicates") {}
+
+  algorithm_name const expected_creator{expected_name};
   oneapi::tbb::flow::graph graph;
   auto const input_creator_name = algorithm_name::create("input");
   identifier const stage_name = "test_stage"_id;
@@ -114,10 +127,10 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   auto alg = algorithm_bits_for(double_value);
   resource_catalog resources;
 
-  transform_node<decltype(alg)> node{algorithm_name{"double_value"},
+  transform_node<decltype(alg)> node{expected_creator,
                                      "test_stage"_id,
                                      1u,
-                                     {},
+                                     predicates,
                                      graph,
                                      std::move(alg),
                                      {input_selector},
@@ -125,10 +138,18 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
                                      resources};
   declared_transform& transform = node;
 
+  CHECK(transform.name().to_string() == expected_name);
+  CHECK(transform.name().plugin() == expected_plugin);
+  CHECK(transform.name().plugin().empty() == expected_plugin.empty());
+  CHECK(transform.name().algorithm() == "double_value"_id);
+  // Direct construction checks stored metadata, not graph-installed predicate gating.
+  CHECK(transform.when() == predicates);
+  CHECK(transform.when().empty() == predicates.empty());
+
   auto const& output_specs = transform.output();
   REQUIRE(output_specs.size() == 1u);
-  CHECK(output_specs[0].creator() == algorithm_name{"double_value"});
-  CHECK(output_specs[0].suffix() == suffix_t{});
+  CHECK(output_specs[0].creator() == expected_creator);
+  CHECK(output_specs[0].suffix() == empty_string{});
   CHECK(output_specs[0].type() == make_type_id<output_type_1>());
 
   oneapi::tbb::flow::queue_node<message> sink{graph};
@@ -143,7 +164,7 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   CHECK(output.id == message_id);
   REQUIRE(output.store);
   CHECK(output.store->index() == input_store->index());
-  CHECK(output.store->source() == algorithm_name{"double_value"});
+  CHECK(output.store->source() == expected_creator);
   CHECK(output.store->get_product<output_type_1>(
           gsl::make_not_null(std::addressof(output_specs[0]))) == output_type_1{42});
 

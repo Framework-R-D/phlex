@@ -66,6 +66,10 @@ namespace phlex::experimental {
 
     // Do we have a colon? If so, have both plugin and algorithm
     if (spec.contains(':')) {
+      if (spec.starts_with(':')) {
+        throw std::runtime_error(
+          fmt::format("The specification '{}' has an empty plugin name", spec));
+      }
       if (spec.ends_with(':')) {
         throw std::runtime_error("Cannot create an algorithm name that ends with a colon (':')");
       }
@@ -80,11 +84,11 @@ namespace phlex::experimental {
       return {identifier_or_empty(plugin), identifier(algorithm)};
     }
 
-    // No colon -- could be plugin or algorithm
+    // No colon: the plugin component is explicitly empty
     if (!words_only(spec)) {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {empty_string{}, identifier(spec)};
+    return {identifier_or_empty(empty_string{}), identifier(spec)};
   }
 }

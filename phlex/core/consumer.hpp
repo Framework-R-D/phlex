@@ -19,6 +19,13 @@
 
 namespace phlex::detail {
   enum class require_layers : char { multi_input_only, always };
+
+  /// Base class of nodes that consume data products.
+  ///
+  /// Accessor contract: `name()` is the complete node name. `name().plugin()` is its plugin
+  /// component, which is explicitly empty (`empty_string`) for an unqualified name, such as one
+  /// registered without a configuration; it is never an invalid empty `identifier`.
+  /// `name().algorithm()` is the non-empty algorithm component.
   class PHLEX_CORE_EXPORT consumer {
     using layer_check_node_t = tbb::flow::multifunction_node<message, message_tuple<1UZ>>;
 
