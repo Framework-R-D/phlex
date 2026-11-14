@@ -49,7 +49,6 @@ namespace phlex {
     depth_{parent_->depth_ + 1},
     hash_{phlex::detail::hash(parent_->hash_, number_, layer_hash_)}
   {
-    // FIXME: Should it be an error to create an ID with an empty name?
   }
 
   data_cell_index_ptr data_cell_index::job()
@@ -65,14 +64,14 @@ namespace phlex {
 
   experimental::layer_path data_cell_index::layer_path() const
   {
-    // We know how deep we are so we can pre-allocate and fill in reverse
-    std::vector<experimental::identifier> layers(depth_ + 1);
+    std::vector<experimental::identifier> layers;
+    layers.reserve(depth_ + 1);
     auto const* ptr = this;
-    for (auto& layer : std::views::reverse(layers)) {
-      assert(ptr);
-      layer = ptr->layer_name();
+    while (ptr) {
+      layers.push_back(ptr->layer_name());
       ptr = ptr->parent_.get();
     }
+    std::ranges::reverse(layers);
     return experimental::layer_path{std::move(layers)};
   }
 
@@ -144,9 +143,6 @@ namespace phlex {
 
   std::string data_cell_index::to_string_this_layer() const
   {
-    if (layer_name_.empty()) {
-      return std::to_string(number_);
-    }
     return fmt::format("{}:{}", layer_name_, number_);
   }
 

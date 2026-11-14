@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 
 #include <algorithm>
-#include <cassert>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -36,15 +35,13 @@ namespace {
 }
 
 namespace phlex::experimental {
-  algorithm_name::algorithm_name() = default;
-
   algorithm_name::algorithm_name(char const* spec) : algorithm_name{std::string_view{spec}} {}
   algorithm_name::algorithm_name(std::string const& spec) : algorithm_name{std::string_view{spec}}
   {
   }
-  algorithm_name::algorithm_name(std::string_view spec) { *this = create(spec); }
+  algorithm_name::algorithm_name(std::string_view spec) : algorithm_name{create(spec)} {}
 
-  algorithm_name::algorithm_name(identifier plugin, identifier algorithm) :
+  algorithm_name::algorithm_name(identifier_or_empty plugin, identifier algorithm) :
     plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
   {
   }
@@ -63,9 +60,8 @@ namespace phlex::experimental {
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
   algorithm_name algorithm_name::create(std::string_view spec)
   {
-    // Empty spec means nothing is specified
     if (spec.empty()) {
-      return {};
+      throw std::runtime_error("Cannot create an empty algorithm name.");
     }
 
     // Do we have a colon? If so, have both plugin and algorithm
@@ -77,11 +73,11 @@ namespace phlex::experimental {
       std::string_view const plugin = spec.substr(0, colon_pos);
       std::string_view const algorithm = spec.substr(colon_pos + 1); // +1 OK, : not at end
 
-      if (!words_only(plugin) or !words_only(algorithm)) {
+      if (plugin.empty() || !words_only(plugin) || !words_only(algorithm)) {
         throw std::runtime_error(
           fmt::format("The specification '{}' is not a valid algorithm name.", spec));
       }
-      return {identifier(plugin), identifier(algorithm)};
+      return {identifier_or_empty(plugin), identifier(algorithm)};
     }
 
     // No colon -- could be plugin or algorithm
@@ -89,6 +85,6 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {"", identifier(spec)};
+    return {empty_string{}, identifier(spec)};
   }
 }

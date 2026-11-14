@@ -50,8 +50,7 @@ TEST_CASE("data_cell_index methods", "[data model]")
     CHECK(subrun->to_string() == "[run:0, subrun:5]");
     CHECK(base->to_string() == "[]");
 
-    auto nameless = base->make_child("", 10);
-    CHECK(nameless->to_string() == "[10]");
+    CHECK_THROWS(base->make_child("", 10));
   }
 
   SECTION("Parent lookup")

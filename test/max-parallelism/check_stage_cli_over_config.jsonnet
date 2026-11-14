@@ -1,10 +1,10 @@
 local base = import 'check_parallelism_default.jsonnet';
 
 base {
-  stage: 'configured-stage',
+  stage: 'configured_stage',
   modules+: {
     verify+: {
-      expected_stage: 'command-line-stage',
+      expected_stage: 'command_line_stage',
     },
   },
 }

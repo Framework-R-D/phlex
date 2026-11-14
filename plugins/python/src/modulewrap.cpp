@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -116,7 +117,17 @@ namespace {
 
   inline std::string converted_suffix(product_selector const& sel)
   {
-    return "py_" + (sel.suffix ? std::string{static_cast<std::string_view>(*sel.suffix)} : "");
+    return "py_" + (sel.suffix ? std::string{sel.suffix->text()} : "");
+  }
+
+  PyObject* translate_exception(std::exception const& e)
+  {
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(dynamic_cast<std::invalid_argument const*>(&e) ? PyExc_ValueError
+                                                                     : PyExc_RuntimeError,
+                      e.what());
+    }
+    return nullptr;
   }
 
   inline PyObject* import_attr(char const* module, char const* attr)
@@ -277,9 +288,8 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  inline std::optional<identifier> try_item(PyObject* pysel,
-                                            std::string const& item,
-                                            bool allow_optionals)
+  template <typename T>
+  std::optional<T> try_item(PyObject* pysel, std::string const& item, bool allow_optionals)
   {
     PyObject* pyii = PyDict_GetItemString(pysel, item.c_str());
     if ((!pyii && !allow_optionals) || (pyii && !PyUnicode_Check(pyii))) {
@@ -287,10 +297,14 @@ namespace {
       return std::nullopt;
     }
     if (!pyii) {
-      PyErr_Clear();
       return std::nullopt;
     }
-    return std::optional<identifier>{PyUnicode_AsUTF8(pyii)};
+    Py_ssize_t size = 0;
+    char const* text = PyUnicode_AsUTF8AndSize(pyii, &size);
+    if (!text) {
+      return std::nullopt;
+    }
+    return T{std::string_view{text, static_cast<std::size_t>(size)}};
   }
 
   inline std::optional<product_selector> validate_selector(PyObject* pysel,
@@ -301,13 +315,16 @@ namespace {
       return std::nullopt;
     }
 
-    std::optional<identifier> c = try_item(pysel, "creator", allow_optionals);
-    std::optional<identifier> l = try_item(pysel, "layer", allow_optionals);
-    if (!allow_optionals && !(c.has_value() && l.has_value())) {
+    auto c = try_item<identifier>(pysel, "creator", allow_optionals);
+    if (PyErr_Occurred()) {
       return std::nullopt;
     }
-    std::optional<identifier> const s = try_item(pysel, "suffix", true); // always optional
-    if (!s.has_value() && PyErr_Occurred()) {
+    auto l = try_item<identifier>(pysel, "layer", allow_optionals);
+    if (PyErr_Occurred()) {
+      return std::nullopt;
+    }
+    auto s = try_item<suffix_t>(pysel, "suffix", true); // always optional
+    if (PyErr_Occurred()) {
       return std::nullopt;
     }
 
@@ -316,7 +333,7 @@ namespace {
     //     move for its contructor
     //   "suffix" is an optional itself, so can pass directly
     return std::optional<product_selector>{
-      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = s}};
+      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = std::move(s)}};
   }
 
   template <typename T, typename F>
@@ -372,7 +389,9 @@ namespace {
         if (!p) {
           return std::nullopt;
         }
-        return std::string(p, static_cast<std::string::size_type>(sz));
+        std::string result(p, static_cast<std::string::size_type>(sz));
+        suffix_t const checked{result};
+        return result;
       });
   }
 
@@ -920,8 +939,15 @@ namespace {
       Py_INCREF(pyname);
     }
 
-    functor_name = PyUnicode_AsUTF8(pyname);
+    Py_ssize_t name_size = 0;
+    char const* name_text = PyUnicode_AsUTF8AndSize(pyname, &name_size);
+    if (!name_text) {
+      Py_DECREF(pyname);
+      return nullptr;
+    }
+    functor_name.assign(name_text, static_cast<std::size_t>(name_size));
     Py_DECREF(pyname);
+    identifier const checked_name{std::string_view{functor_name}};
 
     if (!input) {
       PyErr_SetString(PyExc_TypeError, "an input is required");
@@ -1161,7 +1187,7 @@ namespace {
     std::string const suffix = converted_suffix(selector);
     return {.creator = identifier(input_converter_name(name, index)),
             .layer = selector.layer,
-            .suffix = identifier(suffix)};
+            .suffix = suffix_t(suffix)};
   }
 
   template <size_t N, typename Cf>
@@ -1197,10 +1223,10 @@ namespace {
   {
     // Only a single output is supported until typed tuple conversion is implemented.
     std::string const pyname = "py_" + name;
-    std::string const pyoutput = output_suffix + "_py";
+    std::string const pyoutput = output_suffix.empty() ? "py" : output_suffix + "_py";
     auto output_selector = product_selector{.creator = identifier(pyname),
                                             .layer = std::move(output_layer),
-                                            .suffix = identifier(pyoutput)};
+                                            .suffix = suffix_t(pyoutput)};
 
     auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
       constexpr std::size_t n = sizeof...(Is);
@@ -1225,7 +1251,7 @@ namespace {
   }
 
   PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
-  {
+  try {
     // Register a python algorithm by adding the necessary intermediate converter
     // nodes going from C++ to PyObject* and back.
 
@@ -1288,11 +1314,16 @@ namespace {
     }
 
     Py_RETURN_NONE;
+  } catch (std::exception const& e) {
+    return translate_exception(e);
+  } catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception in transform registration");
+    return nullptr;
   }
 
   // NOLINTNEXTLINE(readability-function-size)
   PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds)
-  {
+  try {
     // Register a python observer by adding the necessary intermediate converter
     // nodes going from C++ to PyObject* and back.
 
@@ -1350,6 +1381,11 @@ namespace {
     }
 
     Py_RETURN_NONE;
+  } catch (std::exception const& e) {
+    return translate_exception(e);
+  } catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception in observer registration");
+    return nullptr;
   }
 
   // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
@@ -1474,12 +1510,13 @@ namespace {
     } else {
       Py_INCREF(pyname);
     }
-    char const* name_text = PyUnicode_AsUTF8(pyname);
+    Py_ssize_t name_size = 0;
+    char const* name_text = PyUnicode_AsUTF8AndSize(pyname, &name_size);
     if (!name_text) {
       Py_DECREF(pyname);
       return std::nullopt;
     }
-    std::string const name = name_text;
+    std::string const name{name_text, static_cast<std::size_t>(name_size)};
     Py_DECREF(pyname);
 
     std::vector<std::string> input_types;
@@ -1498,6 +1535,7 @@ namespace {
       PyErr_SetString(PyExc_TypeError, "a provider must have an output");
       return std::nullopt;
     }
+    identifier const checked_name{std::string_view{name}};
     return provider_registration{
       .callable = callable, .output = output, .name = name, .output_type = output_types[0]};
   }
@@ -1506,7 +1544,7 @@ namespace {
                          std::string const& name,
                          PyObject* callable,
                          algorithm_name const& creator,
-                         identifier const& suffix,
+                         suffix_t const& suffix,
                          identifier const& layer,
                          std::string const& output_type)
   {
@@ -1518,7 +1556,7 @@ namespace {
   }
 
   PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds)
-  {
+  try {
     auto registration = parse_provider_registration(args, kwds);
     if (!registration) {
       return nullptr;
@@ -1530,21 +1568,33 @@ namespace {
     // translate and validate the output "selectors"
     // Since a selector in Python is just a dictionary, it isn't called out in the user
     // API as a selector
-    auto opq = validate_selector(registration->output, false);
-    if (!opq.has_value()) {
-      // validate_selector has set a python exception with details about the error
+    if (!PyDict_Check(registration->output)) {
+      PyErr_SetString(PyExc_TypeError, "selector should be a product specification");
       return nullptr;
     }
-
-    algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
-    identifier const layer = opq.value().layer;
-    identifier const suffix = opq.value().suffix.value_or("");
+    auto creator = try_item<algorithm_name>(registration->output, "creator", false);
+    if (PyErr_Occurred()) {
+      return nullptr;
+    }
+    auto layer = try_item<identifier>(registration->output, "layer", false);
+    if (PyErr_Occurred()) {
+      return nullptr;
+    }
+    auto suffix = try_item<suffix_t>(registration->output, "suffix", true);
+    if (PyErr_Occurred()) {
+      return nullptr;
+    }
 
     // Provider callbacks retain the callable for the graph lifetime. A translator node
     // cannot be used here because sources do not have a module for adding one.
     // TODO: callable cleanup is deferred until a Phlex shutdown procedure exists.
-    bool const registered = register_provider(
-      src, registration->name, callable.get(), creator, suffix, layer, registration->output_type);
+    bool const registered = register_provider(src,
+                                              registration->name,
+                                              callable.get(),
+                                              creator.value(),
+                                              suffix.value_or(suffix_t{}),
+                                              layer.value(),
+                                              registration->output_type);
     if (!registered) {
       if (!PyErr_Occurred()) {
         PyErr_Format(
@@ -1554,6 +1604,11 @@ namespace {
     }
 
     Py_RETURN_NONE;
+  } catch (std::exception const& e) {
+    return translate_exception(e);
+  } catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception in provider registration");
+    return nullptr;
   }
 
   // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.

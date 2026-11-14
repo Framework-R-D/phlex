@@ -52,10 +52,15 @@ namespace phlex {
     auto query_object = jv.as_object();
     auto creator = value_if_exists(query_object, "creator");
     auto layer = value_if_exists(query_object, "layer");
-    auto suffix = value_if_exists(query_object, "suffix");
+    std::optional<experimental::suffix_t> suffix;
+    if (query_object.contains("suffix")) {
+      suffix.emplace(std::string_view{query_object.at("suffix").as_string()});
+    }
     auto stage = value_if_exists(query_object, "stage");
-    return product_selector{
-      .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
+    return product_selector{.creator = std::move(creator),
+                            .layer = std::move(layer),
+                            .suffix = std::move(suffix),
+                            .stage = stage};
   }
 
   experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,

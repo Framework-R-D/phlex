@@ -262,7 +262,14 @@ namespace phlex::detail {
                                               provider_input_ports_t provider_input_ports)
   {
     for (auto& [input_product, provider_port] : provider_input_ports | std::views::values) {
-      auto [it, _] = index_set_nodes_.emplace(input_product.layer ? *input_product.layer : "*"_id,
+      if (!input_product.layer) {
+        if (!unresolved_index_set_node_) {
+          unresolved_index_set_node_ = std::make_shared<internal::index_set_node>(g);
+        }
+        make_edge(*unresolved_index_set_node_, *provider_port);
+        continue;
+      }
+      auto [it, _] = index_set_nodes_.emplace(*input_product.layer,
                                               std::make_shared<internal::index_set_node>(g));
       make_edge(*it->second, *provider_port);
     }
@@ -302,7 +309,7 @@ namespace phlex::detail {
         node_slots.flush_specs.push_back(
           {.counting_layer = effective_counting_layer, .flush_port = flush_port});
       }
-      multilayer_join_slots_.emplace(identifier{node_name}, std::move(node_slots));
+      multilayer_join_slots_.emplace(node_name, std::move(node_slots));
     }
   }
 
