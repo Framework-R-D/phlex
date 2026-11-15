@@ -4,8 +4,8 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -47,7 +47,8 @@ TEST_CASE("Product specification hash and equality", "[data model]")
   std::unordered_set<product_specification> specs;
   CHECK(specs.insert(named).second);
   CHECK(specs.insert(unnamed).second);
-  CHECK_FALSE(specs.insert(product_specification{creator, "number"_id, make_type_id<int>()}).second);
+  CHECK_FALSE(
+    specs.insert(product_specification{creator, "number"_id, make_type_id<int>()}).second);
   CHECK_FALSE(
     specs.insert(product_specification{std::nullopt, "number"_id, make_type_id<int>()}).second);
   CHECK(specs.size() == 2u);
