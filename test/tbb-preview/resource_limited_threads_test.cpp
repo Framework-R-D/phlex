@@ -1,12 +1,13 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
-#include "phlex/core/resource/concepts.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/fwd.hpp"
+#include "test/tbb-preview/dedicated_worker_pool.hpp"
+#include "test/tbb-preview/mock_simulation.hpp"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -14,225 +15,25 @@
 #include <catch2/matchers/catch_matchers.hpp>
 // The format library does not natively support std::thread::id (IWYU does not know this)
 #include <fmt/std.h> // IWYU pragma: keep
-#include <spdlog/spdlog.h>
 
 #include <atomic>
 #include <cstddef>
-#include <exception>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <ranges>
-#include <semaphore>
-#include <source_location>
-#include <span>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
-#include <type_traits>
-#include <utility>
 #include <vector>
 
+using phlex::test::dedicated_worker_pool;
+using phlex::test::managed_thread;
+using phlex::test::mock_simulation;
+using phlex::test::run_context;
+using phlex::test::tracked_worker;
+using phlex::test::worker_lifecycle;
+
 namespace {
-
-  template <typename Factory>
-  class managed_thread {
-  public:
-    explicit managed_thread(Factory make_worker) :
-      make_worker_{std::move(make_worker)}, thread_{[this] { run(); }}
-    {
-      slot_ready_.acquire();
-      if (exception_) {
-        // jthread joins the failed worker during constructor unwinding.
-        std::rethrow_exception(exception_);
-      }
-    }
-    managed_thread(managed_thread const&) = delete;
-    managed_thread(managed_thread&&) = delete;
-    managed_thread& operator=(managed_thread const&) = delete;
-    managed_thread& operator=(managed_thread&&) = delete;
-
-    ~managed_thread()
-    {
-      stopping_ = true;
-      work_ready_.release();
-    }
-
-    // Callers must serialize access to this handle and finish before destruction.
-    template <typename Operation>
-    auto execute(Operation operation)
-    {
-      // The caller remains blocked, so even move-only operations can be borrowed.
-      using result_type = std::invoke_result_t<Operation&, std::invoke_result_t<Factory&>&>;
-      static_assert(!std::is_reference_v<result_type>, "Worker results must be returned by value.");
-      if constexpr (std::is_void_v<result_type>) {
-        operation_ = [&operation](auto& worker) { std::invoke(operation, worker); };
-        work_ready_.release();
-        wait();
-      } else {
-        std::optional<result_type> result;
-        operation_ = [&result, &operation](auto& worker) {
-          result.emplace(std::invoke(operation, worker));
-        };
-        work_ready_.release();
-        wait();
-        // NOLINTNEXTLINE(bugprone-unchecked-optional-access): The worker always sets the result.
-        return std::move(*result);
-      }
-    }
-
-  private:
-    using operation_type = std::function<void(std::invoke_result_t<Factory&>&)>;
-
-    void wait()
-    {
-      slot_ready_.acquire();
-      operation_ = nullptr;
-      if (exception_) {
-        std::rethrow_exception(std::exchange(exception_, nullptr));
-      }
-    }
-
-    void run()
-    {
-      try {
-        // Worker state lives entirely on this thread, including destruction.
-        auto worker = std::invoke(make_worker_);
-        slot_ready_.release();
-        while (true) {
-          work_ready_.acquire();
-          if (stopping_) {
-            break;
-          }
-
-          try {
-            operation_(worker);
-          } catch (...) {
-            exception_ = std::current_exception();
-          }
-          slot_ready_.release();
-        }
-      } catch (...) {
-        exception_ = std::current_exception();
-        slot_ready_.release();
-      }
-    }
-
-    Factory make_worker_;
-    operation_type operation_;
-    std::binary_semaphore work_ready_{0};
-    std::binary_semaphore slot_ready_{0};
-    std::atomic<bool> stopping_{false};
-    std::exception_ptr exception_;
-    std::jthread thread_;
-  };
-
-  template <typename Factory>
-  class dedicated_worker_pool {
-    using worker_type = managed_thread<Factory>;
-    std::vector<std::unique_ptr<worker_type>> workers_;
-
-  public:
-    using handle_type = worker_type*;
-
-    // The factory returns owned state with non-throwing destruction. Each worker
-    // receives its own factory copy; shared captures remain the caller's responsibility.
-    dedicated_worker_pool(Factory const& make_worker,
-                          std::size_t const num_workers,
-                          std::source_location const location = std::source_location::current())
-    {
-      if (num_workers == 0) {
-        throw std::invalid_argument{"A dedicated worker pool requires at least one worker"};
-      }
-      workers_.reserve(num_workers);
-      for (std::size_t i = 0; i < num_workers; ++i) {
-        spdlog::info("Creating managed thread {} (pool created at line {})", i, location.line());
-        workers_.push_back(std::make_unique<worker_type>(make_worker));
-      }
-    }
-
-    // Handles are non-owning and must not outlive the pool.
-    auto handles() const
-    {
-      return workers_ | std::views::transform([](auto const& worker) { return worker.get(); });
-    }
-  };
-
-  struct worker_lifecycle {
-    std::thread::id initialized;
-    std::thread::id executed;
-    std::thread::id destroyed;
-    unsigned int calls{};
-  };
-
-  class tracked_worker {
-  public:
-    worker_lifecycle& lifecycle;
-
-    explicit tracked_worker(worker_lifecycle& record) : lifecycle{record}
-    {
-      lifecycle.initialized = std::this_thread::get_id();
-    }
-    tracked_worker(tracked_worker const&) = delete;
-    tracked_worker(tracked_worker&&) = delete;
-    tracked_worker& operator=(tracked_worker const&) = delete;
-    tracked_worker& operator=(tracked_worker&&) = delete;
-    ~tracked_worker() { lifecycle.destroyed = std::this_thread::get_id(); }
-  };
-
-  struct simulation_result {
-    unsigned int value;
-    std::thread::id worker_thread;
-  };
-
-  // Algorithms use typed operations; dispatch and worker access stay inside the resource.
-  class mock_simulation {
-    using pool_type = dedicated_worker_pool<std::function<tracked_worker()>>;
-
-  public:
-    class token_type {
-    public:
-      explicit token_type(pool_type::handle_type thread) : thread_{thread} {}
-
-      simulation_result process_event(unsigned int value) const
-      {
-        return thread_->execute([value](tracked_worker& worker) {
-          auto& record = worker.lifecycle;
-          record.executed = std::this_thread::get_id();
-          ++record.calls;
-          return simulation_result{.value = value + 1, .worker_thread = record.executed};
-        });
-      }
-
-      void fail() const
-      {
-        thread_->execute([](tracked_worker& worker) {
-          worker.lifecycle.executed = std::this_thread::get_id();
-          throw std::runtime_error{"Exception from managed thread"};
-        });
-      }
-
-    private:
-      pool_type::handle_type thread_;
-    };
-
-    explicit mock_simulation(std::vector<worker_lifecycle>& records) :
-      workers_{[&records, next = std::make_shared<std::size_t>(0)]() mutable {
-                 return tracked_worker{records.at((*next)++)};
-               },
-               records.size()}
-    {
-      for (auto* thread : workers_.handles()) {
-        tokens_.emplace_back(thread);
-      }
-    }
-
-    std::span<token_type const> tokens() const { return tokens_; }
-
-  private:
-    pool_type workers_;
-    std::vector<token_type> tokens_;
-  };
 
   struct ordinary_pool {
     static std::vector<int> tokens() { return {10, 20}; }
@@ -244,8 +45,8 @@ namespace {
   };
 
   void add_events(phlex::detail::framework_graph& graph,
-                  unsigned int num_runs = 2,
-                  unsigned int events_per_run = 10)
+                  unsigned int const num_runs,
+                  unsigned int const events_per_run)
   {
     using namespace phlex;
     graph.add_driver(
@@ -268,8 +69,6 @@ namespace {
       .output_product("input", "number", "event");
   }
 
-  static_assert(phlex::detail::pooled_resource<mock_simulation>);
-
 } // namespace
 
 TEST_CASE("Algorithms call pinned resource methods across runs", "[resource][affine]")
@@ -286,7 +85,7 @@ TEST_CASE("Algorithms call pinned resource methods across runs", "[resource][aff
     graph.add_pooled_resource<ordinary_pool>();
     graph.add_unlimited_resource<ordinary_unlimited>();
     graph.add_serialized_resource<ordinary_serialized>();
-    add_events(graph);
+    add_events(graph, 2, 10);
     graph
       .transform(
         "simulate",
@@ -334,6 +133,82 @@ TEST_CASE("Algorithms call pinned resource methods across runs", "[resource][aff
   CHECK(sum == 110);
   CHECK_FALSE(wrong_thread);
   CHECK(records[0].calls + records[1].calls == 40);
+  for (auto const& record : records) {
+    CHECK(record.initialized != std::this_thread::get_id());
+    CHECK(record.destroyed == record.initialized);
+    if (record.calls != 0) {
+      CHECK(record.executed == record.initialized);
+    }
+  }
+}
+
+TEST_CASE("Pinned resource methods consume run context and produce run summaries",
+          "[resource][affine][fold]")
+{
+  using namespace phlex;
+  auto const parallelism = GENERATE(1, 4);
+  std::vector<worker_lifecycle> records(2);
+  std::vector<unsigned int> summaries(2);
+  std::atomic<bool> wrong_thread{};
+  {
+    auto graph = detail::framework_graph::without_driver("test", parallelism);
+    graph.add_pooled_resource<mock_simulation>(records);
+    add_events(graph, 2, 10);
+
+    // Begin-run-like setup is data, repeated by the join for each event in that run.
+    graph
+      .provide("run_context",
+               [](data_cell_index const& index) {
+                 return run_context{.number = index.number(),
+                                    .offset =
+                                      static_cast<unsigned int>((index.number() + 1) * 100)};
+               })
+      .output_product("input", "context", "run");
+    graph
+      .transform(
+        "simulate",
+        [&wrong_thread](
+          unsigned int value, run_context const& run, mock_simulation::token_type sim) {
+          auto const caller = std::this_thread::get_id();
+          auto const result = sim.process_event(value, run);
+          if (result.worker_thread == caller || std::this_thread::get_id() != caller) {
+            wrong_thread = true;
+          }
+          return result.value;
+        },
+        concurrency::unlimited)
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"},
+                    product_selector{.creator = "input", .layer = "run", .suffix = "context"},
+                    resource<mock_simulation>{})
+      .output_product_suffixes("result");
+
+    graph
+      .fold(
+        "run_sum",
+        [](std::atomic<unsigned int>& sum, unsigned int value) { sum += value; },
+        concurrency::unlimited,
+        "run")
+      .input_family(product_selector{.creator = "simulate", .layer = "event", .suffix = "result"})
+      .output_product_suffixes("sum");
+    // The completed fold supplies end-run-like results, not a global worker barrier.
+    graph
+      .observe(
+        "report_run",
+        [&summaries](unsigned int sum, run_context const& run) { summaries.at(run.number) = sum; },
+        concurrency::serial)
+      .input_family(product_selector{.creator = "run_sum", .layer = "run", .suffix = "sum"},
+                    product_selector{.creator = "input", .layer = "run", .suffix = "context"});
+
+    graph.execute();
+    CHECK(graph.execution_count("run_context") == 2);
+    CHECK(graph.execution_count("simulate") == 20);
+    CHECK(graph.execution_count("run_sum") == 20);
+    CHECK(graph.execution_count("report_run") == 2);
+  }
+  // Each run has event values 0..9: sum(value + 1 + offset) = 55 + 10 * offset.
+  CHECK(summaries == std::vector<unsigned int>{1055, 2055});
+  CHECK_FALSE(wrong_thread);
+  CHECK(records[0].calls + records[1].calls == 20);
   for (auto const& record : records) {
     CHECK(record.initialized != std::this_thread::get_id());
     CHECK(record.destroyed == record.initialized);
