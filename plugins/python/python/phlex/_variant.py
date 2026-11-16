@@ -8,7 +8,8 @@ functions for registration with the proper C++ types.
 import collections
 import copy
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 __all__ = [
     "MissingAnnotation",
@@ -57,7 +58,7 @@ class Variant:
     def __init__(
         self,
         f: Callable,
-        annotations: dict[str, str | type | Any],
+        annotations: Mapping[str, str | type | Any],
         name: str,
         clone: bool | str = False,
         allow_call: bool = False,

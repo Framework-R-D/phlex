@@ -273,7 +273,14 @@ jobs:
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "➡️ Checking Python code with MyPy..."
-          mypy --config-file "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" --color-output .
+          export MYPYPATH="$PWD/plugins/python/python:$PWD/scripts:$PWD/test/python"
+          mypy --config-file "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" --color-output \
+            scripts \
+            ci \
+            plugins/python/python \
+            test/python \
+            .devcontainer/configure-host.py \
+            docs/source/conf.py
         continue-on-error: true
 
       - name: Evaluate Python checks result

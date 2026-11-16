@@ -62,6 +62,7 @@
             "**/build/CMakeFiles/**": true
         },
         "python.languageServer": "Pylance",
+        "python.analysis.diagnosticMode": "workspace",
         "python.terminal.activateEnvironment": false,
         // Container-only interpreter paths (python.defaultInterpreterPath,
         // esbonio.server.pythonPath) are intentionally not set here: this file
