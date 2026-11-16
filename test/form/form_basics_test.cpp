@@ -573,7 +573,8 @@ TEST_CASE("storage_writer: the descriptor reaches the file it names", "[form]")
     {placement{"file.root", "cont", form::technology::id{}}, &typeid(int)}};
   storage->create_containers(containers, settings);
 
-  std::vector<std::pair<std::string, std::string>> const entries{{"form_layout_version", "0.1"}};
+  std::vector<std::pair<std::string, std::string>> const entries{
+    {std::string{descriptor_layout_version_key}, std::string{form_layout_version}}};
   CHECK_NOTHROW(storage->write_descriptor("file.root", entries));
 
   // A file that was never created cannot be described; say so rather than drop the descriptor.
