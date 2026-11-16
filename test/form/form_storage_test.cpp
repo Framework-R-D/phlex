@@ -660,17 +660,19 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     root_tfile_imp file{file_name, 'i'};
     auto const read_back = file.read_descriptor();
     REQUIRE(read_back.has_value());
+    auto const read_entries =
+      read_back.value_or(std::vector<std::pair<std::string, std::string>>{});
 
     auto const key_of = [](auto const& entry) { return std::string_view{entry.first}; };
 
-    CHECK(read_back->size() == unsorted.size());
+    CHECK(read_entries.size() == unsorted.size());
     for (auto const& [key_text, value] : unsorted) {
-      auto const found = std::ranges::find(*read_back, std::string_view{key_text}, key_of);
-      REQUIRE(found != read_back->end());
+      auto const found = std::ranges::find(read_entries, std::string_view{key_text}, key_of);
+      REQUIRE(found != read_entries.end());
       CHECK(found->second == value);
     }
 
-    CHECK(std::ranges::is_sorted(*read_back, {}, key_of));
+    CHECK(std::ranges::is_sorted(read_entries, {}, key_of));
   }
 
   SECTION("an empty descriptor is still a descriptor")
