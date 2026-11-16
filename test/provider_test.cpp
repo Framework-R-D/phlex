@@ -263,6 +263,26 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
       ContainsSubstring("node 'passer'"));
 }
 
+TEST_CASE("Throw when an implicit provider has the same name as an explicit provider")
+{
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
+
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(std::move(gen));
+  g.provide("vertices_maker", give_me_vertices, concurrency::unlimited)
+    .output_product("other_creator", "other_vertices", "job");
+  g.add_source<vertices_source>("vertices_source");
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("Failed to create implicit provider for product selector") &&
+                      ContainsSubstring("name 'vertices_maker'") &&
+                      ContainsSubstring("conflicts with an existing provider"));
+}
+
 TEST_CASE("Throw when implicit provider insertion fails")
 {
   auto gen = experimental::layer_generator::make();
