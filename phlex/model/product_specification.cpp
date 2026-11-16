@@ -7,15 +7,14 @@
 #include <fmt/format.h>
 
 #include <cassert>
-#include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace phlex::experimental {
-  product_specification::product_specification() = default;
-
   product_specification::product_specification(char const* name) :
     product_specification{std::string_view{name}}
   {
@@ -24,7 +23,10 @@ namespace phlex::experimental {
     product_specification{std::string_view{name}}
   {
   }
-  product_specification::product_specification(std::string_view name) { *this = create(name); }
+  product_specification::product_specification(std::string_view name) :
+    product_specification{create(name)}
+  {
+  }
 
   product_specification::product_specification(experimental::algorithm_name creator,
                                                experimental::suffix_t suffix,
@@ -33,17 +35,9 @@ namespace phlex::experimental {
   {
   }
 
-  product_specification::product_specification(std::nullopt_t, suffix_t suffix, type_id type) :
-    suffix_{std::move(suffix)}, type_id_{std::move(type)}
-  {
-  }
-
   std::string product_specification::to_string() const
   {
-    if (!creator_) {
-      return fmt::format("{}", suffix_);
-    }
-    return fmt::format("{}/{}", creator_->to_string(), suffix_);
+    return fmt::format("{}/{}", creator_.to_string(), suffix_);
   }
 
   product_specification product_specification::create(char const* c)
@@ -53,16 +47,20 @@ namespace phlex::experimental {
 
   product_specification product_specification::create(std::string_view s)
   {
-    auto forward_slash = s.find('/');
-    if (forward_slash != std::string_view::npos) {
-      if (forward_slash == 0) {
-        return {std::nullopt, suffix_t(s.substr(1)), type_id{}};
-      }
-      return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
-              experimental::suffix_t(s.substr(forward_slash + 1)),
-              type_id{}};
+    auto const forward_slash = s.find('/');
+    if (forward_slash == std::string_view::npos) {
+      throw std::runtime_error(
+        fmt::format("The specification '{}' is not a valid product specification: "
+                    "expected the form 'creator/suffix' (use 'creator/' for an empty suffix).",
+                    s));
     }
-    return {std::nullopt, experimental::suffix_t(s), type_id{}};
+    if (forward_slash == 0) {
+      throw std::runtime_error(
+        fmt::format("The product specification '{}' does not name a creator.", s));
+    }
+    return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
+            experimental::suffix_t(s.substr(forward_slash + 1)),
+            type_id{}};
   }
 
 }

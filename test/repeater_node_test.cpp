@@ -38,7 +38,7 @@ namespace {
     auto index = make_run_index(run_number);
     auto store = std::make_shared<product_store>(
       index, gsl::not_null{&dummy_creator_name}, gsl::not_null{&dummy_stage_name});
-    store->add_product("value", value);
+    store->add_product("test_algorithm/value", value);
     return std::pair{index, store};
   }
 

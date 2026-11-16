@@ -8,8 +8,8 @@
 
 #include <boost/container_hash/hash.hpp>
 
-#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -20,20 +20,22 @@ namespace phlex::experimental {
   /// promoted to the stable phlex namespace.
   class PHLEX_MODEL_EXPORT product_specification {
   public:
-    product_specification();
+    // There is no default or creator-less construction: every specification names its creator.
+
+    // Text constructors parse the `creator/suffix` form, which must contain the slash.
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     product_specification(char const* name);
     product_specification(std::string const& name);
     product_specification(std::string_view name);
     // NOLINTEND(google-explicit-constructor)
     product_specification(algorithm_name creator, suffix_t suffix, type_id type);
-    product_specification(std::nullopt_t, suffix_t suffix, type_id type);
 
     std::string to_string() const;
-    std::optional<algorithm_name> const& creator() const noexcept { return creator_; }
+    algorithm_name const& creator() const noexcept { return creator_; }
     suffix_t const& suffix() const noexcept { return suffix_; }
     type_id type() const noexcept { return type_id_; }
 
+    /// Sets, replaces, or clears (with a default-constructed `type_id`) the type.
     void set_type(type_id&& type) { type_id_ = std::move(type); }
 
     auto operator<=>(product_specification const&) const = default;
@@ -44,7 +46,7 @@ namespace phlex::experimental {
     friend struct std::hash<product_specification>;
 
   private:
-    std::optional<experimental::algorithm_name> creator_;
+    experimental::algorithm_name creator_;
     experimental::suffix_t suffix_;
     type_id type_id_{};
   };
@@ -65,15 +67,12 @@ struct std::hash<phlex::experimental::product_specification> {
   std::size_t operator()(phlex::experimental::product_specification const& spec) const noexcept
   {
     std::size_t hash = 0;
-    boost::hash_combine(hash, spec.creator_.has_value());
-    if (spec.creator_) {
-      auto const& plugin = spec.creator_->plugin();
-      boost::hash_combine(hash, plugin.has_value());
-      if (plugin) {
-        boost::hash_combine(hash, plugin->hash());
-      }
-      boost::hash_combine(hash, spec.creator_->algorithm().hash());
+    auto const& plugin = spec.creator_.plugin();
+    boost::hash_combine(hash, plugin.has_value());
+    if (plugin) {
+      boost::hash_combine(hash, plugin->hash());
     }
+    boost::hash_combine(hash, spec.creator_.algorithm().hash());
     boost::hash_combine(hash, spec.suffix_.hash());
     boost::hash_combine(hash, phlex::experimental::hash_value(spec.type_id_));
     return hash;

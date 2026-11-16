@@ -1,9 +1,11 @@
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/model/type_id.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -40,6 +42,14 @@ using phlex::experimental::product_specification;
 using phlex::experimental::product_specifications;
 
 namespace {
+  // The single product emitted by the accumulator: its creator is explicit and its suffix is empty.
+  product_specification result_specification()
+  {
+    return {phlex::experimental::algorithm_name{"accumulator"},
+            phlex::experimental::suffix_t{},
+            phlex::experimental::type_id{}};
+  }
+
   auto make_run_index(int run_number)
   {
     return phlex::data_cell_index::job()->make_child("run", run_number);
@@ -60,7 +70,7 @@ namespace {
     {
       auto it = messages_.find(idx->hash());
       assert(it != messages_.end());
-      product_specification const spec{};
+      auto const spec = result_specification();
       return {it->second.store->get_product<int>(gsl::make_not_null(&spec)), it->second.id};
     }
 
@@ -87,7 +97,7 @@ namespace {
                    node_name,
                    "test_stage"_id,
                    "run"_id,
-                   product_specifications(1),
+                   product_specifications{result_specification()},
                    [](phlex::data_cell_index const&) { return std::make_unique<int>(0); }},
       fold_op_{g_, tbb::flow::unlimited, count_fold},
       result_consumer_{g_}
@@ -234,7 +244,7 @@ TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithr
     "test_accumulator_warning",
     "test_stage"_id,
     "run"_id,
-    product_specifications(1),
+    product_specifications{result_specification()},
     [](phlex::data_cell_index const&) { return std::make_unique<int>(0); });
 
   SECTION("Partition received, no flush")
