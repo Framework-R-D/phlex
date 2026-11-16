@@ -1,5 +1,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/declared_output.hpp"
+#include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -12,6 +13,7 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -21,6 +23,7 @@ TEST_CASE("algorithm_name tests", "[model]")
 {
   using namespace phlex::detail;
   using namespace phlex::experimental;
+  using namespace phlex::experimental::literals;
 
   SECTION("Create from string with colon")
   {
@@ -38,9 +41,49 @@ TEST_CASE("algorithm_name tests", "[model]")
     auto an = algorithm_name::create("ptr:algo");
     CHECK(an.to_string() == "ptr:algo");
   }
+  SECTION("Unqualified name has no plugin")
+  {
+    auto const an = algorithm_name::create("algo");
+    CHECK_FALSE(an.plugin().has_value());
+    CHECK(an.algorithm() == "algo"_id);
+  }
+  SECTION("Qualified name has plugin and algorithm")
+  {
+    auto const an = algorithm_name::create("plugin:algo");
+    REQUIRE(an.plugin().has_value());
+    CHECK(*an.plugin() == "plugin"_id);
+    CHECK(an.algorithm() == "algo"_id);
+  }
+  SECTION("Construct from typed components")
+  {
+    algorithm_name const unqualified{std::nullopt, "algo"_id};
+    CHECK_FALSE(unqualified.plugin().has_value());
+    CHECK(unqualified.to_string() == "algo");
+    CHECK(unqualified == algorithm_name::create("algo"));
+
+    algorithm_name const qualified{"plugin"_id, "algo"_id};
+    REQUIRE(qualified.plugin().has_value());
+    CHECK(qualified.to_string() == "plugin:algo");
+    CHECK(qualified == algorithm_name::create("plugin:algo"));
+    CHECK(qualified != unqualified);
+  }
   SECTION("Create error - trailing colon")
   {
     CHECK_THROWS_AS(algorithm_name::create("plugin:"), std::runtime_error);
+  }
+  SECTION("Create error - leading colon")
+  {
+    CHECK_THROWS_AS(algorithm_name::create(":algo"), std::runtime_error);
+  }
+  SECTION("Create error - multiple colons")
+  {
+    CHECK_THROWS_AS(algorithm_name::create("a:b:c"), std::runtime_error);
+  }
+  SECTION("Create error - malformed components")
+  {
+    CHECK_THROWS(algorithm_name::create("1plugin:algo"));
+    CHECK_THROWS(algorithm_name::create("plugin:1algo"));
+    CHECK_THROWS(algorithm_name::create("pl ugin:algo"));
   }
   SECTION("Create error - empty name")
   {
@@ -64,6 +107,34 @@ TEST_CASE("algorithm_name tests", "[model]")
     CHECK(bulleted_list(std::vector<identifier>{}).empty());
     CHECK(bulleted_list(std::vector<algorithm_name>{}).empty());
   }
+}
+
+TEST_CASE("make_algorithm_name tests", "[core]")
+{
+  using namespace phlex::experimental;
+  using namespace phlex::experimental::literals;
+  using internal::make_algorithm_name;
+
+  SECTION("Without configuration the plugin is absent")
+  {
+    auto const name = make_algorithm_name(nullptr, "my_algorithm");
+    CHECK_FALSE(name.plugin().has_value());
+    CHECK(name.algorithm() == "my_algorithm"_id);
+  }
+
+  SECTION("With configuration the module label is the plugin")
+  {
+    boost::json::object obj;
+    obj["module_label"] = "my_module";
+    phlex::configuration const config{obj};
+
+    auto const name = make_algorithm_name(&config, "my_algorithm");
+    REQUIRE(name.plugin().has_value());
+    CHECK(*name.plugin() == "my_module"_id);
+    CHECK(name.to_string() == "my_module:my_algorithm");
+  }
+
+  SECTION("An empty algorithm name is rejected") { CHECK_THROWS(make_algorithm_name(nullptr, "")); }
 }
 
 TEST_CASE("verify_name tests", "[core]")

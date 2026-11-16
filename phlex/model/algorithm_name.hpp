@@ -5,6 +5,9 @@
 #include "phlex/phlex_model_export.hpp"
 
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
 
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT algorithm_name {
@@ -14,10 +17,12 @@ namespace phlex::experimental {
     algorithm_name(std::string const& spec);
     algorithm_name(std::string_view spec);
     // NOLINTEND(google-explicit-constructor)
-    algorithm_name(identifier_or_empty plugin, identifier algorithm);
+    /// Constructs a name from an optional plugin qualifier and a required algorithm.
+    /// An unqualified name is represented by `std::nullopt`.
+    algorithm_name(std::optional<identifier> plugin, identifier algorithm);
 
     std::string to_string() const;
-    identifier_or_empty const& plugin() const noexcept { return plugin_; }
+    std::optional<identifier> const& plugin() const noexcept { return plugin_; }
     identifier const& algorithm() const noexcept { return algorithm_; }
 
     bool match(algorithm_name const& other) const;
@@ -27,7 +32,7 @@ namespace phlex::experimental {
     static algorithm_name create(std::string_view spec);
 
   private:
-    identifier_or_empty plugin_;
+    std::optional<identifier> plugin_;
     identifier algorithm_;
   };
 

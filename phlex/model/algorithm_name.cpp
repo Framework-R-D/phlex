@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include <algorithm>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -41,17 +42,16 @@ namespace phlex::experimental {
   }
   algorithm_name::algorithm_name(std::string_view spec) : algorithm_name{create(spec)} {}
 
-  algorithm_name::algorithm_name(identifier_or_empty plugin, identifier algorithm) :
+  algorithm_name::algorithm_name(std::optional<identifier> plugin, identifier algorithm) :
     plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
   {
   }
 
   std::string algorithm_name::to_string() const
   {
-    if (!plugin_.empty()) {
-      return fmt::format("{}:{}", plugin_, algorithm_);
+    if (plugin_) {
+      return fmt::format("{}:{}", *plugin_, algorithm_);
     }
-    // This will stay after trans_get_string is removed
     return fmt::format("{}", algorithm_);
   }
 
@@ -77,7 +77,7 @@ namespace phlex::experimental {
         throw std::runtime_error(
           fmt::format("The specification '{}' is not a valid algorithm name.", spec));
       }
-      return {identifier_or_empty(plugin), identifier(algorithm)};
+      return {std::optional<identifier>{identifier(plugin)}, identifier(algorithm)};
     }
 
     // No colon -- could be plugin or algorithm
@@ -85,6 +85,6 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {empty_string{}, identifier(spec)};
+    return {std::nullopt, identifier(spec)};
   }
 }

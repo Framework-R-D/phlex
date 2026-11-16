@@ -65,7 +65,7 @@ TEST_CASE("Product store default source", "[data model]")
   auto const source = product_store::default_source();
   CHECK(source.to_string() == "Source");
   CHECK(source.algorithm() == "Source"_id);
-  CHECK(source.plugin().empty());
+  CHECK_FALSE(source.plugin().has_value());
   CHECK(product_store::default_source() == source);
 }
 

@@ -67,7 +67,11 @@ struct std::hash<phlex::experimental::product_specification> {
     std::size_t hash = 0;
     boost::hash_combine(hash, spec.creator_.has_value());
     if (spec.creator_) {
-      boost::hash_combine(hash, spec.creator_->plugin().hash());
+      auto const& plugin = spec.creator_->plugin();
+      boost::hash_combine(hash, plugin.has_value());
+      if (plugin) {
+        boost::hash_combine(hash, plugin->hash());
+      }
       boost::hash_combine(hash, spec.creator_->algorithm().hash());
     }
     boost::hash_combine(hash, spec.suffix_.hash());

@@ -92,7 +92,9 @@ namespace phlex {
     algorithm_name_view creator() const noexcept
     {
       if (auto const& creator = spec_->creator()) {
-        return {creator->plugin().text(), std::string_view(creator->algorithm())};
+        auto const& plugin = creator->plugin();
+        return {plugin ? std::string_view(*plugin) : std::string_view{},
+                std::string_view(creator->algorithm())};
       }
       return {};
     }

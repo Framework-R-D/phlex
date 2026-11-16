@@ -76,7 +76,7 @@ namespace phlex {
       return true; // empty creator matches everything
     }
     experimental::identifier const& creator{*(this->creator)};
-    return (alg.plugin().named() && *alg.plugin().named() == creator) || alg.algorithm() == creator;
+    return alg.plugin() == creator || alg.algorithm() == creator;
   }
 
   std::string product_selector::to_string() const
