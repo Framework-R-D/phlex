@@ -51,7 +51,7 @@ namespace {
     auto const output_file = output.get<std::string>("output_file", "output.root");
     auto const tech_string = output.get<std::string>("technology", "ROOT_TTREE");
     auto const technology = form::technology::from_string(tech_string);
-    // FIXME: Phlex should provide the products to be written before the algorithm runs.
+    // TODO: Phlex should provide the products to be written before the algorithm runs.
     auto const products = output.get<std::vector<std::string>>("products");
 
     std::cout << "  output '" << output_name << "': " << output_file << " (" << tech_string

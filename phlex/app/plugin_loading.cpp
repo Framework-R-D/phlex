@@ -98,7 +98,7 @@ namespace phlex::detail {
       std::vector<std::string> subdirs;
       boost::split(subdirs, plugin_path_ptr, [](char const character) { return character == ':'; });
 
-      // FIXME: Need to test to ensure that first match wins.
+      // TODO: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {
         std::filesystem::path shared_library_path{subdir};
         shared_library_path /= "lib" + spec + ".so";
@@ -179,7 +179,7 @@ namespace phlex::detail {
     auto [lib, fn] = plugin_loader<internal::source_creator_t>(spec, "create_source");
     auto& creator = create_source.emplace_back(source_plugin{.lib = std::move(lib), .fn = fn});
 
-    // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
+    // TODO: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
     //        (e.g. make_algorithm_name).
     // adjusted_config["module_label"] = label;       // already set by adjust_config

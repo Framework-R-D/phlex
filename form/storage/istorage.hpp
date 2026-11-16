@@ -42,7 +42,6 @@ namespace form::detail::experimental {
       std::type_info const& type,
       form::experimental::config::tech_setting_config const& settings) = 0;
 
-    // Reads descriptor entries in their original order.
     // Returns std::nullopt if no descriptor is present; throws if the file cannot be opened.
     // The major technology selects the backend; the descriptor identifies the minor technologies.
     virtual std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor(

@@ -20,6 +20,7 @@ Addable = TypeVar("Addable", bound=AddableProtocol)
 
 _DEFAULT_ADDABLE = cast(Any, 42)
 
+
 def add(i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
     """Add the inputs together and return the sum total.
 
@@ -59,33 +60,44 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
 
     # run a few cases that are supposed to fail cleanly
     for kwargs, err, msg in [
-            ({"input_family": config["input"]},
-             "should have an output suffix",
-             "without an output suffix"),
-            ({"input_family": config["input"], "output_product_suffixes": [42]},
-             "must be a string",
-             "with non-string output suffix"),
-            ({"input_family": object(), "output_product_suffixes": ["42"]},
-              "input_family must be a sequence",
-              "with non-sequence input family"),
-            ({"input_family": config["input"], "output_product_suffixes": object()},
-              "output_product_suffixes must be a sequence",
-              "with non-sequence output suffixes"),
-            ({"input_family": [{"suffix": 42}], "output_product_suffixes": ["42"]},
-              "missing suffix or not a string",
-              "with non-string input suffix"),
-            # currently an error, but should be supported at some point:
-            ({"input_family": config["input"], "output_product_suffixes": ["a", "b"]},
-             "only a single output supported",
-             "with multiple output suffixes"),
-        ]:
-
+        (
+            {"input_family": config["input"]},
+            "should have an output suffix",
+            "without an output suffix",
+        ),
+        (
+            {"input_family": config["input"], "output_product_suffixes": [42]},
+            "must be a string",
+            "with non-string output suffix",
+        ),
+        (
+            {"input_family": object(), "output_product_suffixes": ["42"]},
+            "input_family must be a sequence",
+            "with non-sequence input family",
+        ),
+        (
+            {"input_family": config["input"], "output_product_suffixes": object()},
+            "output_product_suffixes must be a sequence",
+            "with non-sequence output suffixes",
+        ),
+        (
+            {"input_family": [{"suffix": 42}], "output_product_suffixes": ["42"]},
+            "missing suffix or not a string",
+            "with non-string input suffix",
+        ),
+        # currently an error, but should be supported at some point:
+        (
+            {"input_family": config["input"], "output_product_suffixes": ["a", "b"]},
+            "only a single output supported",
+            "with multiple output suffixes",
+        ),
+    ]:
         try:
             m.transform(int_adder, **kwargs)
         except TypeError as e:
             assert err in str(e)
         else:
-            raise AssertionError("m.transform() should reject registrations "+msg)
+            raise AssertionError("m.transform() should reject registrations " + msg)
 
     # functional transform registration
     m.transform(int_adder, input_family=config["input"], output_product_suffixes=config["output"])

@@ -74,6 +74,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     # to hit the thread state caching code and only tested on ints, since all types
     # follow the same path
     f_aw = numba.njit("int32(int32, int32)", nogil=True, cache=True)(add)
+
     def wrapped_gilreleasing(i: int, j: int) -> int:
         return f_aw(i, j)
 

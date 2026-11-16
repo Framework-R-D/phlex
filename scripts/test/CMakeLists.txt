@@ -23,15 +23,33 @@ if(NOT HAS_SCRIPTS_PYTEST)
   return()
 endif()
 
-# Register the scripts unit-test suite with CTest so it runs alongside all
-# other tests.  The test file discovers tests automatically via pytest
-# collection; the sys.path manipulation inside the package makes the scripts/
-# directory importable without extra PYTHONPATH.
-add_test(
-  NAME scripts:unit
-  COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR} -v
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+# Register each test module separately so CTest can run the scripts suite in
+# parallel. The sys.path manipulation inside the package makes scripts/
+# importable without extra PYTHONPATH.
+set(
+  scripts_test_modules
+  test_check_codeql_alerts
+  test_clang_tidy_check_summary
+  test_clang_tidy_diff_issues
+  test_clang_tidy_fixes_to_problems
+  test_codeql_reset_dismissed_alerts
+  test_coverage_scripts
+  test_devcontainer_host
+  test_fix_header_guards
+  test_promote_phlex_dependencies
+  test_sarif_alerts
+  test_upgrade_repos
+  test_verification
+  test_workflow_cleanup
 )
+foreach(test_name IN LISTS scripts_test_modules)
+  string(REGEX REPLACE "^test_" "" test_name_without_prefix "${test_name}")
+  add_test(
+    NAME "scripts:${test_name_without_prefix}"
+    COMMAND ${Python_EXECUTABLE} -m pytest "${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.py" -v
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  )
+endforeach()
 
 # Coverage target for Python utilities in scripts/, ci/, and .devcontainer/.
 if(HAS_SCRIPTS_PYTEST_COV AND ENABLE_COVERAGE)

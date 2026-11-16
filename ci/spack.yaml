@@ -10,7 +10,7 @@ spack:
     - catch2
     - cetmodules
     - cmake
-    - lcov
+    - lcov ~xs
     - ninja
     - py-gcovr
     - py-pytest-cov # Needed for Python coverage reports
@@ -35,6 +35,9 @@ spack:
 
   packages:
     cmake:
+      deprecation:
+        allow:
+          - reason: [retired, unspecified]
       require:
         - "~qtgui"
         - "@4:"
@@ -59,6 +62,10 @@ spack:
     py-gcovr:
       require:
         - "build_system=python_pip"
+
+    py-llvmlite:
+      require:
+        - "%libllvm=llvm"
 
     py-pytest-cov:
       require:

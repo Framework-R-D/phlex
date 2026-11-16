@@ -1,3 +1,6 @@
+#ifndef FORM_ROOT_STORAGE_HANDLE_REXCEPTION_HPP
+#define FORM_ROOT_STORAGE_HANDLE_REXCEPTION_HPP
+
 #include <source_location>
 #include <string>
 
@@ -10,3 +13,5 @@ namespace form::detail::experimental {
                          ROOT::RException const& e,
                          std::source_location loc = std::source_location::current());
 }
+
+#endif // FORM_ROOT_STORAGE_HANDLE_REXCEPTION_HPP

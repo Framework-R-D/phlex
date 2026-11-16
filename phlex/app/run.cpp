@@ -32,7 +32,7 @@ namespace phlex::detail {
         "No stage name was specified. Provide one using the '--stage <name>' program option "
         "or the top-level configuration parameter 'stage: \"<name>\"'.");
     }
-    // FIXME: Eventually, make it impossible to create a stage name that is empty or "CURRENT".
+    // TODO: Eventually, make it impossible to create a stage name that is empty or "CURRENT".
     auto stage = overridables.stage.value();
     if (stage.empty()) {
       throw std::runtime_error(

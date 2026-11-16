@@ -252,7 +252,7 @@ namespace phlex::experimental {
         // // This condition is always false, but makes the error message more useful
         // static_assert(contiguous_container<basic> || std::is_aggregate_v<basic>,
         //               "Taking type_id of an unsupported class type");
-        // FIXME
+        // TODO
         result.id_ = 0xFF;
       }
     }

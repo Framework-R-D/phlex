@@ -88,10 +88,6 @@ jobs:
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
-    defaults:
-      run:
-        shell: bash
-
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 

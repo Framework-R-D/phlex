@@ -74,7 +74,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             )
             assert not "supposed to be here"
         except TypeError as e:
-           assert "unsupported" in str(e)
+            assert "unsupported" in str(e)
 
     try:
         func = Variant(mismatch_func, {"a": int, "b": "", "return": int}, "mf")

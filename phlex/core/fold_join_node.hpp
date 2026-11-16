@@ -139,7 +139,7 @@ namespace phlex::detail {
     // routing layer and counting layer are the same: the repeater both routes and counts
     // at its own input layer.
     //
-    // FIXME: For multi-input folds, the counting layer must be the deepest input layer
+    // TODO: For multi-input folds, the counting layer must be the deepest input layer
     // in the data hierarchy. Until the router exposes a depth comparison, we pick
     // layers_[0]; this is only correct when the first input is at the deepest layer.
     std::vector<named_index_port> index_ports()
