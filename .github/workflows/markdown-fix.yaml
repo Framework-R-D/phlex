@@ -91,6 +91,16 @@ jobs:
       commit_sha_short: ${{ steps.handle_commit.outputs.commit_sha_short }}
       patch_name: ${{ steps.handle_commit.outputs.patch_name }}
     steps:
+      # Resolve tool dependencies from the workflow commit, never the PR branch.
+      - name: Check out formatter dependencies
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/format-tools
+          persist-credentials: false
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -107,10 +117,10 @@ jobs:
           package-manager-cache: false
 
       - name: Install markdownlint-cli2
+        working-directory: workflow-tools/.github/format-tools
         run: |
-          npm update -g npm@^11.10.0
-          npm config set min-release-age=3 --location=user
-          npm install -g markdownlint-cli2
+          npm ci --ignore-scripts
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Run markdownlint-cli2 fix
         working-directory: ${{ needs.setup.outputs.checkout_path }}

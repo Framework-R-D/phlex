@@ -1,0 +1,13 @@
+[project]
+name = "phlex-workflow-tools"
+version = "0.0.0"
+requires-python = "==3.12.*"
+dependencies = ["uv==0.12.1", "PyYAML==6.0.3", "yamllint==1.38.0"]
+
+[dependency-groups]
+lint = ["mypy==2.3.0", "numpy", "pytest==8.4.2", "ruff==0.16.0", "types-PyYAML"]
+test = ["pytest==8.4.2", "pytest-cov==7.0.0"]
+format = ["gersemi==0.28.0"]
+
+[tool.uv]
+package = false
