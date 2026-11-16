@@ -121,7 +121,7 @@ std::uint64_t storage_writer::fill_container(placement const& plcmnt,
 {
   auto cont = write_containers_.find(plcmnt);
   if (cont == write_containers_.end()) {
-    // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
+    // TODO: For now throw an exception here, but in future, we may have storage technology do that.
     throw std::runtime_error("storage_writer::fill_container Container doesn't exist: " +
                              plcmnt.container_name());
   }
