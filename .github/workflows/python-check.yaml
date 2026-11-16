@@ -143,9 +143,15 @@ jobs:
             ${{ steps.setup.outputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
         with:
           script: |
-            const includesPath = path => [
-              'scripts/', 'ci/', '.devcontainer/', '.github/format-tools/'
-            ].some(prefix => path.startsWith(prefix)) || path === 'pyproject.toml';
+            const pythonSourcePath = path => path.endsWith('.py') && [
+              'scripts/', 'ci/', '.devcontainer/', 'plugins/python/python/', 'test/python/'
+            ].some(prefix => path.startsWith(prefix));
+            const includesPath = path => pythonSourcePath(path) ||
+              path === 'docs/source/conf.py' ||
+              path.startsWith('.github/format-tools/') ||
+              path === 'pyproject.toml' ||
+              path === '.pre-commit-config.yaml' ||
+              /^\.github\/workflows\/.+\.ya?ml$/.test(path);
             let relevant = true;
             const changedPaths = [];
             if (context.eventName === 'pull_request' || context.eventName === 'issue_comment') {
@@ -253,6 +259,15 @@ jobs:
           ruff check --config "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" .
         continue-on-error: true
 
+      - name: Run ruff format check
+        id: ruff_format
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
+        env:
+          FORCE_COLOR: 1
+        run: |
+          ruff format --config "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" --check .
+        continue-on-error: true
+
       - name: Run MyPy check
         id: mypy
         working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -262,13 +277,20 @@ jobs:
         continue-on-error: true
 
       - name: Evaluate Python checks result
-        if: always() && (steps.ruff.outcome != 'skipped' || steps.mypy.outcome != 'skipped')
+        if: >
+          always() && (
+            steps.ruff.outcome != 'skipped' ||
+            steps.ruff_format.outcome != 'skipped' ||
+            steps.mypy.outcome != 'skipped'
+          )
         env:
           REPO: ${{ needs.setup.outputs.repo }}
         # yamllint disable rule:line-length
         run: |
           REPO_NAME="${REPO##*/}"
-          if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
+          if [ "${{ steps.ruff.outcome }}" = 'success' ] && \
+             [ "${{ steps.ruff_format.outcome }}" = 'success' ] && \
+             [ "${{ steps.mypy.outcome }}" = 'success' ]; then
             echo "✅ Python checks passed."
           else
             echo "::error::Python checks failed. Comment '@${REPO_NAME}bot python-fix' on the PR to request a fix."
