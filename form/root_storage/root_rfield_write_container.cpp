@@ -9,6 +9,7 @@
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_write_container.hpp"
+#include "util/error.hpp"
 
 #include <ROOT/RField.hxx>
 #include <ROOT/RFieldBase.hxx>
@@ -36,8 +37,7 @@ namespace form::detail::experimental {
     if (key == "force_streamer_field" && value == "true") {
       force_streamer_field_ = true;
     } else {
-      throw std::runtime_error(
-        "root_rfield_write_container_imp supports some attributes, but not " + key);
+      error("supports some attributes, but not " + key);
     }
   }
 
@@ -45,8 +45,7 @@ namespace form::detail::experimental {
   {
     //The test below is required by FORM's testing infrastructure
     if (!dynamic_pointer_cast<root_tfile_imp>(file)) {
-      throw std::runtime_error(
-        "root_rfield_write_container_imp::set_file was passed a file that is not a ROOT file.");
+      error("was passed a file that is not a ROOT file.");
     }
 
     storage_write_container::set_file(file);
@@ -58,9 +57,8 @@ namespace form::detail::experimental {
     this->storage_associative_write_container::set_parent(parent);
     auto parent_derived = dynamic_pointer_cast<root_rntuple_write_container_imp>(parent);
     if (!parent_derived) {
-      throw std::runtime_error("root_rfield_write_container_imp::set_parent parent is not a "
-                               "root_rntuple_write_container_imp!  Something "
-                               "may be wrong with how Storage works.");
+      error("parent is not a root_rntuple_write_container_imp!  Something "
+            "may be wrong with how Storage works.");
     }
     rntuple_parent_ = parent_derived;
   }
@@ -68,8 +66,7 @@ namespace form::detail::experimental {
   std::uint64_t root_rfield_write_container_imp::fill(void const* data)
   {
     if (!rntuple_parent_) {
-      throw std::runtime_error(
-        "root_rfield_write_container_imp::fill No parent RNTuple set up before first fill() call");
+        error("No parent RNTuple set up before first fill() call");
     }
 
     std::uint64_t n_entries = std::numeric_limits<std::uint64_t>::max();
@@ -89,15 +86,15 @@ namespace form::detail::experimental {
   void root_rfield_write_container_imp::commit()
   {
     if (!rntuple_parent_) {
-      throw std::runtime_error("root_rfield_write_container_imp::commit No parent RNTuple set up.  "
-                               "You may have called commit() without calling set_parent() first.");
+      error("No parent RNTuple set up.  "
+            "You may have called commit() without calling set_parent() first.");
     }
 
     //If get_model() is not nullptr, then root_rntuple_write_container_imp guarantees that get_writer()
     //has not yet been run.
     if (rntuple_parent_->get_model()) {
-      throw std::runtime_error("root_rfield_write_container_imp::commit No RNTupleWriter set up.  "
-                               "You may have called commit() without calling setup_write() first.");
+      error("No RNTupleWriter set up.  "
+            "You may have called commit() without calling setup_write() first.");
     }
 
     try {
@@ -112,9 +109,7 @@ namespace form::detail::experimental {
   void root_rfield_write_container_imp::setup_write(std::type_info const& type)
   {
     if (!rntuple_parent_) {
-      throw std::runtime_error(
-        "root_rfield_write_container_imp::setup_write No parent RNTuple set up.  "
-        "You may have called setup_write() before set_parent().");
+      error("No parent RNTuple set up.  You may have called setup_write() before set_parent().");
     }
 
     auto const& type_name = demangle_name(type);

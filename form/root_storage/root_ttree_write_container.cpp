@@ -5,6 +5,7 @@
 #include "root_tfile.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_write_association.hpp"
+#include "util/error.hpp"
 
 // Required for TFile member access; include-cleaner does not associate those uses with TFile.h.
 #include <TFile.h> // IWYU pragma: keep
@@ -29,8 +30,7 @@ void root_ttree_write_container_imp::set_file(std::shared_ptr<i_storage_file> fi
   this->storage_write_association::set_file(file);
   auto* root_file = dynamic_cast<root_tfile_imp*>(file.get());
   if (root_file == nullptr) {
-    throw std::runtime_error(
-      "root_ttree_write_container_imp::set_file can't attach to non-ROOT file");
+    error("can't attach to non-ROOT file");
   }
   tfile_ = root_file->get_tfile();
 }
@@ -38,7 +38,7 @@ void root_ttree_write_container_imp::set_file(std::shared_ptr<i_storage_file> fi
 void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/)
 {
   if (tfile_ == nullptr) {
-    throw std::runtime_error("root_ttree_write_container_imp::setup_write no file attached");
+    error("no file attached");
   }
   if (tree_ == nullptr) {
     tree_.reset(tfile_->Get<TTree>(name().c_str()));
@@ -50,7 +50,7 @@ void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/
     tree_->SetDirectory(tfile_.get());
   }
   if (tree_ == nullptr) {
-    throw std::runtime_error("root_ttree_write_container_imp::setup_write no tree created");
+    error("no tree created");
   }
   // Keep the tree's directory association for basket writing, but prevent automatic writes.
   // FORM writes the tree explicitly when the container is destroyed.
@@ -59,12 +59,12 @@ void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/
 
 std::uint64_t root_ttree_write_container_imp::fill(void const* /* data*/)
 {
-  throw std::runtime_error("root_ttree_write_container_imp::fill not implemented");
+  error("not implemented");
 }
 
 void root_ttree_write_container_imp::commit()
 {
-  throw std::runtime_error("root_ttree_write_container_imp::commit not implemented");
+  error("not implemented");
 }
 
 TTree* root_ttree_write_container_imp::get_ttree() { return tree_.get(); }

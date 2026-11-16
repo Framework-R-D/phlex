@@ -7,6 +7,7 @@
 #include "storage/istorage.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
+#include "util/error.hpp"
 
 #include <ROOT/RError.hxx>
 #include <ROOT/RNTupleWriter.hxx>
@@ -50,28 +51,26 @@ namespace form::detail::experimental {
     if (form_root_file) {
       tfile_ = form_root_file->get_tfile();
     } else {
-      throw std::runtime_error("root_rntuple_write_container_imp::set_file failed to convert an "
-                               "i_storage_file to a root_tfile_imp.  "
-                               "root_rntuple_write_container_imp only works with TFiles.");
+      error("failed to convert an i_storage_file to a root_tfile_imp.  "
+            "root_rntuple_write_container_imp only works with TFiles.");
     }
   }
 
   std::uint64_t root_rntuple_write_container_imp::fill(void const* /*data*/)
   {
-    throw std::runtime_error("root_rntuple_write_container_imp::fill not implemented");
+    error("not implemented");
   }
 
   void root_rntuple_write_container_imp::commit()
   {
-    throw std::runtime_error("root_rntuple_write_container_imp::commit not implemented");
+    error("not implemented");
   }
 
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {
     if (!writer_) {
       if (!tfile_) {
-        throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to "
-                                 "write to on first fill() call");
+        error("no file loaded to write to on first fill() call");
       }
       try {
         writer_ = ROOT::RNTupleWriter::Append(std::move(model_), name(), *tfile_);
