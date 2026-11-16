@@ -2,32 +2,31 @@
 
 #include "root_tfile.hpp"
 
-#include "persistence/descriptor.hpp"
+#include "root_descriptor.hpp"
 #include "storage/storage_file.hpp"
 
 #include <Compression.h>
-#include <TClass.h>
 #include <TFile.h>
-#include <TKey.h>
 
-#include <map>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
 
 using namespace form::detail::experimental;
-root_tfile_imp::root_tfile_imp(std::string const& name, char mode) :
-  storage_file(name, mode), file_(nullptr)
-{
-  if (mode == 'c' || mode == 'r' || mode == 'o') {
-    file_.reset(TFile::Open(name.c_str(), "RECREATE"));
-  } else {
-    file_.reset(TFile::Open(name.c_str(), "READ"));
+
+namespace {
+  std::shared_ptr<TFile> open_tfile(std::string const& name, char mode)
+  {
+    bool const writing = mode == 'c' || mode == 'r' || mode == 'o';
+    return std::shared_ptr<TFile>{TFile::Open(name.c_str(), writing ? "RECREATE" : "READ")};
   }
+}
+
+root_tfile_imp::root_tfile_imp(std::string const& name, char mode) :
+  storage_file(name, mode), file_(open_tfile(name, mode))
+{
+  // Install the ROOT-specific descriptor for the file opened by this backend.
+  set_descriptor(std::make_unique<root_descriptor>(file_, name));
 }
 
 root_tfile_imp::~root_tfile_imp() = default;
@@ -54,81 +53,6 @@ void root_tfile_imp::set_attribute(std::string const& key, std::string const& va
   } else {
     throw std::runtime_error("root_tfile_imp does not recognize an attribute named " + key);
   }
-}
-
-namespace {
-  // ROOT provides a compiled collection proxy for this map type, so no generated dictionary is
-  // needed for the descriptor.
-  using descriptor_map = std::map<std::string, std::string>;
-
-  TClass const& descriptor_class()
-  {
-    TClass const* const cls = TClass::GetClass<descriptor_map>();
-    if (cls == nullptr || cls->GetCollectionProxy() == nullptr) {
-      throw std::runtime_error("root_tfile_imp: ROOT has no dictionary for the descriptor type "
-                               "std::map<std::string, std::string>");
-    }
-    return *cls;
-  }
-}
-
-void root_tfile_imp::write_descriptor(
-  std::vector<std::pair<std::string, std::string>> const& entries)
-{
-  if (file_ == nullptr) {
-    throw std::runtime_error("root_tfile_imp::write_descriptor no file attached for " + name());
-  }
-
-  // Reject duplicate keys rather than silently dropping descriptor entries.
-  descriptor_map descriptor;
-  for (auto const& [key, value] : entries) {
-    if (!descriptor.emplace(key, value).second) {
-      throw std::runtime_error("root_tfile_imp::write_descriptor descriptor key '" + key +
-                               "' appears more than once for " + name());
-    }
-  }
-
-  if (file_->WriteObject(&descriptor, std::string{descriptor_object_name}.c_str()) <= 0) {
-    throw std::runtime_error("root_tfile_imp::write_descriptor failed to write the descriptor to " +
-                             name());
-  }
-}
-
-std::optional<std::vector<std::pair<std::string, std::string>>> root_tfile_imp::read_descriptor()
-{
-  if (file_ == nullptr) {
-    throw std::runtime_error("root_tfile_imp::read_descriptor no file attached for " + name());
-  }
-
-  std::string const object_name{descriptor_object_name};
-  TKey const* const key = file_->GetKey(object_name.c_str());
-  if (key == nullptr) {
-    return std::nullopt;
-  }
-
-  std::string_view const stored_class{key->GetClassName()};
-  std::string_view const expected_class{descriptor_class().GetName()};
-  if (stored_class != expected_class) {
-    throw std::runtime_error("root_tfile_imp::read_descriptor object '" + object_name + "' in " +
-                             name() + " is a '" + std::string{stored_class} + "', not a '" +
-                             std::string{expected_class} + "'");
-  }
-
-  // Get() transfers ownership of the returned non-TObject to the caller.
-  std::unique_ptr<descriptor_map const> const descriptor{
-    file_->Get<descriptor_map>(object_name.c_str())};
-  if (!descriptor) {
-    throw std::runtime_error("root_tfile_imp::read_descriptor failed to read object '" +
-                             object_name + "' from " + name());
-  }
-
-  // Entries are returned in map key order; callers must look them up by key.
-  std::vector<std::pair<std::string, std::string>> entries;
-  entries.reserve(descriptor->size());
-  for (auto const& [key_text, value] : *descriptor) {
-    entries.emplace_back(key_text, value);
-  }
-  return entries;
 }
 
 std::shared_ptr<TFile> root_tfile_imp::get_tfile() { return file_; }

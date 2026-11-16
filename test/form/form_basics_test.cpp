@@ -9,7 +9,6 @@
 #include "form/form_source_type_registry.hpp"
 #include "form/form_writer.hpp"
 #include "form/product_with_name.hpp"
-#include "persistence/descriptor.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "persistence/navigation_naming.hpp"
@@ -17,6 +16,7 @@
 #include "persistence/persistence_writer.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
+#include "storage/descriptor.hpp"
 #include "storage/factories.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_write_container.hpp"
@@ -598,6 +598,18 @@ TEST_CASE("storage_file: an empty descriptor is still a descriptor", "[form]")
   storage_file file{"generic_empty.dat", 'o'};
   file.write_descriptor({});
   CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
+}
+
+TEST_CASE("storage_file: a repeated descriptor key is rejected", "[form]")
+{
+  storage_file file{"generic_duplicate.dat", 'o'};
+  std::vector<std::pair<std::string, std::string>> const repeated{
+    {std::string{descriptor_technologies_key}, "generic"},
+    {std::string{descriptor_technologies_key}, "root_ttree"}};
+
+  CHECK_THROWS_WITH(file.write_descriptor(repeated),
+                    Catch::Matchers::ContainsSubstring("appears more than once"));
+  CHECK_FALSE(file.read_descriptor().has_value());
 }
 
 TEST_CASE("persistence_reader basic operations", "[form]")
