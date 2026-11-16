@@ -68,6 +68,10 @@ jobs:
 
     steps:
       - name: Checkout code
+        # CodeQL actions/cache-poisoning/poisonable-step: false positive for the
+        # reported workflow_dispatch origin. The pinned organization setup action
+        # resolves manual refs within this repository; pull-request runs do not
+        # share that cache-write scope. This is not a CodeQL suppression.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref:

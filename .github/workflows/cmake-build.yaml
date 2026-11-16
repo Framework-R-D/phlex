@@ -182,6 +182,11 @@ jobs:
 
     steps:
       - name: Check out code
+        # CodeQL actions/cache-poisoning/poisonable-step: false positive for the
+        # reported schedule/workflow_dispatch origins. The pinned organization
+        # setup action resolves schedules to GITHUB_SHA and manual refs within
+        # this repository; pull-request runs do not share that cache-write scope.
+        # This records the audit rationale, not an inline CodeQL suppression.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
