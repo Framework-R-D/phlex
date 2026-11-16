@@ -149,11 +149,13 @@ namespace phlex::experimental {
     // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     identifier_or_empty(empty_string) noexcept : value_{empty_string{}} {}
 
+    // Not noexcept: copying an identifier copies its string, which may allocate and throw.
     // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     identifier_or_empty(identifier const& id) : value_{id} {}
 
+    // noexcept: moving an identifier is itself noexcept and never allocates.
     // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-    identifier_or_empty(identifier&& id) : value_{std::move(id)} {}
+    identifier_or_empty(identifier&& id) noexcept : value_{std::move(id)} {}
 
     explicit identifier_or_empty(std::string_view str)
     {
