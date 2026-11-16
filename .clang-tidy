@@ -41,6 +41,10 @@ WarningsAsErrors: ''
 HeaderFilterRegex: '.*/(phlex|form)/.*\.(h|hpp)$'
 
 CheckOptions:
+  # Allow calls to optional::value() without guards
+  - key: bugprone-unchecked-optional-access.IgnoreValueCalls
+    value: 'true'
+
   # Naming conventions
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
