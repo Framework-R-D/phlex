@@ -2,7 +2,7 @@
   driver: {
     cpp: 'generate_layers',
     layers: {
-      wire: { parent: 'job', total: 1024, starting_number: 0 },
+      apa: { parent: 'job', total: 40, starting_number: 0 },
     },
   },
   sources: {
