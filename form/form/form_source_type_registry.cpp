@@ -34,10 +34,10 @@ namespace form::experimental {
                                   form_source_product_from_data_fn product_from_data_fn)
   {
     if (product_type.empty()) {
-      throw std::runtime_error("Cannot register empty FORM product type name");
+      form::detail::experimental::error("Cannot register empty FORM product type name");
     }
     if (!product_from_data_fn) {
-      throw std::runtime_error("Cannot register FORM product type with empty conversion function");
+      form::detail::experimental::error("Cannot register FORM product type with empty conversion function");
     }
 
     std::scoped_lock const lock(form_type_registry_mutex());

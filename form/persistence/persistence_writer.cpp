@@ -251,8 +251,8 @@ std::map<persistence_writer::stream_key, std::uint64_t> persistence_writer::rows
     }
     auto const [it, inserted] = row_by_stream.try_emplace(write.stream(), write.row);
     if (!inserted && it->second != write.row) {
-      throw std::runtime_error(
-        "persistence_writer: " + stream_text(write.product.creator, write.product.stage) +
+      error(
+        stream_text(write.product.creator, write.product.stage) +
         " wrote container '" + write.container_name + "' at row " + std::to_string(write.row) +
         " but its other products for data cell " + cell.id + " went to row " +
         std::to_string(it->second) +
@@ -407,8 +407,8 @@ bool persistence_writer::check_table_name(navigation_key const& key,
     return true;
   }
   if (it->second != key.hierarchy) {
-    throw std::runtime_error(
-      "persistence_writer: hierarchies [" + layer_names_text(it->second) + "] and [" +
+    error(
+      "hierarchies [" + layer_names_text(it->second) + "] and [" +
       layer_names_text(key.hierarchy) + "] both name their navigation container '" + table_name +
       "' in file '" + key.file_name + "'; rename a layer so the two can be told apart on disk");
   }
@@ -442,20 +442,20 @@ void persistence_writer::stage_column(std::map<std::string, std::string>& staged
                                       std::string const& source)
 {
   auto const clash = [&](std::string const& holder) {
-    return std::runtime_error("persistence_writer: in navigation table '" + table_name + "', " +
-                              holder + " and " + source + " both name column '" + column +
-                              "'; rename one so the two can be told apart on disk");
+    error("in navigation table '" + table_name + "', " +
+          holder + " and " + source + " both name column '" + column +
+          "'; rename one so the two can be told apart on disk");
   };
 
   if (table != nullptr) {
     auto const it = table->column_sources.find(column);
     if (it != table->column_sources.end()) {
-      throw clash(it->second);
+      clash(it->second);
     }
   }
   auto const [it, inserted] = staged.try_emplace(column, source);
   if (!inserted) {
-    throw clash(it->second);
+    clash(it->second);
   }
 }
 

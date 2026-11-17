@@ -5,6 +5,7 @@
 
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
+#include "util/error.hpp"
 
 #include <functional>
 #include <stdexcept>
@@ -42,8 +43,8 @@ namespace form::experimental {
          std::string const& product_name,
          std::string const& index_str) -> phlex::experimental::product_ptr {
       if (!data) {
-        throw std::runtime_error("FORM Error: Failed to retrieve product [" + product_name +
-                                 "] for " + index_str);
+        form::detail::experimental::error("Failed to retrieve product [" + product_name +
+                                          "] for " + index_str);
       }
 
       auto ptr = std::unique_ptr<product_type_t const>(static_cast<product_type_t const*>(data));

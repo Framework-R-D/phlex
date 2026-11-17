@@ -66,7 +66,7 @@ void persistence_reader::prime(std::string const& creator,
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
+    error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
@@ -84,7 +84,7 @@ std::vector<std::string> persistence_reader::list_indices(std::string const& cre
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
+    error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
@@ -103,7 +103,7 @@ std::unique_ptr<token> persistence_reader::get_token(std::string const& creator,
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
+    error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
@@ -166,7 +166,7 @@ form::technology::id persistence_reader::technology_for_product(std::string cons
   }
 
   // TODO: Resolve the product's storage technology through read-aware navigation.
-  throw std::runtime_error(
+  error(
     "FORM: file '" + file_name + "' contains multiple storage technologies (" + names +
     "); cannot determine the storage technology for product '" + label + "'");
 }

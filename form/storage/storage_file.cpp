@@ -18,8 +18,8 @@ char storage_file::mode() { return mode_; }
 
 void storage_file::set_attribute(std::string const& /*name*/, std::string const& /*value*/)
 {
-  throw std::runtime_error(
-    "storage_file::set_attribute does not accept any attributes for a file named " + name_);
+  error(
+    "does not accept any attributes for a file named " + name_);
 }
 
 void storage_file::write_descriptor(std::vector<std::pair<std::string, std::string>> const& entries)

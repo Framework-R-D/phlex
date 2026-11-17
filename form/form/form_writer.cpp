@@ -32,7 +32,7 @@ namespace {
     std::set<std::string> labels;
     for (auto const& pb : products) {
       if (!labels.insert(pb.label).second) {
-        throw std::runtime_error(std::format(
+        form::detail::experimental::error(std::format(
           "form_writer_interface: creator '{}' at stage '{}' wrote product '{}' more than once "
           "for data cell {}",
           creator,
@@ -61,7 +61,7 @@ namespace form::experimental {
     pers_writer_(std::move(pers_writer))
   {
     if (!pers_writer_) {
-      throw std::runtime_error(
+      form::detail::experimental::error(
         "form_writer_interface: injected persistence writer must not be null");
     }
     parse_config(config_item);
@@ -139,7 +139,7 @@ namespace form::experimental {
       // clearly here rather than crash deep in the backend.
       for (auto const& item : cfg_it->second) {
         if (plan.sealed_places.contains(std::make_pair(item.file_name, item.technology))) {
-          throw std::runtime_error(
+          form::detail::experimental::error(
             std::format("form_writer_interface: product '{}' from creator '{}' at stage '{}' first "
                         "appeared after data was written to '{}'; container structure is sealed "
                         "on first write",
@@ -179,10 +179,10 @@ namespace form::experimental {
     // Writes are not allowed after finalize(): the navigation tables have already been written and
     // cannot record products written afterwards.
     if (finalized_) {
-      error("creator '" + creator + "' at stage '" +
-                               stage + "' wrote data cell " + cell.id +
-                               " after the writer was finalized; the navigation tables are "
-                               "already written and cannot record it");
+      form::detail::experimental::error("creator '" + creator + "' at stage '" +
+                                        stage + "' wrote data cell " + cell.id +
+                                        " after the writer was finalized; the navigation tables are "
+                                        "already written and cannot record it");
     }
 
     check_unique_labels(creator, stage, cell, products);
