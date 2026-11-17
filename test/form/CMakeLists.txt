@@ -434,8 +434,10 @@ if(FORM_USE_ROOT_STORAGE)
   endif()
 endif()
 
-add_library(generate_vector MODULE generate_vector.cpp)
-target_link_libraries(generate_vector PRIVATE phlex::module)
+if(FORM_USE_ROOT_STORAGE)
+  add_library(generate_vector MODULE generate_vector.cpp)
+  target_link_libraries(generate_vector PRIVATE phlex::module)
+endif()
 
 add_library(form_source_extra_types MODULE form_source_extra_types.cpp)
 target_link_libraries(form_source_extra_types PRIVATE phlex::module form)
