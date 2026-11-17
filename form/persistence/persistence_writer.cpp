@@ -39,7 +39,7 @@ namespace {
     auto const file_major = planned.begin()->major;
     for (auto const& tech : planned) {
       if (tech.major != file_major) {
-        throw std::runtime_error("persistence_writer: file '" + file_name +
+        error("file '" + file_name +
                                  "' mixes major technologies; its layout cannot be described");
       }
     }
@@ -50,7 +50,7 @@ namespace {
     }
     for (auto const& tech : actual->second) {
       if (!planned.contains(tech)) {
-        throw std::runtime_error("persistence_writer: file '" + file_name + "' holds '" +
+        error("file '" + file_name + "' holds '" +
                                  std::string{form::technology::on_disk_token(tech)} +
                                  "' products that were never planned; its descriptor would be "
                                  "inconsistent with its contents");
@@ -245,7 +245,7 @@ std::map<persistence_writer::stream_key, std::uint64_t> persistence_writer::rows
   std::set<product_identity> seen;
   for (auto const& write : pending) {
     if (!seen.insert(write.product).second) {
-      throw std::runtime_error("persistence_writer: product '" + write.product.label + "' of " +
+      error("product '" + write.product.label + "' of " +
                                stream_text(write.product.creator, write.product.stage) +
                                " was written more than once for data cell " + cell.id);
     }
@@ -291,7 +291,7 @@ void persistence_writer::check_row_space_owner(placement const& plcmnt,
   if (it == row_space_owners_.end() || it->second == stream) {
     return;
   }
-  throw std::runtime_error("persistence_writer: " + stream_text(stream.creator, stream.stage) +
+  error("" + stream_text(stream.creator, stream.stage) +
                            " and " + stream_text(it->second.creator, it->second.stage) +
                            " both map to row space '" + row_space + "' in file '" +
                            plcmnt.file_name() + "'");
@@ -305,7 +305,7 @@ persistence_writer::staged_record persistence_writer::stage_navigation(placement
   auto pending = std::exchange(pending_by_place_[place], {});
 
   if (!cell.consistent()) {
-    throw std::runtime_error("persistence_writer: data cell " + cell.id + " has " +
+    error("data cell " + cell.id + " has " +
                              std::to_string(cell.hierarchy.layer_names.size()) +
                              " layer names but " + std::to_string(cell.layer_values.size()) +
                              " layer values");
@@ -429,7 +429,7 @@ void persistence_writer::check_rows_are_new(
   }
   for (auto const& [stream, row] : row_by_stream) {
     if (rows_it->second.contains(stream)) {
-      throw std::runtime_error("persistence_writer: " + stream_text(stream.creator, stream.stage) +
+      error("" + stream_text(stream.creator, stream.stage) +
                                " wrote data cell " + cell.id + " more than once");
     }
   }
@@ -512,7 +512,7 @@ void persistence_writer::write_descriptors()
 
   for (auto const& [file_name, technologies] : written) {
     if (!planned_technologies_.contains(file_name)) {
-      throw std::runtime_error("persistence_writer: file '" + file_name +
+      error("file '" + file_name +
                                "' holds products but was never planned; it would be written "
                                "without a descriptor");
     }

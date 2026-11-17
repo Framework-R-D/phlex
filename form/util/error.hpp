@@ -1,5 +1,8 @@
 //form::detail::error() centralizes how FORM components report conditions that would usually be exceptions.  form_error() will throw something derived from std::runtime_error.
 
+#ifndef FORM_UTIL_ERROR_HPP
+#define FORM_UTIL_ERROR_HPP
+
 #include <source_location>
 #include <string>
 
@@ -7,3 +10,5 @@ namespace form::detail::experimental
 {
   void error(std::string const& message, std::source_location const where = std::source_location::current());
 }
+
+#endif //FORM_UTIL_ERROR_HPP

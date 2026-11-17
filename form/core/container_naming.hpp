@@ -4,6 +4,7 @@
 #define FORM_CORE_CONTAINER_NAMING_HPP
 
 #include "core/technology.hpp"
+#include "util/error.hpp"
 
 #include <cctype>
 #include <optional>
@@ -65,7 +66,7 @@ namespace form::detail::experimental {
   inline void check_row_space_parts(std::string_view creator, std::string_view stage)
   {
     if (creator.contains(row_space_label_separator) || stage.contains(row_space_label_separator)) {
-      throw std::runtime_error("FORM: creator '" + std::string{creator} + "' and stage '" +
+      error("creator '" + std::string{creator} + "' and stage '" +
                                std::string{stage} + "' cannot contain '" +
                                row_space_label_separator + "'");
     }

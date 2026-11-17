@@ -1,6 +1,8 @@
 #ifndef FORM_CORE_TECHNOLOGY_HPP
 #define FORM_CORE_TECHNOLOGY_HPP
 
+#include "util/error.hpp"
+
 #include <algorithm>
 #include <array>
 #include <compare>
@@ -184,8 +186,8 @@ namespace form::technology {
   {
     auto const* const found = detail::lookup_by_id(tech);
     if (found == nullptr) {
-      throw std::runtime_error("FORM: an unregistered technology has no on-disk token and "
-                               "cannot be named in a file");
+      form::detail::experimental::error("an unregistered technology has no on-disk token and "
+                                        "cannot be named in a file");
     }
     return found->on_disk_token;
   }

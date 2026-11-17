@@ -9,6 +9,7 @@
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence_utils.hpp"
 #include "storage/istorage.hpp"
+#include "util/error.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -125,21 +126,21 @@ std::vector<form::technology::id> const& persistence_reader::technologies_of(
 
   auto const entries = store_reader_->read_descriptor(file_name, bootstrap_file_format);
   if (!entries) {
-    throw std::runtime_error("FORM: file '" + file_name +
+    error("file '" + file_name +
                              "' carries no layout descriptor, so FORM cannot tell which layout "
                              "or which storage technologies it holds");
   }
 
   auto const version = descriptor_entry(*entries, descriptor_layout_version_key);
   if (!version) {
-    throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
+    error("the layout descriptor in file '" + file_name +
                              "' does not name a layout version");
   }
   check_layout_version(*version, file_name);
 
   auto const technologies_text = descriptor_entry(*entries, descriptor_technologies_key);
   if (!technologies_text) {
-    throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
+    error("the layout descriptor in file '" + file_name +
                              "' does not name a storage technology");
   }
 

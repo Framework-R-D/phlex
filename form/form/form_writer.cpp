@@ -9,6 +9,7 @@
 #include "form/config.hpp"
 #include "form/product_with_name.hpp"
 #include "persistence/ipersistence_writer.hpp"
+#include "util/error.hpp"
 
 #include <exception>
 #include <format>
@@ -178,7 +179,7 @@ namespace form::experimental {
     // Writes are not allowed after finalize(): the navigation tables have already been written and
     // cannot record products written afterwards.
     if (finalized_) {
-      throw std::runtime_error("form_writer_interface: creator '" + creator + "' at stage '" +
+      error("creator '" + creator + "' at stage '" +
                                stage + "' wrote data cell " + cell.id +
                                " after the writer was finalized; the navigation tables are "
                                "already written and cannot record it");
