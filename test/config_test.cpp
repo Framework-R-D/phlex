@@ -57,12 +57,16 @@ TEST_CASE("Retrieve product_selector", "[config]")
   malformed_input3["creator"] = "";
   malformed_input3["layer"] = "job";
 
+  boost::json::object malformed_input4 = input;
+  malformed_input4["stag"] = "simulation";
+
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
   underlying_config["unconstrained"] = std::move(unconstrained_input);
   underlying_config["malformed1"] = std::move(malformed_input1);
   underlying_config["malformed2"] = std::move(malformed_input2);
   underlying_config["malformed3"] = std::move(malformed_input3);
+  underlying_config["malformed4"] = std::move(malformed_input4);
   configuration const config{underlying_config};
 
   auto input_query = config.get<product_selector>("input");
@@ -80,4 +84,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
   CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
                     ContainsSubstring("Error retrieving parameter 'malformed3'") &&
                       ContainsSubstring("Cannot specify product with empty creator name."));
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed4"),
+                    ContainsSubstring("Error retrieving parameter 'malformed4'") &&
+                      ContainsSubstring("Product selector contains unrecognized keys"));
 }
