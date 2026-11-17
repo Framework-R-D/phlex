@@ -22,7 +22,7 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
   std::mt19937 gen(seed);
   std::uniform_int_distribution<uint16_t> dist(20, 50);
 
-  graph.provide("test_waveforms", [dist, gen, n_time_ticks, n_channels](data_cell_index const& idx) mutable
+  graph.provide("test_waveforms", [dist, gen, n_time_ticks, n_channels]([[maybe_unused]] data_cell_index const& idx) mutable
   {
     std::vector<form::test::waveform> waveforms;
     for(int which_channel = 0; which_channel < n_channels; ++which_channel)
@@ -36,7 +36,7 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
   }).output_product("test_waveforms", phlex::experimental::identifier("test_waveforms"), phlex::experimental::identifier("apa"));
 }
 
-PHLEX_REGISTER_ALGORITHMS(graph, config)
+PHLEX_REGISTER_ALGORITHMS(graph)
 {
   graph.observe("print_waveforms",
                 [](std::vector<form::test::waveform> const& waveforms) {
