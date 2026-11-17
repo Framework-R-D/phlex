@@ -1,4 +1,4 @@
-//form::detail::error() centralizes how FORM components report conditions that would usually be exceptions.  form_error() will throw something derived from std::runtime_error.
+//form::experimental::detail::error() centralizes how FORM components report conditions that would usually be exceptions.  error() will throw something derived from std::runtime_error.
 
 #ifndef FORM_UTIL_ERROR_HPP
 #define FORM_UTIL_ERROR_HPP
