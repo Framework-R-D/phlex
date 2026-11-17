@@ -24,7 +24,7 @@ namespace {
     result.reserve(queries.size());
     for (auto const& query : queries) {
       if (query.layer) {
-        result.push_back(query.layer);
+        result.push_back(query.layer->leaf());
       } else {
         result.push_back("*"_id);
       }
@@ -87,9 +87,9 @@ namespace phlex::detail {
       auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
         graph_,
         tbb::flow::unlimited,
-        [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
+        [&layer = static_cast<experimental::layer_path const&>(input_product.layer)](
           message const& msg, auto& output) {
-          if (msg.store->layer_name() == layer) {
+          if (msg.store->layer_path_ends_with(layer)) {
             std::get<0>(output).try_put(msg);
           }
         }));
