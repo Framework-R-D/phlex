@@ -1,7 +1,10 @@
 #include "waveform.hpp"
 
+#include <vector>
+#include <cstdint>
+
 namespace form::test {
-  waveform::waveform(): samples_(), channel_(-1) {}
+  waveform::waveform(): channel_(-1) {}
   
   waveform::waveform(std::vector<uint16_t> const& samples, int channel): samples_(samples), channel_(channel) {}
 

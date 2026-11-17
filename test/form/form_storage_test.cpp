@@ -1458,18 +1458,20 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
         "tracker___row");
 }
 
-//Intentionally missing a ROOT dictionary
-class class_with_no_dict
-{
-  public:
-    class_with_no_dict(int my_int): my_int_(my_int) {}
-    class_with_no_dict(): my_int_(42) {}
-
-    int get_my_int() const { return my_int_; }
-
-  private:
-    int my_int_;
-};
+namespace {
+  //Intentionally missing a ROOT dictionary
+  class class_with_no_dict
+  {
+    public:
+      class_with_no_dict(int my_int): my_int_(my_int) {}
+      class_with_no_dict(): my_int_(42) {}
+  
+      int get_my_int() const { return my_int_; }
+  
+    private:
+      int my_int_;
+  };
+}
 
 //Data product without a dictionary is rejected
 TEST_CASE("Missing Dictionary") {

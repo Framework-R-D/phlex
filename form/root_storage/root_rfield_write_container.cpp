@@ -122,7 +122,7 @@ namespace form::detail::experimental {
 
     auto make_streamer_field = [&type, this, &type_name]()
     {
-      auto const class_info = TClass::GetClass(type);
+      auto *const class_info = TClass::GetClass(type);
       if (class_info && !class_info->HasDictionary()) {
         throw std::runtime_error("root_rfield_write_container_imp::setup_write Cannot write class " + type_name + " that is missing ROOT dictionary in streamer mode");
       }

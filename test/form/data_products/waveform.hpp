@@ -9,7 +9,7 @@ namespace form::test {
   class waveform {
     public:
       waveform();
-      waveform(std::vector<uint16_t> const& samples, int const channel);
+      waveform(std::vector<uint16_t> const& samples, int channel);
   
       std::vector<uint16_t> const& get_samples() const;
       int get_channel() const;

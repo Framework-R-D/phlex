@@ -10,6 +10,8 @@
 #include <chrono>
 #include <random>
 #include <iostream>
+#include <vector>
+#include <cstdint>
 
 using namespace phlex;
 
@@ -28,7 +30,9 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
     for(int which_channel = 0; which_channel < n_channels; ++which_channel)
     {
       std::vector<uint16_t> samples(n_time_ticks);
-      for(auto& sample: samples) sample = dist(gen);
+      for(auto& sample: samples) {
+        sample = dist(gen);
+      }
       waveforms.emplace_back(samples, which_channel);
     }
 
@@ -43,8 +47,10 @@ PHLEX_REGISTER_ALGORITHMS(graph)
                   for(auto const& wfm: waveforms)
                   {
                     std::cout << "waveform:\n  channel = " << wfm.get_channel() << "\n  samples = {";
-                    for(auto const& sample: wfm.get_samples()) std::cout << sample << ", ";
-                    std::cout << "}" << std::endl;
+                    for(auto const& sample: wfm.get_samples()) {
+                      std::cout << sample << ", ";
+                    }
+                    std::cout << "}\n";
                   }
                 }).input_family(product_selector{.creator = "test_waveforms",
                                                  .layer = "apa",
