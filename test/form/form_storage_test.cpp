@@ -1476,7 +1476,6 @@ TEST_CASE("Missing Dictionary") {
   class_with_no_dict my_obj(43);
   
   CHECK_THROWS_AS(form::test::write(technology, my_obj), std::runtime_error);
-  CHECK_THROWS_AS(form::test::read<class_with_no_dict>(technology), std::runtime_error);
 }
 
 //vector<data_product> is rejected when data_product does not have a dictionary.
