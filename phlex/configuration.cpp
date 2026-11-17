@@ -31,6 +31,17 @@ namespace phlex::detail {
     auto const& val = obj.at(parameter);
     return boost::json::value_to<experimental::identifier>(val);
   }
+
+  std::optional<std::string_view> string_view_if_exists(
+    boost::json::object const& obj, // will be used later for new product_selector
+    std::string_view parameter)
+  {
+    if (!obj.contains(parameter)) {
+      return std::nullopt;
+    }
+    auto const& val = obj.at(parameter);
+    return boost::json::value_to<std::string_view>(val);
+  }
 }
 
 namespace phlex {
@@ -52,6 +63,7 @@ namespace phlex {
   product_selector tag_invoke(boost::json::value_to_tag<product_selector> const&,
                               boost::json::value const& jv)
   {
+    using detail::string_view_if_exists;
     using detail::value_if_exists;
     using namespace std::string_view_literals;
     static std::set<std::string_view> const valid_keys = {
@@ -68,11 +80,13 @@ namespace phlex {
         fmt::format("Product selector contains unrecognized keys: {}", unrecognized_keys));
     }
     auto creator = value_if_exists(query_object, "creator");
-    auto layer = value_if_exists(query_object, "layer");
+    auto layer = string_view_if_exists(query_object, "layer");
     auto suffix = value_if_exists(query_object, "suffix");
     auto stage = value_if_exists(query_object, "stage");
-    return product_selector{
-      .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
+    return product_selector{.creator = std::move(creator),
+                            .layer = layer,
+                            .suffix = std::move(suffix),
+                            .stage = std::move(stage)};
   }
 
   experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,

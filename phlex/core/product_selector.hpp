@@ -2,6 +2,7 @@
 #define PHLEX_CORE_PRODUCT_SELECTOR_HPP
 
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
@@ -55,24 +56,16 @@ namespace phlex {
     class layer_name {
     public:
       layer_name() = default;
-      layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
-      {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
-      }
+      layer_name(std::optional<std::string_view> const& content) : content_{content} {}
       template <typename U>
-        requires std::constructible_from<experimental::identifier, U>
+        requires std::constructible_from<experimental::layer_path, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       layer_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator experimental::identifier const&() const
+      operator experimental::layer_path const&() const
       {
         if (!content_.has_value()) {
           throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
@@ -80,19 +73,18 @@ namespace phlex {
         return *content_;
       }
 
-      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      explicit operator std::string_view() const noexcept
+      experimental::layer_path const& operator*() const noexcept { return content_.operator*(); }
+      experimental::layer_path const* operator->() const noexcept { return content_.operator->(); }
+      explicit operator std::string() const noexcept
       {
-        using namespace std::string_view_literals;
-        return content_
-          .transform([](experimental::identifier const& id) { return std::string_view(id); })
-          .value_or("[ANY]"sv);
+        using namespace std::string_literals;
+        return content_ ? "[ANY]"s : content_->to_string();
       }
       operator bool() const noexcept { return content_.has_value(); }
       auto operator<=>(layer_name const&) const noexcept = default;
 
     private:
-      std::optional<experimental::identifier> content_;
+      std::optional<experimental::layer_path> content_;
     };
   }
 

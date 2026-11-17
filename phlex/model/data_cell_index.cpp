@@ -76,6 +76,24 @@ namespace phlex {
     return experimental::layer_path{std::move(layers)};
   }
 
+  bool data_cell_index::layer_path_ends_with(
+    experimental::layer_path const& layer_path_suffix) const noexcept
+  {
+    if (layer_path_suffix.depth() > depth_) {
+      // Can't end with a suffix longer than our path
+      return false;
+    }
+    auto const* ptr = this;
+    for (auto const& layer : std::views::reverse(layer_path_suffix.components())) {
+      assert(ptr);
+      if (ptr->layer_name() != layer) {
+        return false;
+      }
+      ptr = ptr->parent_.get();
+    }
+    return true;
+  }
+
   std::size_t data_cell_index::depth() const noexcept { return depth_; }
 
   data_cell_index_ptr data_cell_index::make_child(std::string child_layer_name,

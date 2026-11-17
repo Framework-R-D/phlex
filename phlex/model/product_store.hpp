@@ -35,6 +35,10 @@ namespace phlex::experimental {
     bool empty() const noexcept { return products_.empty(); }
 
     identifier const& layer_name() const noexcept;
+    bool layer_path_ends_with(layer_path const& layer_path_suffix) const noexcept
+    {
+      return id_->layer_path_ends_with(layer_path_suffix);
+    }
     algorithm_name const& source() const noexcept;
     identifier const& stage() const noexcept;
     data_cell_index_ptr const& index() const noexcept;

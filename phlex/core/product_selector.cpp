@@ -19,7 +19,7 @@ namespace phlex {
     if (creator && creator != other.creator) {
       return false;
     }
-    if (layer && layer != other.layer) {
+    if (layer && (!other.layer || !layer->ends_with(other.layer))) {
       return false;
     }
     if (suffix && suffix != other.suffix) {
@@ -60,7 +60,7 @@ namespace phlex {
     if (!match(spec)) {
       return false;
     }
-    if (this->layer && experimental::identifier(this->layer) != layer) {
+    if (this->layer && this->layer->leaf() != layer) {
       return false;
     }
     if (this->stage && this->stage != stage) {
@@ -87,7 +87,7 @@ namespace phlex {
       suffix.transform(&identifier::operator std::string_view).value_or("[ANY]");
     std::string type_str = this->type.valid() ? fmt::format("<{}>", this->type)
                                               : "[UNSET TYPE]"; // will later be concept
-    auto layer_str = std::string_view(layer);
+    auto layer_str = layer->to_string();
     std::string_view creator_str = creator ? std::string_view(*creator) : "[ANY]";
     std::string_view stage_str =
       stage.transform(&identifier::operator std::string_view).value_or("[ANY]");
