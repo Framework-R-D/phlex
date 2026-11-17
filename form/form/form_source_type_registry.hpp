@@ -4,13 +4,14 @@
 #define FORM_FORM_FORM_SOURCE_TYPE_REGISTRY_HPP
 
 #include "phlex/model/products.hpp"
-#include "phlex/model/type_id.hpp"
 #include "util/error.hpp"
 
 #include <functional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <typeindex>
+#include <utility>
 #include <vector>
 
 namespace form::experimental {
@@ -19,22 +20,18 @@ namespace form::experimental {
     void const* data, std::string const& product_name, std::string const& index_str)>;
 
   struct form_source_type_entry {
-    phlex::experimental::type_id type_id;
     std::type_info const* cpp_type{nullptr};
     form_source_product_from_data_fn product_from_data_fn;
   };
 
-  void register_form_product_type(std::string product_type,
-                                  phlex::experimental::type_id type,
-                                  std::type_info const& cpp_type,
+  void register_form_product_type(std::type_info const& cpp_type,
                                   form_source_product_from_data_fn product_from_data_fn);
 
-  form_source_type_entry const* find_form_product_type(std::string const& product_type);
-  std::string const* find_form_product_type_name(phlex::experimental::type_id const& type);
+  form_source_type_entry const* find_form_product_type(std::type_index product_type);
   void ensure_builtin_form_product_types_registered();
 
   template <typename T>
-  void register_form_product_cpp_type(std::string product_type)
+  void register_form_product_cpp_type()
   {
     using product_type_t = std::remove_cvref_t<T>;
 
@@ -51,16 +48,13 @@ namespace form::experimental {
       return phlex::experimental::product_for(*ptr);
     };
 
-    register_form_product_type(std::move(product_type),
-                               phlex::experimental::make_type_id<product_type_t>(),
-                               typeid(product_type_t),
-                               std::move(product_from_data_fn));
+    register_form_product_type(typeid(product_type_t), std::move(product_from_data_fn));
   }
 
   template <typename T>
-  void register_form_vector_product_type(std::string product_type)
+  void register_form_vector_product_type()
   {
-    register_form_product_cpp_type<std::vector<T>>(std::move(product_type));
+    register_form_product_cpp_type<std::vector<T>>();
   }
 
 } // namespace form::experimental

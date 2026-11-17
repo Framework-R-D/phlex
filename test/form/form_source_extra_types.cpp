@@ -15,11 +15,9 @@ namespace {
 
     // Example extension point: these types are not in the built-in registry.
     // Users can add their custom types here as needed.
-    form::experimental::register_form_vector_product_type<short>("std::vector<short>");
-    form::experimental::register_form_vector_product_type<unsigned short>(
-      "std::vector<unsigned short>");
-    form::experimental::register_form_vector_product_type<unsigned char>(
-      "std::vector<unsigned char>");
+    form::experimental::register_form_vector_product_type<short>();
+    form::experimental::register_form_vector_product_type<unsigned short>();
+    form::experimental::register_form_vector_product_type<unsigned char>();
 
     registered = true;
   }
