@@ -2,19 +2,17 @@
 
 #include "phlex/configuration.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/identifier.hpp"
 
 #include <optional>
 #include <string_view>
-#include <utility>
 
 namespace phlex::experimental::internal {
   algorithm_name make_algorithm_name(configuration const* config, std::string_view name)
   {
-    std::optional<identifier> plugin;
+    std::optional<std::string_view> plugin_label;
     if (config) {
-      plugin.emplace(config->get<std::string_view>("module_label"));
+      plugin_label = config->get<std::string_view>("module_label");
     }
-    return {std::move(plugin), identifier(name)};
+    return algorithm_name::create(plugin_label, name);
   }
 }

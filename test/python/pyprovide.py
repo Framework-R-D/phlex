@@ -134,6 +134,27 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
         except TypeError as e:
             assert msg in str(e)
 
+    # malformed text in a provider output is a ValueError that names the offending field
+    for selector, field in [
+        ({"creator": "a b", "layer": "b", "suffix": "c"}, "creator"),
+        ({"creator": "a:b:c", "layer": "b", "suffix": "c"}, "creator"),
+        ({"creator": "a", "layer": "1b", "suffix": "c"}, "layer"),
+        ({"creator": "a", "layer": "b", "suffix": "c d"}, "suffix"),
+    ]:
+        try:
+            s.provide(freq, selector)
+            assert not "supposed to be here"
+        except ValueError as e:
+            assert f'Invalid product selector field "{field}"' in str(e)
+
+    # a malformed provider name is a ValueError that quotes the composed algorithm name
+    bad_name = Variant(lambda di: 42, {"di": "data_cell_index", "return": int}, "bad name")
+    try:
+        s.provide(bad_name, {"creator": "a", "layer": "b", "suffix": "c"})
+        assert not "supposed to be here"
+    except ValueError as e:
+        assert 'Invalid algorithm name "provider:bad name"' in str(e)
+
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register python consumers as observers to check providers' output.

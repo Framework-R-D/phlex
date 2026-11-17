@@ -380,6 +380,24 @@ if(FORM_USE_ROOT_STORAGE)
       "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
     )
   endforeach()
+
+  # A malformed creator is rejected when form_source is registered, naming the parameter.
+  cet_test(
+    job:form_source_bad_creator
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_source_bad_creator.jsonnet
+    --stage
+    test
+    TEST_PROPERTIES
+    PASS_REGULAR_EXPRESSION
+    "Invalid parameter 'creator': Invalid algorithm name \"bad creator\": algorithm \"bad creator\" must start with"
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
 endif()
 
 if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)

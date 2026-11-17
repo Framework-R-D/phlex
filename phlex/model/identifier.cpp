@@ -1,5 +1,9 @@
 #include "phlex/model/identifier.hpp"
 
+#include "phlex/model/detail/excerpt.hpp"
+
+#include <fmt/format.h>
+
 #include <compare>
 #include <cstddef>
 #include <stdexcept>
@@ -11,8 +15,9 @@ namespace phlex::experimental {
     void validate_identifier(std::string_view str)
     {
       if (!phlex::detail::valid_identifier(str)) {
-        throw std::invalid_argument{"Invalid identifier: expected an ASCII letter followed by "
-                                    "ASCII letters, digits, or underscores"};
+        throw std::invalid_argument{fmt::format("Invalid identifier {}: it {}",
+                                                phlex::detail::excerpt(str),
+                                                phlex::detail::identifier_rule)};
       }
     }
   }

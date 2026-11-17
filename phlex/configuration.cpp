@@ -34,6 +34,20 @@ namespace phlex::detail {
 }
 
 namespace phlex {
+  namespace {
+    // Reports a malformed value together with the name of the product selector field that held it.
+    template <typename Convert>
+    auto in_selector_field(std::string_view field, Convert&& convert)
+    {
+      try {
+        return std::forward<Convert>(convert)();
+      } catch (std::invalid_argument const& e) {
+        throw std::invalid_argument{
+          fmt::format("Invalid product selector field \"{}\": {}", field, e.what())};
+      }
+    }
+  }
+
   std::vector<std::string> configuration::keys() const
   {
     std::vector<std::string> result;
@@ -67,13 +81,16 @@ namespace phlex {
       throw std::runtime_error(
         fmt::format("Product selector contains unrecognized keys: {}", unrecognized_keys));
     }
-    auto creator = value_if_exists(query_object, "creator");
-    auto layer = value_if_exists(query_object, "layer");
+    auto creator =
+      in_selector_field("creator", [&] { return value_if_exists(query_object, "creator"); });
+    auto layer = in_selector_field("layer", [&] { return value_if_exists(query_object, "layer"); });
     std::optional<experimental::suffix_t> suffix;
     if (query_object.contains("suffix")) {
-      suffix.emplace(std::string_view{query_object.at("suffix").as_string()});
+      suffix = in_selector_field("suffix", [&] {
+        return experimental::suffix_t{std::string_view{query_object.at("suffix").as_string()}};
+      });
     }
-    auto stage = value_if_exists(query_object, "stage");
+    auto stage = in_selector_field("stage", [&] { return value_if_exists(query_object, "stage"); });
     return product_selector{.creator = std::move(creator),
                             .layer = std::move(layer),
                             .suffix = std::move(suffix),

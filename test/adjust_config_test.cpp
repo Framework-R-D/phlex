@@ -1,12 +1,15 @@
 #include "phlex/app/plugin_loading.hpp"
 #include "phlex/app/run.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 using namespace phlex::detail::internal;
@@ -72,6 +75,21 @@ TEST_CASE("Loading resources requires a cpp parameter", "[config]")
     phlex::detail::load_resource(graph, "my_resource", {}),
     Catch::Matchers::ContainsSubstring(
       "Missing 'cpp' parameter for my_resource -- only C++ resources are supported."));
+}
+
+TEST_CASE("Module and source labels must be valid identifiers", "[config]")
+{
+  auto graph = phlex::detail::framework_graph::without_driver("test");
+  auto const rule = std::string{phlex::detail::identifier_rule};
+
+  CHECK_THROWS_AS(phlex::detail::load_module(graph, "my-module", {}), std::invalid_argument);
+  CHECK_THROWS_WITH(phlex::detail::load_module(graph, "my-module", {}),
+                    "Invalid label \"my-module\" for an entry in \"modules\": it " + rule);
+  CHECK_THROWS_AS(phlex::detail::load_source(graph, "1source", {}), std::invalid_argument);
+  CHECK_THROWS_WITH(phlex::detail::load_source(graph, "1source", {}),
+                    "Invalid label \"1source\" for an entry in \"sources\": it " + rule);
+  CHECK_THROWS_WITH(phlex::detail::load_source(graph, "", {}),
+                    "Invalid label \"\" for an entry in \"sources\": it " + rule);
 }
 
 TEST_CASE("A stage is required to run phlex", "[config]")

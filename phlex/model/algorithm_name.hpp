@@ -17,7 +17,7 @@ namespace phlex::experimental {
     algorithm_name(std::string const& spec);
     algorithm_name(std::string_view spec);
     // NOLINTEND(google-explicit-constructor)
-    /// Constructs a name from an optional plugin qualifier and a required algorithm.
+    /// Constructs a name from an optional plugin label and a required algorithm.
     /// An unqualified name is represented by `std::nullopt`.
     algorithm_name(std::optional<identifier> plugin, identifier algorithm);
 
@@ -28,8 +28,22 @@ namespace phlex::experimental {
     bool match(algorithm_name const& other) const;
     auto operator<=>(algorithm_name const&) const noexcept = default;
 
+    /// Parses `spec`, which is either `algorithm` or `plugin_label:algorithm`.
+    ///
+    /// Throws `std::invalid_argument` if `spec` is malformed. The message quotes the offending
+    /// text and says which part of the name is invalid and why. Only the first problem found is
+    /// reported.
     static algorithm_name create(char const* spec);
     static algorithm_name create(std::string_view spec);
+
+    /// Validates the components of a name and constructs it. This is the single place where
+    /// the text of an algorithm name is checked: the character rules are those of `identifier`,
+    /// and failures are reported as described for `create(std::string_view)`.
+    ///
+    /// An unqualified name is represented by `std::nullopt`. An empty `plugin` is not the same
+    /// as `std::nullopt`; it is rejected.
+    static algorithm_name create(std::optional<std::string_view> plugin,
+                                 std::string_view algorithm);
 
   private:
     std::optional<identifier> plugin_;

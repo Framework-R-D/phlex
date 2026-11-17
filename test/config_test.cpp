@@ -60,6 +60,10 @@ TEST_CASE("Retrieve product_selector", "[config]")
   boost::json::object malformed_input4 = input;
   malformed_input4["stag"] = "simulation";
 
+  boost::json::object malformed_input5;
+  malformed_input5["creator"] = "hits";
+  malformed_input5["suffix"] = "bad name";
+
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
   underlying_config["unconstrained"] = std::move(unconstrained_input);
@@ -67,6 +71,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
   underlying_config["malformed2"] = std::move(malformed_input2);
   underlying_config["malformed3"] = std::move(malformed_input3);
   underlying_config["malformed4"] = std::move(malformed_input4);
+  underlying_config["malformed5"] = std::move(malformed_input5);
   configuration const config{underlying_config};
 
   auto input_query = config.get<product_selector>("input");
@@ -80,11 +85,17 @@ TEST_CASE("Retrieve product_selector", "[config]")
                       ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
-                      ContainsSubstring("Invalid identifier"));
+                      ContainsSubstring("Invalid product selector field \"layer\": "
+                                        "Invalid identifier \"\": it must start with"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
                     ContainsSubstring("Error retrieving parameter 'malformed3'") &&
-                    ContainsSubstring("Invalid identifier"));
+                      ContainsSubstring("Invalid product selector field \"creator\": "
+                                        "Invalid identifier \"\": it must start with"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed4"),
                     ContainsSubstring("Error retrieving parameter 'malformed4'") &&
-                    ContainsSubstring("Product selector contains unrecognized keys"));
+                      ContainsSubstring("Product selector contains unrecognized keys"));
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed5"),
+                    ContainsSubstring("Error retrieving parameter 'malformed5'") &&
+                      ContainsSubstring("Invalid product selector field \"suffix\": "
+                                        "Invalid identifier \"bad name\": it must start with"));
 }

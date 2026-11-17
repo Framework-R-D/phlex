@@ -78,6 +78,20 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             # test for the one generic part in all these errors
             assert "not a string" in str(e)
 
+    # malformed text in an input selector is a ValueError that names the offending field
+    for input_query, field in (
+        ({"creator": "bad creator", "layer": "event", "suffix": "i"}, "creator"),
+        ({"creator": "input", "layer": "event layer", "suffix": "i"}, "layer"),
+        ({"creator": "input", "layer": "event", "suffix": "bad suffix"}, "suffix"),
+    ):
+        try:
+            m.transform(
+                constant_one, input_family=[input_query], output_product_suffixes=["output_one"]
+            )
+            assert not "supposed to be here"
+        except ValueError as e:
+            assert f'Invalid product selector field "{field}"' in str(e)
+
     # transforms with suffix to be used without suffix
     m.transform(
         constant_one,

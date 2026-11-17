@@ -304,7 +304,13 @@ namespace {
     if (!text) {
       return std::nullopt;
     }
-    return T{std::string_view{text, static_cast<std::size_t>(size)}};
+    try {
+      return T{std::string_view{text, static_cast<std::size_t>(size)}};
+    } catch (std::invalid_argument const& e) {
+      // Name the dictionary key so that the user can tell which field is at fault.
+      throw std::invalid_argument{
+        fmt::format("Invalid product selector field \"{}\": {}", item, e.what())};
+    }
   }
 
   inline std::optional<product_selector> validate_selector(PyObject* pysel,
@@ -390,6 +396,9 @@ namespace {
           return std::nullopt;
         }
         std::string result(p, static_cast<std::string::size_type>(sz));
+        // Validate the text where it arrives from the user. Names derived from it later (for
+        // example, with a "_py" suffix) are valid by construction, so this is the one check that
+        // can quote exactly what the user wrote.
         suffix_t const checked{result};
         return result;
       });
@@ -947,6 +956,9 @@ namespace {
     }
     functor_name.assign(name_text, static_cast<std::size_t>(name_size));
     Py_DECREF(pyname);
+    // Validate the name where it arrives from the user. Names derived from it later (for
+    // example, "<name>_arg0_py") are valid by construction, so this is the one check that can
+    // quote exactly what the user wrote.
     identifier const checked_name{std::string_view{functor_name}};
 
     if (!input) {
@@ -1535,7 +1547,6 @@ namespace {
       PyErr_SetString(PyExc_TypeError, "a provider must have an output");
       return std::nullopt;
     }
-    identifier const checked_name{std::string_view{name}};
     return provider_registration{
       .callable = callable, .output = output, .name = name, .output_type = output_types[0]};
   }

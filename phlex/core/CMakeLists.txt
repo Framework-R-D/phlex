@@ -17,7 +17,6 @@ cet_make_library(
   detail/repeater_node.cpp
   filter.cpp
   framework_graph.cpp
-  glue.cpp
   index_router.cpp
   make_computational_edges.cpp
   message.cpp

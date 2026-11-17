@@ -71,6 +71,7 @@ TEST_CASE("Product name with data layer", "[data model]")
 TEST_CASE("Selectors do not move from lvalue arguments", "[data model]")
 {
   experimental::identifier const expected_creator{"creator"};
+  experimental::identifier const expected_layer{"event"};
   experimental::identifier creator{"creator"};
   experimental::identifier layer{"event"};
   std::string layer_string{"event"};
@@ -78,8 +79,8 @@ TEST_CASE("Selectors do not move from lvalue arguments", "[data model]")
   product_selector first{.creator = creator, .layer = layer, .suffix = "a"_id};
   // The sources must be intact after the first use...
   CHECK(creator == expected_creator);
-  CHECK(!layer.empty());
-  // ...so that reusing them does not throw an empty-name error.
+  CHECK(layer == expected_layer);
+  // ...so that reusing them still yields the original values.
   product_selector second{.creator = creator, .layer = layer, .suffix = "b"_id};
   CHECK(first.creator == second.creator);
   CHECK(first.layer == second.layer);

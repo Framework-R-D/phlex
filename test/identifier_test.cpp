@@ -5,6 +5,7 @@
 #include <boost/json/parse.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <fmt/format.h>
 
 #include <algorithm>
@@ -13,6 +14,7 @@
 #include <cstddef>
 #include <functional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -29,6 +31,24 @@ TEST_CASE("Identifier rejects punctuation", "[identifier]")
   CHECK_THROWS(identifier{"run.name"});
   CHECK_THROWS(identifier{"run/name"});
   CHECK_THROWS(identifier{"run:name"});
+}
+
+TEST_CASE("Identifier errors quote the offending text and state the rule", "[identifier]")
+{
+  auto const rule = std::string{phlex::detail::identifier_rule};
+  CHECK_THROWS_AS(identifier{"run-name"}, std::invalid_argument);
+  CHECK_THROWS_WITH(identifier{"run-name"}, "Invalid identifier \"run-name\": it " + rule);
+  CHECK_THROWS_WITH(identifier{""}, "Invalid identifier \"\": it " + rule);
+  CHECK_THROWS_WITH(identifier{std::string{"a\nb"}}, "Invalid identifier \"a\\nb\": it " + rule);
+  CHECK_THROWS_WITH(suffix_t{"bad name"sv}, "Invalid identifier \"bad name\": it " + rule);
+}
+
+TEST_CASE("Identifier errors shorten very long text", "[identifier]")
+{
+  std::string const text = std::string(100, 'a') + "-";
+  CHECK_THROWS_WITH(identifier{text},
+                    "Invalid identifier \"" + std::string(64, 'a') + "...\": it " +
+                      std::string{phlex::detail::identifier_rule});
 }
 
 TEST_CASE("Identifier must begin with a letter", "[identifier]")
@@ -68,6 +88,15 @@ TEST_CASE("Identifier validates every length-bearing construction path", "[ident
   CHECK_THROWS(identifier_or_empty{"bad name"sv});
   CHECK_THROWS(suffix_t{std::string{"abc\0def", 7}});
   CHECK(identifier_or_empty{""}.empty());
+}
+
+TEST_CASE("identifier_or_empty exception specifications", "[identifier]")
+{
+  // Moving an identifier never allocates; copying one may.
+  STATIC_CHECK(std::is_nothrow_constructible_v<identifier_or_empty, identifier&&>);
+  STATIC_CHECK_FALSE(std::is_nothrow_constructible_v<identifier_or_empty, identifier const&>);
+  STATIC_CHECK(std::is_nothrow_move_constructible_v<identifier_or_empty>);
+  STATIC_CHECK(std::is_nothrow_move_assignable_v<identifier_or_empty>);
 }
 
 TEST_CASE("Moving identifiers preserves the destination value", "[identifier]")

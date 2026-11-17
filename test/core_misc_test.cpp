@@ -10,12 +10,14 @@
 #include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -67,28 +69,64 @@ TEST_CASE("algorithm_name tests", "[model]")
     CHECK(qualified == algorithm_name::create("plugin:algo"));
     CHECK(qualified != unqualified);
   }
-  SECTION("Create error - trailing colon")
+  SECTION("Create error - structural problems are reported as invalid_argument")
   {
-    CHECK_THROWS_AS(algorithm_name::create("plugin:"), std::runtime_error);
+    auto const forms = R"( Expected "algorithm" or "plugin_label:algorithm".)";
+    auto const message = [forms](std::string_view text, std::string_view reason) {
+      return std::string{"Invalid algorithm name \""} + std::string{text} +
+             "\": " + std::string{reason} + forms;
+    };
+
+    CHECK_THROWS_AS(algorithm_name::create(""), std::invalid_argument);
+    CHECK_THROWS_WITH(algorithm_name::create(""), message("", "it is empty."));
+    CHECK_THROWS_WITH(algorithm_name::create("plugin:"),
+                      message("plugin:", "the algorithm after ':' is missing."));
+    CHECK_THROWS_WITH(algorithm_name::create(":algo"),
+                      message(":algo", "the plugin label before ':' is missing."));
+    CHECK_THROWS_WITH(algorithm_name::create(":"),
+                      message(":", "the plugin label before ':' is missing."));
+    CHECK_THROWS_WITH(algorithm_name::create("a:b:c"),
+                      message("a:b:c", "it contains more than one ':'."));
   }
-  SECTION("Create error - leading colon")
+  SECTION("Create error - malformed components are reported as invalid_argument")
   {
-    CHECK_THROWS_AS(algorithm_name::create(":algo"), std::runtime_error);
+    auto const rule = std::string{phlex::detail::identifier_rule};
+
+    CHECK_THROWS_AS(algorithm_name::create("_x"), std::invalid_argument);
+    CHECK_THROWS_WITH(algorithm_name::create("_x"),
+                      "Invalid algorithm name \"_x\": algorithm \"_x\" " + rule);
+    CHECK_THROWS_WITH(algorithm_name::create("a[0]"),
+                      "Invalid algorithm name \"a[0]\": algorithm \"a[0]\" " + rule);
+    CHECK_THROWS_WITH(algorithm_name::create("a b"),
+                      "Invalid algorithm name \"a b\": algorithm \"a b\" " + rule);
+    CHECK_THROWS_WITH(algorithm_name::create("1p:a"),
+                      "Invalid algorithm name \"1p:a\": plugin label \"1p\" " + rule);
+    CHECK_THROWS_WITH(algorithm_name::create("pl ugin:algo"),
+                      "Invalid algorithm name \"pl ugin:algo\": plugin label \"pl ugin\" " + rule);
+    CHECK_THROWS_WITH(algorithm_name::create("p:1a"),
+                      "Invalid algorithm name \"p:1a\": algorithm \"1a\" " + rule);
+    // Only the first problem is reported, and the plugin label is checked first.
+    CHECK_THROWS_WITH(algorithm_name::create("1p:1a"),
+                      "Invalid algorithm name \"1p:1a\": plugin label \"1p\" " + rule);
   }
-  SECTION("Create error - multiple colons")
+  SECTION("Create error - long text is shortened in the message")
   {
-    CHECK_THROWS_AS(algorithm_name::create("a:b:c"), std::runtime_error);
+    std::string const text = std::string(100, 'a') + "-";
+    std::string const shown = std::string(64, 'a') + "...";
+    CHECK_THROWS_WITH(algorithm_name::create(text),
+                      Catch::Matchers::ContainsSubstring("\"" + shown + "\"") &&
+                        !Catch::Matchers::ContainsSubstring(text));
   }
-  SECTION("Create error - malformed components")
+  SECTION("Create from optional plugin and algorithm")
   {
-    CHECK_THROWS(algorithm_name::create("1plugin:algo"));
-    CHECK_THROWS(algorithm_name::create("plugin:1algo"));
-    CHECK_THROWS(algorithm_name::create("pl ugin:algo"));
-  }
-  SECTION("Create error - empty name")
-  {
-    CHECK_THROWS_AS(algorithm_name::create(""), std::runtime_error);
-    CHECK_THROWS_WITH(algorithm_name::create(""), "Cannot create an empty algorithm name.");
+    CHECK(algorithm_name::create(std::nullopt, "algo") == algorithm_name::create("algo"));
+    CHECK(algorithm_name::create("plugin", "algo") == algorithm_name::create("plugin:algo"));
+    // An empty plugin is not the same as an absent plugin.
+    CHECK_THROWS_AS(algorithm_name::create("", "algo"), std::invalid_argument);
+    CHECK_THROWS_AS(algorithm_name::create(std::nullopt, ""), std::invalid_argument);
+    CHECK_THROWS_AS(algorithm_name::create("plugin", ""), std::invalid_argument);
+    // The overload does not split on colons, so a colon in a component violates the character rule.
+    CHECK_THROWS_AS(algorithm_name::create(std::nullopt, "a:b"), std::invalid_argument);
   }
   SECTION("Match both")
   {
@@ -134,30 +172,45 @@ TEST_CASE("make_algorithm_name tests", "[core]")
     CHECK(name.to_string() == "my_module:my_algorithm");
   }
 
-  SECTION("An empty algorithm name is rejected") { CHECK_THROWS(make_algorithm_name(nullptr, "")); }
-}
+  SECTION("An empty algorithm name is rejected with the same message as create")
+  {
+    CHECK_THROWS_AS(make_algorithm_name(nullptr, ""), std::invalid_argument);
+    CHECK_THROWS_WITH(
+      make_algorithm_name(nullptr, ""),
+      Catch::Matchers::ContainsSubstring("Invalid algorithm name \"\": it is empty"));
 
-TEST_CASE("verify_name tests", "[core]")
-{
-  using namespace phlex::detail::internal;
+    boost::json::object obj;
+    obj["module_label"] = "my_module";
+    phlex::configuration const config{obj};
+    CHECK_THROWS_WITH(
+      make_algorithm_name(&config, ""),
+      Catch::Matchers::ContainsSubstring(
+        "Invalid algorithm name \"my_module:\": the algorithm after ':' is missing"));
+  }
 
-  SECTION("non-empty name does nothing") { CHECK_NOTHROW(verify_name("valid_name", nullptr)); }
-
-  SECTION("empty name throws") { CHECK_THROWS_AS(verify_name("", nullptr), std::runtime_error); }
-
-  SECTION("empty name with config includes module label")
+  SECTION("A malformed algorithm name is reported with the composed name")
   {
     boost::json::object obj;
     obj["module_label"] = "my_module";
     phlex::configuration const config{obj};
 
-    try {
-      verify_name("", &config);
-      FAIL("Should have thrown");
-    } catch (std::runtime_error const& e) {
-      std::string const msg = e.what();
-      CHECK(msg.contains("my_module"));
-    }
+    CHECK_THROWS_AS(make_algorithm_name(&config, "my-algorithm"), std::invalid_argument);
+    CHECK_THROWS_WITH(make_algorithm_name(&config, "my-algorithm"),
+                      Catch::Matchers::ContainsSubstring("Invalid algorithm name "
+                                                         "\"my_module:my-algorithm\": algorithm "
+                                                         "\"my-algorithm\" must start with"));
+    CHECK_THROWS_AS(make_algorithm_name(nullptr, "a[0]"), std::invalid_argument);
+  }
+
+  SECTION("A malformed module label is reported as a bad plugin label")
+  {
+    boost::json::object obj;
+    obj["module_label"] = "1module";
+    phlex::configuration const config{obj};
+
+    CHECK_THROWS_WITH(
+      make_algorithm_name(&config, "my_algorithm"),
+      Catch::Matchers::ContainsSubstring("plugin label \"1module\" must start with"));
   }
 }
 

@@ -1,10 +1,10 @@
 #include "phlex/model/algorithm_name.hpp"
 
+#include "phlex/model/detail/excerpt.hpp"
 #include "phlex/model/identifier.hpp"
 
 #include <fmt/format.h>
 
-#include <algorithm>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -12,27 +12,29 @@
 #include <utility>
 
 namespace {
-  // Check if a char is a word (\w) char
-  // Only care about C locale (ASCII) for now
-  bool is_word(char c)
+  constexpr std::string_view expected_forms{R"(Expected "algorithm" or "plugin_label:algorithm".)"};
+
+  [[noreturn]] void throw_invalid(std::string_view name, std::string_view reason)
   {
-    if ('0' <= c && c <= '9') {
-      return true;
-    }
-    if ('A' <= c && c <= 'Z') {
-      return true;
-    }
-    if ('a' <= c && c <= 'z') {
-      return true;
-    }
-    if (c == '_' || c == '[' || c == ']') {
-      return true;
-    }
-    return false;
+    throw std::invalid_argument{
+      fmt::format("Invalid algorithm name {}: {}", phlex::detail::excerpt(name), reason)};
   }
 
-  // Check that a string_view only contains word chars
-  bool words_only(std::string_view str) { return std::ranges::all_of(str, is_word); }
+  // Constructing an identifier is the one place where character rules are checked. The
+  // identifier's own message is replaced with one that says which part of the name is at fault.
+  phlex::experimental::identifier make_identifier(std::string_view name,
+                                                  std::string_view part,
+                                                  std::string_view text)
+  {
+    try {
+      return phlex::experimental::identifier{text};
+    } catch (std::invalid_argument const&) {
+      throw_invalid(
+        name,
+        fmt::format(
+          "{} {} {}", part, phlex::detail::excerpt(text), phlex::detail::identifier_rule));
+    }
+  }
 }
 
 namespace phlex::experimental {
@@ -58,33 +60,40 @@ namespace phlex::experimental {
   bool algorithm_name::match(algorithm_name const& other) const { return operator==(other); }
 
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
+
   algorithm_name algorithm_name::create(std::string_view spec)
   {
-    if (spec.empty()) {
-      throw std::runtime_error("Cannot create an empty algorithm name.");
+    auto const colon = spec.find(':');
+    if (colon == std::string_view::npos) {
+      return create(std::nullopt, spec);
+    }
+    auto const algorithm = spec.substr(colon + 1);
+    if (algorithm.contains(':')) {
+      throw_invalid(spec, fmt::format("it contains more than one ':'. {}", expected_forms));
+    }
+    return create(spec.substr(0, colon), algorithm);
+  }
+
+  algorithm_name algorithm_name::create(std::optional<std::string_view> plugin,
+                                        std::string_view algorithm)
+  {
+    auto const name = plugin ? fmt::format("{}:{}", *plugin, algorithm) : std::string{algorithm};
+
+    if (!plugin && algorithm.empty()) {
+      throw_invalid(name, fmt::format("it is empty. {}", expected_forms));
+    }
+    if (plugin && plugin->empty()) {
+      throw_invalid(name,
+                    fmt::format("the plugin label before ':' is missing. {}", expected_forms));
+    }
+    if (plugin && algorithm.empty()) {
+      throw_invalid(name, fmt::format("the algorithm after ':' is missing. {}", expected_forms));
     }
 
-    // Do we have a colon? If so, have both plugin and algorithm
-    if (spec.contains(':')) {
-      if (spec.ends_with(':')) {
-        throw std::runtime_error("Cannot create an algorithm name that ends with a colon (':')");
-      }
-      auto const colon_pos = spec.find(':');
-      std::string_view const plugin = spec.substr(0, colon_pos);
-      std::string_view const algorithm = spec.substr(colon_pos + 1); // +1 OK, : not at end
-
-      if (plugin.empty() || !words_only(plugin) || !words_only(algorithm)) {
-        throw std::runtime_error(
-          fmt::format("The specification '{}' is not a valid algorithm name.", spec));
-      }
-      return {std::optional<identifier>{identifier(plugin)}, identifier(algorithm)};
+    std::optional<identifier> plugin_label;
+    if (plugin) {
+      plugin_label.emplace(make_identifier(name, "plugin label", *plugin));
     }
-
-    // No colon -- could be plugin or algorithm
-    if (!words_only(spec)) {
-      throw std::runtime_error(
-        fmt::format("The specification '{}' is not a valid algorithm name.", spec));
-    }
-    return {std::nullopt, identifier(spec)};
+    return {std::move(plugin_label), make_identifier(name, "algorithm", algorithm)};
   }
 }

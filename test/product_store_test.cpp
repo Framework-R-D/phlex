@@ -85,6 +85,11 @@ TEST_CASE("Product specification text requires creator and slash", "[data model]
     CHECK_THROWS(product_specification::create(":creator/number"));
     CHECK_THROWS(product_specification::create("creator/a/b"));
     CHECK_THROWS(product_specification{"number"});
+    // Malformed creator text is reported by algorithm_name, as invalid_argument.
+    CHECK_THROWS_AS(product_specification::create("_x/number"), std::invalid_argument);
+    CHECK_THROWS_WITH(product_specification::create("1p:a/number"),
+                      Catch::Matchers::ContainsSubstring("Invalid algorithm name \"1p:a\": "
+                                                         "plugin label \"1p\" must start with"));
     CHECK_THROWS(product_specification{std::string{"/number"}});
   }
 }

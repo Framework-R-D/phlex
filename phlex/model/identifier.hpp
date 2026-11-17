@@ -18,6 +18,11 @@
 #include <variant>
 
 namespace phlex::detail {
+  /// The rule enforced by `valid_identifier`, phrased to follow a subject (for example,
+  /// "it" or `algorithm "x"`) in error messages.
+  inline constexpr std::string_view identifier_rule{
+    "must start with an ASCII letter and contain only ASCII letters, digits, or underscores"};
+
   // This implementation does not use std::regex for the validation because
   // std::regex does not support compile-time regular expressions.
   constexpr bool valid_identifier(std::string_view text) noexcept
@@ -79,7 +84,6 @@ namespace phlex::experimental {
     bool operator==(identifier const& rhs) const noexcept;
     std::strong_ordering operator<=>(identifier const& rhs) const noexcept;
 
-    bool empty() const noexcept { return content_.empty(); }
     std::size_t hash() const noexcept { return hash_; }
 
     // transitional access to contained string
