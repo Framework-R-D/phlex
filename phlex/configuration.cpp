@@ -7,10 +7,14 @@
 #include <boost/json/object.hpp>
 #include <boost/json/value.hpp>
 #include <boost/json/value_to.hpp>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <iterator>
 #include <optional>
+#include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -49,7 +53,20 @@ namespace phlex {
                               boost::json::value const& jv)
   {
     using detail::value_if_exists;
+    using namespace std::string_view_literals;
+    static std::set<std::string_view> const valid_keys = {
+      "creator"sv, "layer"sv, "suffix"sv, "stage"sv};
     auto query_object = jv.as_object();
+    std::set<std::string_view> unrecognized_keys = {};
+    for (auto const& [key, _] : query_object) {
+      if (!valid_keys.contains(key)) {
+        unrecognized_keys.emplace(key);
+      }
+    }
+    if (!unrecognized_keys.empty()) {
+      throw std::runtime_error(
+        fmt::format("Product selector contains unrecognized keys: {}", unrecognized_keys));
+    }
     auto creator = value_if_exists(query_object, "creator");
     auto layer = value_if_exists(query_object, "layer");
     auto suffix = value_if_exists(query_object, "suffix");
