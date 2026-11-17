@@ -8,4 +8,4 @@ add_library(
   persistence_writer.cpp
   persistence_utils.cpp
 )
-target_link_libraries(persistence core storage)
+target_link_libraries(persistence core storage util)

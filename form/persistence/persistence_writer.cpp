@@ -12,6 +12,7 @@
 #include "navigation_naming.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "storage/istorage.hpp"
+#include "util/error.hpp"
 
 #include <array>
 #include <cstddef>
@@ -141,12 +142,12 @@ void persistence_writer::create_containers(
     // Reserve the "navigation_prefix" namespace for navigation containers.
     auto const row_space = row_space_of(plcmnt.container_name());
     if (row_space.starts_with(navigation_prefix)) {
-      throw std::runtime_error("persistence_writer::create_containers row space '" + row_space +
+      error("row space '" + row_space +
                                "' begins with '" + std::string{navigation_prefix} +
                                "', which is reserved for FORM navigation containers");
     }
     if (row_space.starts_with(form_block_prefix)) {
-      throw std::runtime_error("persistence_writer::create_containers row space '" + row_space +
+      error("row space '" + row_space +
                                "' begins with '" + std::string{form_block_prefix} +
                                "', which is reserved for FORM's own file-level containers");
     }
@@ -203,7 +204,7 @@ token persistence_writer::register_write(product_identity const& product,
   // located on read; reject it here rather than return an unusable token.
   if (row == invalid_row_id) {
     abandon_record();
-    throw std::runtime_error("persistence_writer::register_write backend for container '" +
+    error("backend for container '" +
                              plcmnt.container_name() +
                              "' does not address rows; cannot produce a token locating the "
                              "written product");
