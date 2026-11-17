@@ -122,9 +122,6 @@ void root_tbranch_read_container_imp::prime(std::type_info const& type)
         std::string{"root_tbranch_read_container_imp::prime missing TClass for type: "} +
         demangle_name(type));
     }
-    if (!klass->HasDictionary()) {
-      throw std::runtime_error("root_tbranch_read_container_imp::prime cannot read type " + demangle_name(type) + " that is missing ROOT dictionary");
-    }
   }
 }
 
