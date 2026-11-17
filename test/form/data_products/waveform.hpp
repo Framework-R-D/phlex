@@ -2,21 +2,21 @@
 #ifndef FORM_TEST_WAVEFORM_HPP
 #define FORM_TEST_WAVEFORM_HPP
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace form::test {
   class waveform {
-    public:
-      waveform();
-      waveform(std::vector<uint16_t> const& samples, int channel);
-  
-      std::vector<uint16_t> const& get_samples() const;
-      int get_channel() const;
-  
-    private:
-      std::vector<uint16_t> samples_;
-      int channel_;
+  public:
+    waveform();
+    waveform(std::vector<uint16_t> const& samples, int channel);
+
+    std::vector<uint16_t> const& get_samples() const;
+    int get_channel() const;
+
+  private:
+    std::vector<uint16_t> samples_;
+    int channel_;
   };
 }
 
