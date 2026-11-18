@@ -6,6 +6,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
@@ -43,22 +44,30 @@ namespace {
     return experimental::product_for(static_cast<int>(dci.number()));
   }
 
+  /// Source of an archived @c int count in the layer given at construction.  The layer is a
+  /// leaf, partial, or complete layer path, and defaults to the leaf layer @c "event".
   class archived_count_source : public source {
   public:
+    archived_count_source() = default;
+    explicit archived_count_source(std::string layer) : layer_{std::move(layer)} {}
+
     provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental::literals;
       phlex::experimental::product_specification spec{
         "archived_input", "archived_count", phlex::experimental::make_type_id<int>()};
-      if (!selector.match(spec, "event"_id, "previous_process"_id)) {
+      if (!selector.match(spec, experimental::layer_path{layer_}, "previous_process"_id)) {
         return {};
       }
       return {{.provider_function = provide_archived_count,
                .max_concurrency = concurrency::unlimited,
                .spec = std::move(spec),
-               .layer = "event",
+               .layer = layer_,
                .stage = "previous_process"}};
     }
+
+  private:
+    std::string layer_{"event"};
   };
 
   class copy_temperature_once {
@@ -267,7 +276,7 @@ TEST_CASE("Selecting by layer path segments beyond the leaf", "[graph]")
   gen->add_layer("event", {.parent_layer = "run", .count = events_per_run});
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
-  g.add_source<archived_count_source>("archived_count_source");
+  g.add_source<archived_count_source>("archived_count_source", "/job/run/event"s);
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
     .output_product("input", "evt_number", "/job/run/event");
 
