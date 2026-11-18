@@ -79,7 +79,7 @@ namespace phlex {
   bool data_cell_index::layer_path_ends_with(
     experimental::layer_path const& layer_path_suffix) const noexcept
   {
-    if (layer_path_suffix.depth() > depth_) {
+    if (layer_path_suffix.depth() > depth_ + 1) {
       // Can't end with a suffix longer than our path
       return false;
     }

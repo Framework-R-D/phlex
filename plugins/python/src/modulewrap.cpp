@@ -312,11 +312,14 @@ namespace {
     }
 
     // in the following, each of these parameters is passed differently b/c:
-    //   "c" and "layer" are internal types that only takes an optional through a
-    //     move for its contructor
+    //   "c" is an internal type that only takes an optional through a move for its
+    //     contructor
+    //   "layer" is an internal type that takes an optional string_view
     //   "suffix" is an optional itself, so can pass directly
     return std::optional<product_selector>{
-      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = s}};
+      product_selector{.creator = std::move(c),
+                       .layer = l.transform(&identifier::operator std::string_view),
+                       .suffix = s}};
   }
 
   template <typename T, typename F>
@@ -1089,28 +1092,28 @@ namespace {
     return result;
   }
 
-  std::optional<identifier> transform_output_layer(
+  phlex::detail::layer_selector transform_output_layer(
     std::string const& name, std::vector<product_selector> const& input_selectors)
   {
     // if a layer was provided, we'll re-use it for the intermediate Python products,
     // otherwise also specify no layer for the intermediates (TODO: it may be worthwhile
     // to explore using a "workspace" layer)
-    std::optional<identifier> output_layer;
+    phlex::detail::layer_selector output_layer;
     // note: the following treats the first layer as special (as in, if the first layer
     // is optional, but the next one is not, the check will succeed), but that's fine
     // as for now such mixing isn't supported by the product selector
     if (input_selectors[0].layer) {
-      output_layer = static_cast<identifier>(input_selectors[0].layer);
+      output_layer = input_selectors[0].layer;
       // TODO: it's not clear what the output layer will be if the input layers are not
       // all the same, so for now, simply raise an error if their is any ambiguity
       for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
-        if (static_cast<identifier>(iq_pq.layer) != output_layer.value()) {
+        if (iq_pq.layer != output_layer) {
           PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
-          return std::nullopt; // error return
+          return {}; // error return
         }
       }
     }
-    return output_layer; // not an error return if nullopt
+    return output_layer; // not an error return if empty
   }
 
   bool validate_transform_output(std::string const& name,
@@ -1192,7 +1195,7 @@ namespace {
     std::vector<product_selector> const& input_selectors,
     std::string const& output_type,
     std::string const& output_suffix,
-    std::optional<identifier> output_layer,
+    phlex::detail::layer_selector output_layer,
     concurrency nconcur)
   {
     // Only a single output is supported until typed tuple conversion is implemented.
@@ -1537,7 +1540,7 @@ namespace {
     }
 
     algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
-    identifier const layer = opq.value().layer;
+    identifier const layer = opq.value().layer->leaf();
     identifier const suffix = opq.value().suffix.value_or("");
 
     // Provider callbacks retain the callable for the graph lifetime. A translator node

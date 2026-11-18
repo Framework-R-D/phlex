@@ -19,7 +19,7 @@ namespace phlex {
     if (creator && creator != other.creator) {
       return false;
     }
-    if (layer && (!other.layer || !layer->ends_with(other.layer))) {
+    if (layer && (!other.layer || !other.layer->ends_with(layer))) {
       return false;
     }
     if (suffix && suffix != other.suffix) {
@@ -54,13 +54,13 @@ namespace phlex {
 
   // Check if a product_specification, layer, and stage together satisfies this query
   bool product_selector::match(experimental::product_specification const& spec,
-                               experimental::identifier const& layer,
+                               experimental::layer_path const& layer,
                                experimental::identifier const& stage) const
   {
     if (!match(spec)) {
       return false;
     }
-    if (this->layer && this->layer->leaf() != layer) {
+    if (this->layer && !layer.ends_with(this->layer)) {
       return false;
     }
     if (this->stage && this->stage != stage) {
@@ -87,7 +87,7 @@ namespace phlex {
       suffix.transform(&identifier::operator std::string_view).value_or("[ANY]");
     std::string type_str = this->type.valid() ? fmt::format("<{}>", this->type)
                                               : "[UNSET TYPE]"; // will later be concept
-    auto layer_str = layer->to_string();
+    auto layer_str = layer ? layer->to_string() : "[ANY]";
     std::string_view creator_str = creator ? std::string_view(*creator) : "[ANY]";
     std::string_view stage_str =
       stage.transform(&identifier::operator std::string_view).value_or("[ANY]");
@@ -118,7 +118,7 @@ namespace phlex {
   {
     // Protect against layer mismatch
     if (query.layer) {
-      if (store.index()->layer_name() != *query.layer) {
+      if (!store.layer_path_ends_with(query.layer)) {
         return nullptr;
       }
     }
