@@ -56,3 +56,15 @@ jobs:
         uses: ./.github/actions/run-pre-commit
         with:
           category: tests
+
+      - name: Upload scripts coverage to Codecov
+        if: ${{ hashFiles('coverage-scripts.xml') != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage-scripts.xml
+          flags: ${{ matrix.arch }}
+          name: phlex-scripts-coverage-${{ matrix.arch }}
+          fail_ci_if_error: false
+          verbose: true
+          root_dir: .
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -60,6 +60,15 @@ runs:
                     hook["args"] = [*hook.get("args", []), "."]
                     hook["pass_filenames"] = False
                     hook["always_run"] = True
+                elif hook["id"] == "scripts-unit-tests":
+                    hook["additional_dependencies"] = [
+                        *hook.get("additional_dependencies", []), "pytest-cov",
+                    ]
+                    hook["args"] = [
+                        *hook.get("args", []),
+                        "--cov=scripts", "--cov=ci", "--cov=.devcontainer",
+                        "--cov-report=xml:coverage-scripts.xml", "--cov-report=term-missing",
+                    ]
             if hooks:
                 repos.append({**repo, "hooks": hooks})
         config["repos"] = repos
