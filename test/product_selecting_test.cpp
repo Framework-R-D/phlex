@@ -84,15 +84,15 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)
-    .output_product("input", "number", "job");
+    .output_product("input", "number", "/job");
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
-    .output_product("input", "evt_number", "event");
+    .output_product("input", "evt_number", "/job/event");
   g.provide("provide_temperature_in_event", provide_temperature, concurrency::unlimited)
-    .output_product("input", "temperature", "event");
+    .output_product("input", "temperature", "/job/event");
   g.provide("provide_temperature_in_event_again", provide_temperature, concurrency::unlimited)
-    .output_product("thermometer", "temperature", "event");
+    .output_product("thermometer", "temperature", "/job/event");
   g.provide("provide_name_in_event", provide_name, concurrency::unlimited)
-    .output_product("give_name", "name", "event");
+    .output_product("give_name", "name", "/job/event");
 
   // Duplicate with transform
   g.transform("duplicate_temperature", [](double const& t) { return t; })
@@ -269,7 +269,7 @@ TEST_CASE("Selecting by layer path segments beyond the leaf", "[graph]")
   g.add_driver(gen);
   g.add_source<archived_count_source>("archived_count_source");
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
-    .output_product("input", "evt_number", "event");
+    .output_product("input", "evt_number", "/job/run/event");
 
   auto observe_with = [&g](std::string const& layer, bool from_source) {
     auto selector =
@@ -311,9 +311,9 @@ TEST_CASE("Selecting by layer path segments after a computed product", "[graph]"
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_idx", provide_idx, concurrency::unlimited)
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/subrun/event");
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
-    .output_product("input", "temperature", "event");
+    .output_product("input", "temperature", "/job/run/subrun/event");
 
   SECTION("Transform output")
   {
@@ -386,5 +386,16 @@ TEST_CASE("Selecting by layer path segments after a computed product", "[graph]"
     // The graph is accepted, but no product reaches the observer.
     g.execute();
     CHECK(g.execution_count("observer") == 0);
+  }
+}
+
+TEST_CASE("Explicit providers require complete output layer paths", "[graph]")
+{
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  for (auto const* incomplete : {"event", "run/event"}) {
+    CAPTURE(incomplete);
+    CHECK_THROWS_WITH(g.provide("provide_number", provide_number, concurrency::unlimited)
+                        .output_product("input", "number", incomplete),
+                      Catch::Matchers::ContainsSubstring("must be a complete layer path"));
   }
 }

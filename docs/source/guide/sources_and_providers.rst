@@ -26,12 +26,15 @@ A plugin with a ``PHLEX_REGISTER_PROVIDERS`` entry point (from
      auto const layer = config.get<std::string>("layer");
 
      m.provide("provide_i", [](phlex::data_cell_index const& id) -> int { return id.number(); })
-       .output_product("input", "i", phlex::experimental::identifier{layer});
+       .output_product("input", "i", phlex::experimental::layer_path{layer});
    }
 
 ``output_product(creator, suffix, layer, stage)`` sets the identity of the
 product: algorithms select it with ``.creator = "input"`` and ``.suffix =
 "i"`` in that layer.
+``layer`` must be a complete layer path such as ``/job/run/event``, that is,
+it must start with ``/job``.
+Otherwise registration throws.
 ``stage`` defaults to the job's stage.
 
 Sources and implicit providers

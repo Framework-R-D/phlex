@@ -24,7 +24,7 @@ try {
   g.add_driver(gen);
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/event");
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
     .output_product_suffixes("different");

@@ -51,8 +51,9 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
 
   graph.make<gaussian_generator>(n_time_ticks, seed, mean, stddev)
     .provide("random_wires", &gaussian_generator::operator())
-    .output_product(
-      creator, phlex::experimental::identifier(creator), phlex::experimental::identifier("event"));
+    .output_product(creator,
+                    phlex::experimental::identifier(creator),
+                    phlex::experimental::layer_path("/job/event"));
 }
 
 PHLEX_REGISTER_ALGORITHMS(graph, config)

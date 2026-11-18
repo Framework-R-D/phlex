@@ -15,13 +15,17 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_core_export.hpp"
+
+#include <fmt/format.h>
 
 #include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -201,12 +205,25 @@ namespace phlex::detail {
     {
     }
 
+    /// @brief Registers the explicit provider's output product.
+    ///
+    /// @param output_layer Complete path of the data layer of the product, for example
+    ///        @c "/job/run/event".  Throws @c std::runtime_error if the path is not complete
+    ///        (does not start with @c "/job").
     auto output_product(phlex::experimental::algorithm_name creator,
                         phlex::experimental::identifier suffix,
-                        phlex::experimental::identifier output_layer,
+                        phlex::experimental::layer_path output_layer,
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
       using namespace phlex::experimental;
+
+      if (!output_layer.is_complete()) {
+        throw std::runtime_error(fmt::format(
+          "The output layer of provider '{}' must be a complete layer path (starting with "
+          "'/job'), but is '{}'.",
+          name_.to_string(),
+          output_layer.to_string()));
+      }
 
       // "CURRENT" is special and means "use the stage configured for this program execution."
       if (stage == "CURRENT"_id) {

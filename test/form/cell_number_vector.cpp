@@ -31,7 +31,7 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
   auto const creator = config.get<std::string>("creator");
   graph.provide("cell_numbers", number_of, concurrency::unlimited)
     .output_product(
-      creator, experimental::identifier("numbers"), experimental::identifier("event"));
+      creator, experimental::identifier("numbers"), experimental::layer_path("/job/event"));
 }
 
 PHLEX_REGISTER_ALGORITHMS(m, config)

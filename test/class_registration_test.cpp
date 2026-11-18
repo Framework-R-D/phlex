@@ -81,17 +81,17 @@ namespace {
     graph
       .provide(
         "provide_number", [](data_cell_index const&) { return 3; }, concurrency::unlimited)
-      .output_product("input", "number", "job");
+      .output_product("input", "number", "/job");
     graph
       .provide(
         "provide_temperature", [](data_cell_index const&) { return 98.5; }, concurrency::unlimited)
-      .output_product("input", "temperature", "job");
+      .output_product("input", "temperature", "/job");
     graph
       .provide(
         "provide_name",
         [](data_cell_index const&) { return std::string{"John"}; },
         concurrency::unlimited)
-      .output_product("input", "name", "job");
+      .output_product("input", "name", "/job");
   }
 
   auto transformed_product_suffixes()

@@ -1510,7 +1510,7 @@ namespace {
                          PyObject* callable,
                          algorithm_name const& creator,
                          identifier const& suffix,
-                         identifier const& layer,
+                         layer_path const& layer,
                          std::string const& output_type)
   {
     auto provide = [&]<typename C>() {
@@ -1540,7 +1540,7 @@ namespace {
     }
 
     algorithm_name const creator = algorithm_name::create(std::string_view(*opq.value().creator));
-    identifier const layer = opq.value().layer->leaf();
+    layer_path const& layer = *opq.value().layer;
     identifier const suffix = opq.value().suffix.value_or("");
 
     // Provider callbacks retain the callable for the graph lifetime. A translator node

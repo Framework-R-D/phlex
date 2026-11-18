@@ -106,7 +106,7 @@ TEST_CASE("Explicit providers")
   g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
-    .output_product("vertices_maker", "happy_vertices", "spill");
+    .output_product("vertices_maker", "happy_vertices", "/job/spill");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
@@ -137,7 +137,7 @@ TEST_CASE("Specifying current stage does not match a provider from another stage
 {
   auto g = phlex::detail::framework_graph::with_default_driver("test");
   g.provide("provide_previous_vertices", give_me_vertices, concurrency::unlimited)
-    .output_product("vertices_maker", "happy_vertices", "job", "previous_process");
+    .output_product("vertices_maker", "happy_vertices", "/job", "previous_process");
 
   std::string_view stage_name;
   SECTION("Specify named current stage") { stage_name = "test"; }
@@ -161,9 +161,9 @@ TEST_CASE("Explicit Provider Ambiguity")
 
   // Register two providers that can provide the same product
   g.provide("provide_vertices", give_me_vertices, concurrency::unlimited)
-    .output_product("vertices_maker", "happy_vertices", "job");
+    .output_product("vertices_maker", "happy_vertices", "/job");
   g.provide("provide_vertices_again", give_me_vertices, concurrency::unlimited)
-    .output_product("vertices_maker", "happy_vertices", "job");
+    .output_product("vertices_maker", "happy_vertices", "/job");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(

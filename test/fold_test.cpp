@@ -96,7 +96,7 @@ TEST_CASE("Different data layers of fold", "[graph]")
   g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/event");
 
   g.fold("run_add", add, concurrency::unlimited, "run")
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
@@ -140,7 +140,7 @@ TEST_CASE("Fold output without send consumed downstream", "[graph]")
   g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/event");
 
   g.fold("collect_numbers", collect, concurrency::serial, "run")
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
@@ -171,7 +171,7 @@ TEST_CASE("Fold receives a resource token", "[graph][fold][resource]")
   g.add_serialized_resource<fold_resource_2>();
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/event");
 
   auto counter = detail::thread_counter::counter_type{};
   auto add_with_resources = [&counter](std::atomic<unsigned int>& sum,
@@ -208,7 +208,7 @@ TEST_CASE("Multi-output fold", "[graph][fold]")
   g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/event");
 
   g.fold("run_add_and_count", add_and_count, concurrency::unlimited, "run")
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})

@@ -93,7 +93,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               spdlog::info("Providing time for {}", index.to_string());
               return std::chrono::system_clock::now();
             })
-    .output_product("input", "time", "run");
+    .output_product("input", "time", "/job/run");
 
   g.provide("provide_number",
             [](data_cell_index const& index) -> unsigned int {
@@ -101,7 +101,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               auto const run_number = index.parent()->number();
               return event_number + run_number;
             })
-    .output_product("input", "number", "event");
+    .output_product("input", "number", "/job/run/event");
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "run", .suffix = "time"})

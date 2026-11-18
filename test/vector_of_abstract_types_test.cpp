@@ -48,7 +48,7 @@ TEST_CASE("Test vector of abstract types")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
-    .output_product("dummy", "thing", "event");
+    .output_product("dummy", "thing", "/job/event");
   g.transform("read_thing", read_abstract)
     .input_family(product_selector{.creator = "dummy", .layer = "event", .suffix = "thing"})
     .output_product_suffixes("sum");

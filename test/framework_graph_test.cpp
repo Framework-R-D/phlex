@@ -115,7 +115,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
      concurrency::unlimited)
-    .output_product("input", "number", "spill");
+    .output_product("input", "number", "/job/spill");
   g.observe(
      "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});
@@ -139,7 +139,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
        throw std::runtime_error("Error to stop driver");
      },
      concurrency::unlimited)
-    .output_product("input", "number", "spill");
+    .output_product("input", "number", "/job/spill");
 
   // Must have at least one downstream node that requires something of the
   // provider...otherwise provider will not be executed.
@@ -175,7 +175,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
      "provide_num",
      [](data_cell_index const& id) -> unsigned int { return id.number(); },
      concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
 
   g.observe(
      "observe_num", [](unsigned int const) {}, concurrency::unlimited)
@@ -231,7 +231,7 @@ TEST_CASE("Use default driver", "[graph]")
        "provide_number",
        [](data_cell_index const&) -> unsigned int { return 42u; },
        concurrency::unlimited)
-      .output_product("input", "number", "job");
+      .output_product("input", "number", "/job");
     g.observe(
        "observe_number", [](unsigned int const) {}, concurrency::unlimited)
       .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"});
@@ -270,7 +270,7 @@ TEST_CASE("Allow late driver configuration", "[graph]")
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
      concurrency::unlimited)
-    .output_product("input", "number", "spill");
+    .output_product("input", "number", "/job/spill");
   g.observe(
      "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});

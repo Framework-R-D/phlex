@@ -51,7 +51,7 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
 
     for x, t, sf in specs:
         f = Variant(new_p(x), {"di": "data_cell_index", "return": t}, "input_" + sf)
-        s.provide(f, {"creator": "input_" + sf, "layer": "event", "suffix": sf})
+        s.provide(f, {"creator": "input_" + sf, "layer": "/job/event", "suffix": sf})
 
     # add a bunch of failures to check error reporting
     try:

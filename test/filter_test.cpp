@@ -134,7 +134,7 @@ TEST_CASE("Predicate receives a resource token", "[filtering][resource]")
   g.add_driver(gen);
   g.add_serialized_resource<predicate_resource>();
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   g.predicate("evens_with_resource", evens_with_resource, concurrency::unlimited)
     .input_family({.creator = "input", .layer = "event", .suffix = "num"},
                   resource<predicate_resource>{});
@@ -156,7 +156,7 @@ TEST_CASE("Two predicates", "[filtering]")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -183,7 +183,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -206,7 +206,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -237,7 +237,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
       .predicate(name, &not_in_range::eval, concurrency::unlimited)
@@ -264,9 +264,9 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product("input", "num", "event");
+    .output_product("input", "num", "/job/event");
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)
-    .output_product("input", "other_num", "event");
+    .output_product("input", "other_num", "/job/event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)

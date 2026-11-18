@@ -147,9 +147,9 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product("input", "max_number", "event");
+    .output_product("input", "max_number", "/job/event");
   g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
-    .output_product("input", "ten_numbers", "event");
+    .output_product("input", "ten_numbers", "/job/event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "max_number"})
@@ -229,7 +229,7 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
   g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product("input", "max_number", "event");
+    .output_product("input", "max_number", "/job/event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "subevent")
     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "max_number"})
@@ -262,9 +262,9 @@ TEST_CASE("Unfold deduplicates same-layer inputs for bookkeeping", "[graph]")
   g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product("input", "max_number", "event");
+    .output_product("input", "max_number", "/job/event");
   g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
-    .output_product("input", "ten_numbers", "event");
+    .output_product("input", "ten_numbers", "/job/event");
 
   g.unfold<iota_two_inputs>("iota_two_inputs",
                             &iota_two_inputs::predicate,
@@ -304,7 +304,7 @@ TEST_CASE("Unfold receives a resource token", "[graph][unfold][resource]")
 
   g.provide(
      "provide_max_number", [](data_cell_index const&) { return 10u; }, concurrency::unlimited)
-    .output_product("input", "max_number", "event");
+    .output_product("input", "max_number", "/job/event");
 
   g.unfold<resource_iota>("resource_iota",
                           &resource_iota::predicate,

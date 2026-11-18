@@ -51,9 +51,9 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
-    .output_product("input", "numbers", "event");
+    .output_product("input", "numbers", "/job/event");
   g.provide("provide_length", provide_length, concurrency::unlimited)
-    .output_product("input", "length", "event");
+    .output_product("input", "length", "/job/event");
 
   SECTION("Duplicate product name but differ in creator name")
   {

@@ -58,11 +58,11 @@ namespace {
 PHLEX_REGISTER_PROVIDERS(s)
 {
   s.provide("cand_hit_standard", roi_candidates)
-    .output_product("cand_hit_standard", "hitCandidates", "roi");
+    .output_product("cand_hit_standard", "hitCandidates", "/job/spill/wire/roi");
   s.provide("merge_roi_candidates", wire_candidates)
-    .output_product("merge_roi_candidates", "wireCandidates", "wire");
+    .output_product("merge_roi_candidates", "wireCandidates", "/job/spill/wire");
   s.provide("merge_wire_candidates", spill_candidates)
-    .output_product("merge_wire_candidates", "spillCandidates", "spill");
+    .output_product("merge_wire_candidates", "spillCandidates", "/job/spill");
 }
 
 PHLEX_REGISTER_ALGORITHMS(m)

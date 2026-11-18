@@ -98,7 +98,7 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
 
     // Register provider
     g.provide("provide_number", provide_number, concurrency::unlimited)
-      .output_product("input", "number", "event");
+      .output_product("input", "number", "/job/event");
 
     g.fold("run_add", add, concurrency::unlimited, "run", 0u)
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
@@ -158,12 +158,12 @@ TEST_CASE("Fold duplicate event paths with empty unfolds", "[graph][issue955]")
        "top_count",
        [top_count](data_cell_index const&) { return top_count; },
        concurrency::unlimited)
-      .output_product("input", "top_count", "top");
+      .output_product("input", "top_count", "/job/top");
     g.provide(
        "run_count",
        [run_count](data_cell_index const&) { return run_count; },
        concurrency::unlimited)
-      .output_product("input", "run_count", "run");
+      .output_product("input", "run_count", "/job/run");
     g.unfold<split>(
        "top_events", &split::predicate, &split::unfold, concurrency::unlimited, "event")
       .input_family(product_selector{.creator = "input", .layer = "top", .suffix = "top_count"})
@@ -176,7 +176,7 @@ TEST_CASE("Fold duplicate event paths with empty unfolds", "[graph][issue955]")
        "event_number",
        [](data_cell_index const& index) { return static_cast<unsigned int>(index.number() + 1); },
        concurrency::unlimited)
-      .output_product("input", "number", "event");
+      .output_product("input", "number", "/job/event");
     g.fold("job_add", add, concurrency::unlimited, "job", 0u)
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
       .output_product_suffixes("sum");

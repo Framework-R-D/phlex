@@ -80,7 +80,7 @@ TEST_CASE("Output data products", "[graph]")
   g.add_source<test_source>("test_source");
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
-    .output_product("input", "number_from_provider", "spill");
+    .output_product("input", "number_from_provider", "/job/spill");
 
   g.transform(
      "square_number",

@@ -220,7 +220,7 @@ TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
 
   g.provide(
      "number_maker", [](data_cell_index const&) { return 42; }, concurrency::unlimited)
-    .output_product("number_maker", "", "job");
+    .output_product("number_maker", "", "/job");
 
   auto counter = thread_counter::counter_type{};
   // Catch2 assertions are not thread-safe, so each observer records its
