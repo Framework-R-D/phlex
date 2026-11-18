@@ -1457,3 +1457,36 @@ TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "
   CHECK(unstaged.transform([](auto const& entry) { return entry.navigation_column; }) ==
         "tracker___row");
 }
+
+namespace {
+  //Intentionally missing a ROOT dictionary
+  class class_with_no_dict {
+  public:
+    class_with_no_dict(int my_int) : my_int_(my_int) {}
+    class_with_no_dict() : my_int_(42) {}
+
+    int get_my_int() const { return my_int_; }
+
+  private:
+    int my_int_;
+  };
+}
+
+//Data product without a dictionary is rejected
+TEST_CASE("Missing Dictionary")
+{
+  class_with_no_dict my_obj(43);
+
+  CHECK_THROWS_AS(form::test::write(technology, my_obj), std::runtime_error);
+}
+
+//vector<data_product> is rejected when data_product does not have a dictionary.
+//This is handled by a different function call path in ROOT.
+TEST_CASE("Missing Vector Dictionary")
+{
+  std::vector<class_with_no_dict> my_vec(1, {44});
+
+  CHECK_THROWS_AS(form::test::write(technology, my_vec), std::runtime_error);
+  CHECK_THROWS_AS(form::test::read<std::vector<class_with_no_dict>>(technology),
+                  std::runtime_error);
+}

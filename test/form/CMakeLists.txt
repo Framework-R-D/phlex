@@ -210,6 +210,41 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
     ENVIRONMENT
     "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
   )
+
+  cet_test(
+    job:form_write_without_vector_dictionary
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_write_without_vector_dictionary.jsonnet
+    --stage test
+    TEST_WORKDIR
+    form_without_vector_dictionary
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+
+  cet_test(
+    job::form_read_without_vector_dictionary
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_read_without_vector_dictionary.jsonnet
+    --stage test2
+    DIRTY_WORKDIR
+    TEST_WORKDIR
+    form_without_vector_dictionary
+    TEST_PROPERTIES
+    DEPENDS
+    job:form_write_without_vector_dictionary
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
 endif()
 
 # form_module output configurations, exercised on the DUNE hit example. The jobs take their stage
@@ -399,8 +434,10 @@ if(FORM_USE_ROOT_STORAGE)
   endif()
 endif()
 
-add_library(generate_vector MODULE generate_vector.cpp)
-target_link_libraries(generate_vector PRIVATE phlex::module)
+if(FORM_USE_ROOT_STORAGE)
+  add_library(generate_vector MODULE generate_vector.cpp)
+  target_link_libraries(generate_vector PRIVATE phlex::module)
+endif()
 
 add_library(form_source_extra_types MODULE form_source_extra_types.cpp)
 target_link_libraries(form_source_extra_types PRIVATE phlex::module form)
@@ -408,6 +445,9 @@ target_include_directories(form_source_extra_types PRIVATE ${PROJECT_SOURCE_DIR}
 
 add_library(passthrough_vector MODULE passthrough_vector.cpp)
 target_link_libraries(passthrough_vector PRIVATE phlex::module)
+
+add_library(generate_waveform MODULE generate_waveform.cpp)
+target_link_libraries(generate_waveform PRIVATE phlex::module phlex::form form_test_data_products)
 
 cet_test(
   job:form_source_coverage_write_ttree
