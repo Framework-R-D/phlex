@@ -36,6 +36,7 @@ set(
   test_coverage_scripts
   test_devcontainer_host
   test_fix_header_guards
+  test_prepare_formatting_commit
   test_promote_phlex_dependencies
   test_sarif_alerts
   test_upgrade_repos

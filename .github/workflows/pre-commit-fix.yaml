@@ -5,57 +5,63 @@ run-name: "${{ github.actor }} fixing formatting"
   issue_comment:
     types:
       - created
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: >
-          The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
-          repository's default branch.
-        required: false
-        type: string
 
 permissions:
-  pull-requests: write
-  contents: write
-  issues: write
+  contents: read
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     name: Parse command
+    permissions:
+      contents: read
+      pull-requests: read
     if: >
-      inputs.ref != '' || github.event_name == 'workflow_dispatch' || (
-        github.event_name == 'issue_comment' &&
-        github.event.issue.pull_request &&
-        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-        (
-          startsWith(github.event.comment.body, format('@{0}bot pre-commit-fix', github.event.repository.name)) ||
-          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
-        )
+      github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(fromJSON('["OWNER",
+      "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) && (
+        startsWith(github.event.comment.body, format('@{0}bot pre-commit-fix', github.event.repository.name)) ||
+        startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
       )
     outputs:
-      ref: ${{ steps.setup.outputs.ref }}
-      repo: ${{ steps.setup.outputs.repo }}
+      ref: ${{ steps.target.outputs.ref }}
+      repo: ${{ steps.target.outputs.repo }}
+      sha: ${{ steps.target.outputs.sha }}
+      trusted_sha: ${{ steps.target.outputs.trusted_sha }}
     steps:
-      - name: Workflow setup
-        id: setup
-        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
+      - name: Resolve immutable target
+        id: target
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
-          mode: fix
-          ref: ${{ inputs.ref }}
+          script: |
+            const { data: trustedBranch } = await github.rest.repos.getBranch({
+              ...context.repo, branch: context.payload.repository.default_branch
+            });
+            core.setOutput('trusted_sha', trustedBranch.commit.sha);
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: context.issue.number
+            });
+            if (pr.state !== 'open' || !pr.head.repo) {
+              throw new Error('The PR must be open and its head repository must exist');
+            }
+            core.setOutput('repo', pr.head.repo.full_name);
+            core.setOutput('ref', pr.head.ref);
+            core.setOutput('sha', pr.head.sha);
 
   apply_fixes:
     runs-on: ubuntu-latest
     name: Apply fixes
     needs: setup
     if: needs.setup.result == 'success'
+    # PR actions and hooks execute here, never with publishing credentials.
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
+          ref: ${{ needs.setup.outputs.sha }}
           repository: ${{ needs.setup.outputs.repo }}
-          token: ${{ secrets.WORKFLOW_PAT }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -69,25 +75,114 @@ jobs:
         with:
           category: formatting
 
-      - name: Commit and push fixes
-        env:
-          TARGET_REF: ${{ needs.setup.outputs.ref }}
-        run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git add --all
-            git -c user.name='github-actions[bot]' \
-              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-              commit -m "style: apply automatic formatting"
-            git push origin "HEAD:refs/heads/$TARGET_REF"
-          fi
-
       - name: Verify formatting
         uses: ./.github/actions/run-pre-commit
         with:
           category: formatting
 
+      - name: Export formatting patch
+        env:
+          TARGET_SHA: ${{ needs.setup.outputs.sha }}
+        run: |
+          git diff --binary --no-ext-diff --no-textconv "$TARGET_SHA" -- > "$RUNNER_TEMP/formatting.patch"
+
+      - name: Upload formatting patch
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: formatting-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.setup.outputs.sha }}
+          path: ${{ runner.temp }}/formatting.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish validated fixes
+    needs: [setup, apply_fixes]
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout trusted publishing code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.setup.outputs.trusted_sha }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Checkout exact target as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.setup.outputs.repo }}
+          ref: ${{ needs.setup.outputs.sha }}
+          path: target
+          persist-credentials: false
+
+      - name: Download formatting patch
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: formatting-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.setup.outputs.sha }}
+          path: ${{ runner.temp }}/formatting-artifact
+
+      - name: Reject stale target
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          TARGET_REPO: ${{ needs.setup.outputs.repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          TARGET_SHA: ${{ needs.setup.outputs.sha }}
+        with:
+          script: |
+            const repo = process.env.TARGET_REPO;
+            const ref = process.env.TARGET_REF;
+            const sha = process.env.TARGET_SHA;
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: context.issue.number
+            });
+            if (pr.state !== 'open' || pr.head.repo?.full_name !== repo ||
+                pr.head.ref !== ref || pr.head.sha !== sha) {
+              throw new Error('PR target changed during formatting; rerun the command');
+            }
+
+      - name: Validate patch and create commit without executing target code
+        id: commit
+        env:
+          TARGET_SHA: ${{ needs.setup.outputs.sha }}
+        run: |
+          commit=$(python3 trusted/scripts/prepare_formatting_commit.py target \
+            "$RUNNER_TEMP/formatting-artifact/formatting.patch" "$TARGET_SHA")
+          echo "sha=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: Push fixes
+        if: steps.commit.outputs.sha != ''
+        working-directory: target
+        env:
+          # Only this trusted step receives the PAT needed to push to contributor forks.
+          PUSH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          TARGET_SHA: ${{ needs.setup.outputs.sha }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          test -n "$PUSH_TOKEN"
+          git check-ref-format "refs/heads/$TARGET_REF"
+          auth=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          current=$(git ls-remote --refs origin "refs/heads/$TARGET_REF")
+          test "${current%%$'\t'*}" = "$TARGET_SHA"
+          # The commit has exactly TARGET_SHA as its parent. The explicit lease is an atomic
+          # compare-and-swap, rejecting even branch deletion or rewind after the stale check.
+          git -c core.hooksPath=/dev/null push \
+            --force-with-lease="refs/heads/$TARGET_REF:$TARGET_SHA" \
+            origin "$COMMIT_SHA:refs/heads/$TARGET_REF"
+
+  report:
+    runs-on: ubuntu-latest
+    needs: [setup, apply_fixes, publish]
+    if: always() && needs.setup.result == 'success' && github.event_name == 'issue_comment'
+    permissions:
+      issues: write
+    steps:
       - name: Update PR comment reactions
-        if: always() && github.event_name == 'issue_comment'
         uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2
         with:
-          status: ${{ job.status }}
+          status: ${{ needs.publish.result == 'success' && 'success' || 'failure' }}
