@@ -172,7 +172,7 @@ TEST_CASE("Explicit Provider Ambiguity")
   CHECK_THROWS_WITH(
     g.execute(),
     ContainsSubstring("Multiple explicit providers found for <suffix happy_vertices") &&
-      ContainsSubstring("by creator vertices_maker") && ContainsSubstring("in layer job") &&
+      ContainsSubstring("by creator vertices_maker") && ContainsSubstring("in layer /job") &&
       ContainsSubstring("spec: vertices_maker/happy_vertices"));
 }
 

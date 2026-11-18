@@ -25,15 +25,14 @@ TEST_CASE("Creator name formatting", "[data model]")
 
 TEST_CASE("Empty layer name", "[data model]")
 {
-  CHECK_THROWS_WITH(
-    (product_selector{.creator = "creator", .layer = ""}),
-    Catch::Matchers::ContainsSubstring("Cannot specify the empty string as a data layer."));
+  CHECK_THROWS_WITH((product_selector{.creator = "creator", .layer = ""}),
+                    Catch::Matchers::ContainsSubstring("Layer paths cannot be empty"));
 }
 
 TEST_CASE("Retrieving a non-existent layer name", "[data model]")
 {
   product_selector const selector;
-  CHECK_THROWS_WITH((static_cast<experimental::identifier const&>(selector.layer)),
+  CHECK_THROWS_WITH((static_cast<experimental::layer_path const&>(selector.layer)),
                     Catch::Matchers::ContainsSubstring(
                       "Cannot retrieve layer from product_selector with no layer"));
 }
@@ -42,7 +41,7 @@ TEST_CASE("Product name with data layer", "[data model]")
 {
   product_selector label({.creator = "creator", .layer = "event", .suffix = "product"});
   CHECK(*label.creator == "creator"_idq);
-  CHECK(*label.layer == "event"_idq);
+  CHECK(label.layer->leaf() == "event"_idq);
   CHECK(label.suffix == "product"_id);
   // Mismatched creator
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
