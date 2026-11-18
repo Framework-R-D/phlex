@@ -25,8 +25,9 @@
 // As the run_add node performs folds only over "runs", any top-level "events"
 // stores are excluded from the fold result.
 //
-// N.B. The index_router sends data products to nodes based on the name of the lowest
-//      layer.  For example, the top-level "event" and the nested "run/event" are both
+// N.B. Each provider declares the complete path it serves, so the index_router sends a cell
+//      only to the providers of its own branch.  The "event" selectors of the folds match
+//      both branches, so the top-level "event" and the nested "run/event" are both
 //      candidates for the "job" fold.
 // =======================================================================================
 
@@ -52,7 +53,18 @@ using namespace phlex;
 
 namespace {
   // Provider function
-  unsigned int provide_number(data_cell_index const& index) { return index.number(); }
+  std::atomic<unsigned int> top_level_provider_calls{0};
+  std::atomic<unsigned int> run_provider_calls{0};
+  unsigned int provide_top_level_number(data_cell_index const& index)
+  {
+    ++top_level_provider_calls;
+    return index.number();
+  }
+  unsigned int provide_run_number(data_cell_index const& index)
+  {
+    ++run_provider_calls;
+    return index.number();
+  }
 
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 
@@ -97,8 +109,12 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
     g.add_driver(gen);
 
     // Register provider
-    g.provide("provide_number", provide_number, concurrency::unlimited)
-      .output_product("input", "number", "event");
+    top_level_provider_calls = 0;
+    run_provider_calls = 0;
+    g.provide("provide_top_level_number", provide_top_level_number, concurrency::unlimited)
+      .output_product("input", "number", "/job/event");
+    g.provide("provide_run_number", provide_run_number, concurrency::unlimited)
+      .output_product("input", "number", "/job/run/event");
 
     g.fold("run_add", add, concurrency::unlimited, "run", 0u)
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
@@ -123,6 +139,8 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
     CHECK(g.execution_count("run_add") == std::size_t{number_runs} * number_events_per_run);
     CHECK(g.execution_count("job_add") ==
           (number_runs * number_events_per_run) + number_top_level_events);
+    CHECK(top_level_provider_calls == number_top_level_events);
+    CHECK(run_provider_calls == number_runs * number_events_per_run);
     CHECK(g.execution_count("verify_run_sum") == number_runs);
     CHECK(g.execution_count("verify_job_sum") == 1);
     return std::make_pair(std::move(run_sums), std::move(job_sums));
@@ -172,11 +190,13 @@ TEST_CASE("Fold duplicate event paths with empty unfolds", "[graph][issue955]")
        "run_events", &split::predicate, &split::unfold, concurrency::unlimited, "event")
       .input_family(product_selector{.creator = "input", .layer = "run", .suffix = "run_count"})
       .output_product_suffixes("nested_seed");
-    g.provide(
-       "event_number",
-       [](data_cell_index const& index) { return static_cast<unsigned int>(index.number() + 1); },
-       concurrency::unlimited)
-      .output_product("input", "number", "event");
+    auto const event_number = [](data_cell_index const& index) {
+      return static_cast<unsigned int>(index.number() + 1);
+    };
+    g.provide("top_event_number", event_number, concurrency::unlimited)
+      .output_product("input", "number", "/job/top/event");
+    g.provide("run_event_number", event_number, concurrency::unlimited)
+      .output_product("input", "number", "/job/run/event");
     g.fold("job_add", add, concurrency::unlimited, "job", 0u)
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
       .output_product_suffixes("sum");
