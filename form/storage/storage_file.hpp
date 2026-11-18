@@ -3,8 +3,10 @@
 #ifndef FORM_STORAGE_STORAGE_FILE_HPP
 #define FORM_STORAGE_STORAGE_FILE_HPP
 
+#include "descriptor.hpp"
 #include "istorage.hpp"
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -24,10 +26,14 @@ namespace form::detail::experimental {
     void write_descriptor(std::vector<std::pair<std::string, std::string>> const& entries) override;
     std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor() override;
 
+  protected:
+    /// Sets the descriptor component used by this storage file.
+    void set_descriptor(std::unique_ptr<descriptor> descriptor);
+
   private:
     std::string name_;
     char mode_;
-    std::optional<std::vector<std::pair<std::string, std::string>>> descriptor_;
+    std::unique_ptr<descriptor> descriptor_;
   };
 } // namespace form::detail::experimental
 
