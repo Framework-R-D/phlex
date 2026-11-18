@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import runpy
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -106,6 +108,47 @@ def test_empty_patch(repository, tmp_path):
     patch = tmp_path / "empty.patch"
     patch.write_bytes(b"")
     assert prepare_commit(repo, patch, sha) == ""
+
+
+def test_entrypoint_prints_commit(repository, tmp_path, monkeypatch, capsys):
+    """The publishing command prints the created commit SHA and preserves HEAD."""
+    repo, sha = repository
+    content = "x = 2\n"
+    (repo / "file.py").write_text(content)
+    git(repo, "add", "file.py")
+    patch = export_patch(repo, tmp_path)
+    script = Path(__file__).resolve().parents[1] / "prepare_formatting_commit.py"
+    monkeypatch.setattr(sys, "argv", [str(script), str(repo), str(patch), sha])
+
+    runpy.run_path(str(script), run_name="__main__")
+
+    output = capsys.readouterr()
+    commit = output.out.strip()
+    assert len(commit) == 40
+    assert output.out == f"{commit}\n"
+    assert output.err == ""
+    assert git(repo, "show", f"{commit}:file.py").decode() == content
+    assert git(repo, "rev-parse", f"{commit}^").decode().strip() == sha
+    assert git(repo, "rev-parse", "HEAD").decode().strip() == sha
+
+
+def test_entrypoint_rejects_invalid_sha(repository, tmp_path, monkeypatch, capsys):
+    """The publishing command reports malformed SHAs on stderr and exits with failure."""
+    repo, sha = repository
+    patch = tmp_path / "empty.patch"
+    patch.write_bytes(b"")
+    script = Path(__file__).resolve().parents[1] / "prepare_formatting_commit.py"
+    monkeypatch.setattr(sys, "argv", [str(script), str(repo), str(patch), "not-a-sha"])
+
+    with pytest.raises(SystemExit) as error:
+        runpy.run_path(str(script), run_name="__main__")
+
+    assert error.value.code == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err == "Formatting patch rejected: Invalid target SHA\n"
+    assert git(repo, "rev-parse", "HEAD").decode().strip() == sha
+    assert git(repo, "status", "--porcelain") == b""
 
 
 def test_binary_patch(repository, tmp_path):

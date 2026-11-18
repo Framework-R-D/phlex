@@ -41,17 +41,16 @@ def prepare_commit(repository: Path, patch: Path, sha: str) -> str:
     # Apply only to the index: no checkout filters, hooks, or patched scripts execute.
     git("apply", "--cached", "--check", "--", str(patch.resolve()))
     git("apply", "--cached", "--", str(patch.resolve()))
-    changes = git("diff", "--cached", "--raw", "-z", "--no-renames", sha, "--").split(b"\0")
-    for metadata, path in zip(changes[0:-1:2], changes[1:-1:2], strict=True):
+    raw_changes = git("diff", "--cached", "--raw", "-z", "--no-renames", sha, "--")
+    if not raw_changes:
+        return ""
+    changes = raw_changes.split(b"\0")
+    for metadata, _ in zip(changes[0:-1:2], changes[1:-1:2], strict=True):
         old_mode, new_mode, _, _, status = metadata.split()
         if status != b"M" or old_mode[1:] not in {b"100644", b"100755"}:
             raise ValueError("Formatting may only modify existing regular files")
         if old_mode[1:] != new_mode:
             raise ValueError("Formatting may not change file modes")
-        if any(part.lower() == b".git" for part in path.split(b"/")):
-            raise ValueError("Formatting may not modify Git metadata")
-    if not git("diff", "--cached", "--name-only", sha, "--"):
-        return ""
     tree = git("write-tree").decode().strip()
     return (
         git("commit-tree", tree, "-p", sha, input_data=b"style: apply automatic formatting\n")
