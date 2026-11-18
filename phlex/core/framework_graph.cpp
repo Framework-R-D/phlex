@@ -170,6 +170,7 @@ namespace phlex::detail {
       index_router_.drain(remaining_flushes);
       graph_.wait_for_all();
     }
+    spdlog::info("{}", hierarchy_.to_string());
   }
 
   std::size_t framework_graph::seen_cell_count(std::string const& layer_name,

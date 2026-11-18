@@ -35,12 +35,113 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
 
 TEST_CASE("Data layer hierarchy with unnamed layer", "[data model]")
 {
-  // Exercises the maybe_name() fallback to "(unnamed)" for layers with empty names.
-  // Invoke print() explicitly so the test body, rather than teardown side effects,
-  // traverses the hierarchy and reaches maybe_name("") for the unnamed child.
   data_layer_hierarchy h;
   auto job_index = data_cell_index::job();
   CHECK_NOTHROW(h.increment_count(job_index));
   CHECK_NOTHROW(h.increment_count(job_index->make_child("", 0)));
-  CHECK_NOTHROW(h.print());
+  CHECK(h.to_string() == "\n\nSeen layers:\n\n  job\n   │\n   └ (unnamed): 1\n");
+}
+
+TEST_CASE("Data layer hierarchy layout", "[data model]")
+{
+  data_layer_hierarchy h;
+
+  SECTION("Empty hierarchy") { CHECK(h.to_string().empty()); }
+
+  SECTION("Root only")
+  {
+    h.increment_count(data_cell_index::job());
+    CHECK(h.to_string() == "\n\nSeen layers:\n\n  job\n");
+  }
+
+  SECTION("Sorted siblings and nested branches")
+  {
+    auto job = data_cell_index::job();
+    auto spill = job->make_child("spill", 0);
+    auto run = job->make_child("run", 0);
+    h.increment_count(spill->make_child("event", 0));
+    h.increment_count(spill);
+    h.increment_count(run->make_child("spill", 0));
+    h.increment_count(run->make_child("spill", 1));
+    h.increment_count(run->make_child("event", 0));
+    h.increment_count(run);
+    h.increment_count(job);
+    CHECK(h.to_string() == R"(
+
+Seen layers:
+
+  job
+   │
+   ├ run: 1
+   │  │
+   │  ├ event: 1
+   │  │
+   │  └ spill: 2
+   │
+   └ spill: 1
+      │
+      └ event: 1
+)");
+  }
+}
+
+TEST_CASE("Data layer hierarchy with missing parent", "[data model]")
+{
+  auto job_index = data_cell_index::job();
+  auto run_index = job_index->make_child("run", 0);
+  auto event_index = run_index->make_child("event", 0);
+
+  SECTION("Missing job layer")
+  {
+    data_layer_hierarchy h;
+    h.increment_count(run_index);
+    h.increment_count(event_index);
+    CHECK(h.to_string() == R"(
+
+Seen layers:
+
+  job: (incomplete)
+   │
+   └ run: 1
+      │
+      └ event: 1
+)");
+    CHECK(h.count_for("/job", true) == 0);
+  }
+
+  SECTION("Missing intermediate layer")
+  {
+    data_layer_hierarchy h;
+    h.increment_count(job_index);
+    h.increment_count(event_index);
+    CHECK(h.to_string() == R"(
+
+Seen layers:
+
+  job
+   │
+   └ run: (incomplete)
+      │
+      └ event: 1
+)");
+    CHECK(h.count_for("run", true) == 0);
+  }
+
+  SECTION("Complete hierarchy")
+  {
+    data_layer_hierarchy h;
+    h.increment_count(job_index);
+    h.increment_count(run_index);
+    h.increment_count(event_index);
+    CHECK(h.to_string() == R"(
+
+Seen layers:
+
+  job
+   │
+   └ run: 1
+      │
+      └ event: 1
+)");
+  }
 }
