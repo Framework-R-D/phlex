@@ -23,9 +23,9 @@ cet_make_library(
   spdlog::spdlog
   fmt::fmt
   Microsoft.GSL::GSL
+  TBB::tbb
   PRIVATE
   phlex::utilities
-  TBB::tbb
 )
 
 install(
@@ -59,8 +59,8 @@ phlex_apply_optimizations(phlex_model)
 phlex_make_internal_library(
   phlex_model
   LIBRARIES
-  PUBLIC Boost::boost spdlog::spdlog fmt::fmt Microsoft.GSL::GSL
-  PRIVATE phlex_utilities_internal TBB::tbb
+  PUBLIC Boost::boost spdlog::spdlog fmt::fmt Microsoft.GSL::GSL TBB::tbb
+  PRIVATE phlex_utilities_internal
 )
 add_library(phlex::model_internal ALIAS phlex_model_internal)
 

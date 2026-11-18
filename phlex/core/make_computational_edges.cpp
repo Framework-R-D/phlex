@@ -156,7 +156,7 @@ namespace phlex::detail {
           if (bundles.size() > 1ull) {
             auto error_msg = fmt::format(
               "Multiple implicit providers found for product '{}', required by node '{}':\n",
-              input_product.to_string(),
+              input_product,
               node_name);
             throw std::runtime_error(error_msg);
           }
@@ -164,18 +164,28 @@ namespace phlex::detail {
           auto& bundle = bundles[0];
           auto node = std::make_unique<provider_node>(g, std::move(bundle));
           auto const provider_name = node->name().to_string();
-          auto&& [it, inserted] =
-            provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
-          // Rewrite the stored layer if it's empty
-          if (!input_product.layer) {
-            it->second.input_product.layer = node->layer();
-          }
-          if (!inserted) {
+          if (provider_input_ports.contains(provider_name)) {
             throw std::runtime_error(
               fmt::format("Failed to create implicit provider for product selector '{}'\n"
                           "Implicit providers not yet supported for creators that created multiple "
                           "data products",
                           input_product));
+          }
+          if (providers.get(provider_name)) {
+            throw std::runtime_error(
+              fmt::format("Failed to create implicit provider for product selector '{}'\n"
+                          "Implicit provider for this product has the name '{}' (derived from "
+                          "its node name), which conflicts with an existing provider. "
+                          "Providers must have unique names.",
+                          input_product,
+                          provider_name));
+          }
+          auto it =
+            provider_input_ports.try_emplace(provider_name, input_product, node->input_port())
+              .first;
+          // Rewrite the stored layer if it's empty
+          if (!input_product.layer) {
+            it->second.input_product.layer = node->layer();
           }
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
