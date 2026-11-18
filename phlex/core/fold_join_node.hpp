@@ -77,8 +77,8 @@ namespace phlex::detail {
     fold_join_node(tbb::flow::graph& g,
                    phlex::experimental::algorithm_name const& node_name,
                    phlex::experimental::identifier const& stage,
-                   phlex::experimental::identifier const& partition_layer_name,
-                   std::vector<phlex::experimental::identifier> layer_names,
+                   phlex::experimental::layer_path const& partition_layer_name,
+                   std::vector<phlex::experimental::layer_path> layer_names,
                    phlex::experimental::product_specifications output,
                    result_initializer_t result_initializer) :
       base_t{g},
@@ -164,8 +164,8 @@ namespace phlex::detail {
     // Immutable after construction; tbb::flow::join_node is already non-movable.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     phlex::experimental::algorithm_name const name_;
-    phlex::experimental::identifier const partition_layer_;
-    std::vector<phlex::experimental::identifier> const layers_;
+    phlex::experimental::layer_path const partition_layer_;
+    std::vector<phlex::experimental::layer_path> const layers_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 

@@ -70,7 +70,7 @@ namespace phlex::detail {
   public:
     multilayer_join_node(tbb::flow::graph& g,
                          std::string node_name,
-                         std::vector<phlex::experimental::identifier> layer_names) :
+                         std::vector<phlex::experimental::layer_path> layer_names) :
       base_t{g},
       join_{make_join(g, std::make_index_sequence<NInputs>{})},
       name_{std::move(node_name)},
@@ -126,7 +126,7 @@ namespace phlex::detail {
     // Immutable after construction; tbb::flow::join_node is already non-movable.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const name_;
-    std::vector<phlex::experimental::identifier> const layers_;
+    std::vector<phlex::experimental::layer_path> const layers_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
@@ -158,7 +158,7 @@ namespace phlex::detail {
   template <std::size_t N>
   join_or_none_t<N> make_join_or_none(tbb::flow::graph& g,
                                       std::string const& node_name,
-                                      std::vector<phlex::experimental::identifier> const& layers)
+                                      std::vector<phlex::experimental::layer_path> const& layers)
   {
     if constexpr (N > 1ull) {
       return multilayer_join_node<N>{g, node_name, layers};

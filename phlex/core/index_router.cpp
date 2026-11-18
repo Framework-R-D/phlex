@@ -53,19 +53,19 @@ namespace phlex::detail {
       return paths;
     }
 
-    bool matches_input_chain(layer_path const& path, std::vector<identifier> const& input_layers)
+    bool matches_input_chain(layer_path const& path, std::vector<layer_path> const& input_layers)
     {
       Expects(not input_layers.empty());
 
       // At least one of the input layers must equal the path's last component.
-      if (std::ranges::none_of(input_layers,
-                               [&path](auto const& input) { return path.ends_with(input); })) {
+      if (std::ranges::none_of(
+            input_layers, [&path](auto const& input) { return path.ends_with(input.leaf()); })) {
         return false;
       }
 
       // Check that all input layers are present in the path.
-      return std::ranges::all_of(input_layers,
-                                 [&path](auto const& input) { return path.contains(input); });
+      return std::ranges::all_of(
+        input_layers, [&path](auto const& input) { return path.contains(input.leaf()); });
     }
   }
 
@@ -86,7 +86,7 @@ namespace phlex::detail {
     class multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
-                      identifier layer,
+                      layer_path layer,
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
@@ -94,15 +94,15 @@ namespace phlex::detail {
       bool matches_exactly(layer_path const& path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
 
-      identifier const& layer() const { return layer_; }
+      layer_path const& layer() const { return layer_; }
 
     private:
-      identifier layer_;
+      layer_path layer_;
       index_set_node broadcaster_;
     };
 
     multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                     identifier layer,
+                                     layer_path layer,
                                      tbb::flow::receiver<index_message>* input_port) :
       layer_{std::move(layer)}, broadcaster_{g}
     {
@@ -111,22 +111,22 @@ namespace phlex::detail {
 
     void multilayer_slot::put_message(data_cell_index_ptr const& index, std::size_t message_id)
     {
-      if (layer_ == index->layer_name()) {
+      if (layer_.leaf() == index->layer_name()) {
         broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
         return;
       }
 
-      broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
+      broadcaster_.try_put({.index = index->parent(layer_.leaf()), .msg_id = message_id});
     }
 
     bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
     {
-      return layer_path.ends_with(layer_);
+      return layer_path.ends_with(layer_.leaf());
     }
 
     bool multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
     {
-      return index->parent(layer_) != nullptr;
+      return index->parent(layer_.leaf()) != nullptr;
     }
   }
 
@@ -273,7 +273,8 @@ namespace phlex::detail {
                                                     fold_partition_ports_t fold_partition_ports)
   {
     for (auto& [layer, port] : fold_partition_ports | std::views::values) {
-      auto [it, _] = index_set_nodes_.emplace(layer, std::make_shared<internal::index_set_node>(g));
+      auto [it, _] =
+        index_set_nodes_.emplace(layer.leaf(), std::make_shared<internal::index_set_node>(g));
       make_edge(*it->second, *port);
     }
   }
@@ -286,18 +287,18 @@ namespace phlex::detail {
     for (auto const& [node_name, join_ports] : multilayer_join_ports) {
       spdlog::trace("Making multilayer slots for {}", node_name);
 
-      std::vector<identifier> slot_layers;
+      std::vector<layer_path> slot_layers;
       slot_layers.reserve(join_ports.size());
       for (auto const& port : join_ports) {
         slot_layers.push_back(port.layer);
       }
-      identifier const node_deepest_layer = deepest_layer_name(slot_layers);
+      layer_path const node_deepest_layer = deepest_layer_name(slot_layers);
 
       internal::join_node_slots node_slots;
       node_slots.slots.reserve(join_ports.size());
       node_slots.flush_specs.reserve(join_ports.size());
       for (auto const& [layer, counting_layer, flush_port, input_port] : join_ports) {
-        identifier const effective_counting_layer = counting_layer.value_or(node_deepest_layer);
+        layer_path const effective_counting_layer = counting_layer.value_or(node_deepest_layer);
         node_slots.slots.push_back(
           std::make_shared<internal::multilayer_slot>(g, layer, input_port));
         node_slots.flush_specs.push_back(
@@ -489,7 +490,7 @@ namespace phlex::detail {
   }
 
   std::vector<std::size_t> index_router::counting_layer_hashes_under(
-    layer_path const& partition_layer_path, identifier const& counting_layer_name) const
+    layer_path const& partition_layer_path, layer_path const& counting_layer_name) const
   {
     std::vector<std::size_t> result;
     for (auto const& candidate : sorted_layer_paths_) {
@@ -497,7 +498,7 @@ namespace phlex::detail {
       if (not partition_layer_path.is_strict_prefix_of(candidate)) {
         continue;
       }
-      if (not candidate.ends_with(counting_layer_name)) {
+      if (not candidate.ends_with(counting_layer_name.leaf())) {
         continue;
       }
       result.push_back(candidate.hash());
@@ -505,12 +506,12 @@ namespace phlex::detail {
     return result;
   }
 
-  identifier index_router::deepest_layer_name(std::vector<identifier> const& layer_names) const
+  layer_path index_router::deepest_layer_name(std::vector<layer_path> const& layer_names) const
   {
-    auto depth_of = [this](identifier const& name) -> std::size_t {
+    auto depth_of = [this](layer_path const& name) -> std::size_t {
       std::size_t best = 0;
       for (auto const& path : sorted_layer_paths_) {
-        if (path.ends_with(name)) {
+        if (path.ends_with(name.leaf())) {
           best = std::max(path.depth(), best);
         }
       }

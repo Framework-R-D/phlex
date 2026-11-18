@@ -293,7 +293,7 @@ namespace phlex::detail {
              node_catalog& nodes,
              std::vector<std::string>& errors,
              resource_catalog& resources,
-             std::string partition,
+             phlex::experimental::layer_path partition,
              InitArgs&&... init_args) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
@@ -377,7 +377,7 @@ namespace phlex::detail {
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::string partition_;
+    phlex::experimental::layer_path partition_;
     init_tuple init_;
     registrar<declared_fold_ptr> registrar_;
     resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

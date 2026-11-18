@@ -2,7 +2,7 @@
 
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
 #include <gsl/assert>
@@ -19,7 +19,7 @@ namespace phlex::detail::internal {
 
   repeater_node::repeater_node(tbb::flow::graph& g,
                                phlex::experimental::algorithm_name node_name,
-                               phlex::experimental::identifier layer_name) :
+                               phlex::experimental::layer_path layer_name) :
     base_t{g},
     indexer_{g},
     repeater_{g,

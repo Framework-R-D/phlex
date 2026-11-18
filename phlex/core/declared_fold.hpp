@@ -7,6 +7,7 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -23,7 +24,7 @@ namespace phlex::detail {
                   std::vector<std::string> predicates,
                   product_selectors input_products,
                   tbb::flow::graph& graph,
-                  std::string partition_layer);
+                  phlex::experimental::layer_path partition_layer);
     ~declared_fold() override;
 
     phlex::experimental::algorithm_name const& name() const noexcept override
@@ -32,10 +33,10 @@ namespace phlex::detail {
     }
 
     virtual tbb::flow::receiver<index_message>& partition_port() = 0;
-    phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
+    phlex::experimental::layer_path const& partition_layer() const { return partition_layer_; }
 
   private:
-    phlex::experimental::identifier partition_layer_;
+    phlex::experimental::layer_path partition_layer_;
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;
