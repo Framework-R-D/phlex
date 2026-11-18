@@ -84,9 +84,8 @@ void root_tbranch_write_container_imp::setup_write(std::type_info const& type)
 
   auto* const class_info = TClass::GetClass(type);
   if (class_info && !class_info->HasDictionary()) {
-    throw std::runtime_error("root_tbranch_write_container_imp::setup_write cannot write type " +
-                             std::string(class_info->GetName()) +
-                             " that is missing ROOT dictionary");
+    error("cannot write type " + std::string(class_info->GetName()) +
+          " that is missing ROOT dictionary");
   }
 
   auto* dict_info = TDictionary::GetDictionary(type);

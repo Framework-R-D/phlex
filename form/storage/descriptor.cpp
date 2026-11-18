@@ -76,8 +76,8 @@ namespace form::detail::experimental {
     std::set<std::string_view> keys;
     for (auto const& [key, value] : entries) {
       if (!keys.insert(key).second) {
-        throw std::runtime_error("descriptor::write descriptor key '" + key +
-                                 "' appears more than once for " + file_name_);
+        error("descriptor key '" + key +
+              "' appears more than once for " + file_name_);
       }
     }
     store(entries);
