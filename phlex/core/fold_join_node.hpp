@@ -132,27 +132,22 @@ namespace phlex::detail {
     //
     // The first entry is the *partition slot* — it routes the partition index to the
     // accumulator's index_port and delivers the partition-level flush token to the
-    // accumulator's flush_port. Its routing layer is the partition layer (e.g. "job"),
-    // but its counting layer is currently the first input data layer.
+    // accumulator's flush_port. Its routing layer is the partition layer (e.g. "job").
     //
-    // The remaining entries are the data-input slots, one per repeater.  For these the
-    // routing layer and counting layer are the same: the repeater both routes and counts
-    // at its own input layer.
+    // The remaining entries are the data-input slots, one per repeater.
     //
-    // TODO: For multi-input folds, the counting layer must be the deepest input layer
-    // in the data hierarchy. Until the router exposes a depth comparison, we pick
-    // layers_[0]; this is only correct when the first input is at the deepest layer.
+    // No slot sets a counting layer, so the router counts at the node's deepest input layer.
     std::vector<named_index_port> index_ports()
     {
       std::vector<named_index_port> result;
       result.reserve(1 + repeaters_.size()); // +1 for the result repeater
       result.emplace_back(partition_layer_,
-                          layers_[0],
+                          std::nullopt,
                           &result_repeater_.flush_port(),
                           &result_repeater_.index_port());
       for (std::size_t i = 0; i != repeaters_.size(); ++i) {
         result.emplace_back(
-          layers_[i], layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
+          layers_[i], std::nullopt, &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
       }
       return result;
     }

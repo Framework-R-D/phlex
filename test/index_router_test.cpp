@@ -13,6 +13,8 @@
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -283,4 +285,74 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
   CHECK(token.index == job);
   CHECK(std::cmp_equal(token.count, top_count + nested_count));
   CHECK_FALSE(tokens.try_get(token));
+}
+
+TEST_CASE("The deepest layer is compared only along branches containing every layer", "[graph]")
+{
+  // /job/run/subrun/calib is deeper than /job/calib/step, but only the latter contains both
+  // "calib" and "calib/step". The "calib" slot must therefore count "calib/step" cells.
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> calib_indices{graph};
+  tbb::flow::queue_node<detail::index_message> step_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> calib_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> step_tokens{graph};
+  detail::index_router router{graph};
+  router.finalize(graph,
+                  {experimental::layer_path{"/job/calib/step"},
+                   experimental::layer_path{"/job/run/subrun/calib"}},
+                  {},
+                  {},
+                  {},
+                  {{"join",
+                    {{.layer = experimental::layer_path{"calib"},
+                      .counting_layer = std::nullopt,
+                      .token_port = &calib_tokens,
+                      .index_port = &calib_indices},
+                     {.layer = experimental::layer_path{"calib/step"},
+                      .counting_layer = std::nullopt,
+                      .token_port = &step_tokens,
+                      .index_port = &step_indices}}}});
+
+  auto const job = data_cell_index::job();
+  auto const calib = job->make_child("calib", 0);
+  router.route(job, {});
+  router.route(calib, {});
+
+  auto calib_counts = std::make_shared<detail::data_cell_counts>();
+  calib_counts->emplace(calib->make_child("step", 0)->layer_hash(), 2);
+  auto job_counts = std::make_shared<detail::data_cell_counts>();
+  job_counts->emplace(calib->layer_hash(), 1);
+  router.drain({{.index = calib, .counts = calib_counts}, {.index = job, .counts = job_counts}});
+  graph.wait_for_all();
+
+  detail::indexed_end_token token;
+  REQUIRE(calib_tokens.try_get(token));
+  CHECK(token.index == calib);
+  CHECK(std::cmp_equal(token.count, 2));
+}
+
+TEST_CASE("Joining layers on sibling branches is rejected when finalizing", "[graph]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> spill_indices{graph};
+  tbb::flow::queue_node<detail::index_message> run_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> spill_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> run_tokens{graph};
+  detail::index_router router{graph};
+  CHECK_THROWS_AS(router.finalize(graph,
+                                  {experimental::layer_path{"/job/spill/event"},
+                                   experimental::layer_path{"/job/run/event"}},
+                                  {},
+                                  {},
+                                  {},
+                                  {{"join",
+                                    {{.layer = experimental::layer_path{"spill/event"},
+                                      .counting_layer = std::nullopt,
+                                      .token_port = &spill_tokens,
+                                      .index_port = &spill_indices},
+                                     {.layer = experimental::layer_path{"run/event"},
+                                      .counting_layer = std::nullopt,
+                                      .token_port = &run_tokens,
+                                      .index_port = &run_indices}}}}),
+                  std::runtime_error);
 }

@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -52,6 +53,23 @@ namespace {
       throw std::runtime_error(error);
     }
   }
+
+  void normalize_layer_selectors(phlex::product_selectors& selectors)
+  {
+    if (selectors.size() <= 1) {
+      return;
+    }
+    using phlex::experimental::layer_path;
+    auto const layers = selectors | std::views::transform([](auto const& selector) {
+                          return static_cast<layer_path const&>(selector.layer);
+                        }) |
+                        std::ranges::to<std::vector>();
+    for (auto const& [selector, layer] : std::views::zip(selectors, layers)) {
+      auto extensions =
+        layers | std::views::filter([&layer](auto const& other) { return other.ends_with(layer); });
+      selector.layer = *std::ranges::max_element(extensions, {}, &layer_path::depth);
+    }
+  }
 }
 
 namespace phlex::detail {
@@ -63,10 +81,11 @@ namespace phlex::detail {
     name_{std::move(name)},
     predicates_{std::move(predicates)},
     graph_{graph},
-    input_products_{std::move(input_products)},
-    layers_{layers_from(input_products_)}
+    input_products_{std::move(input_products)}
   {
     validate_layers(layers_required, input_products_, this->name());
+    normalize_layer_selectors(input_products_);
+    layers_ = layers_from(input_products_);
   }
 
   consumer::~consumer() = default;

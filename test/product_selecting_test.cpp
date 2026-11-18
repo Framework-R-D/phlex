@@ -11,6 +11,7 @@
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
+#include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -19,6 +20,7 @@
 #include <fmt/format.h>
 
 #include <atomic>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -68,6 +70,17 @@ namespace {
 
   private:
     std::string layer_{"event"};
+  };
+
+  class count_up {
+  public:
+    explicit count_up(unsigned int const count) : count_{count} {}
+    static unsigned int initial_value() { return 0; }
+    bool predicate(unsigned int const i) const { return i < count_; }
+    static auto unfold(unsigned int const i) { return std::make_pair(i + 1, i + 1); }
+
+  private:
+    unsigned int count_;
   };
 
   class copy_temperature_once {
@@ -407,4 +420,100 @@ TEST_CASE("Explicit providers require complete output layer paths", "[graph]")
                         .output_product("input", "number", incomplete),
                       Catch::Matchers::ContainsSubstring("must be a complete layer path"));
   }
+}
+
+// The hierarchy has two branches that end in "event": /job/spill/event with 3 cells and
+// /job/run/event with 4 cells.  A multi-segment selector must pick out one branch for every
+// kind of node that registers ports with the index router.
+TEST_CASE("Selecting one of two branches that share a leaf layer name", "[graph]")
+{
+  constexpr unsigned spill_events = 3;
+  constexpr unsigned run_events = 4;
+
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  auto const run_graph = [&](auto const& configure) {
+    auto gen = experimental::layer_generator::make();
+    gen->add_layer("spill", {.parent_layer = "job", .count = 1});
+    gen->add_layer("event", {.parent_layer = "spill", .count = spill_events});
+    gen->add_layer("run", {.parent_layer = "job", .count = 1});
+    gen->add_layer("event", {.parent_layer = "run", .count = run_events});
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(gen);
+    g.provide("provide_spill_idx", provide_idx, concurrency::unlimited)
+      .output_product("input", "number", "/job/spill/event");
+    g.provide("provide_run_idx", provide_idx, concurrency::unlimited)
+      .output_product("input", "number", "/job/run/event");
+    g.provide("provide_run_number", provide_number, concurrency::unlimited)
+      .output_product("input", "run_number", "/job/run");
+    configure(g);
+    g.execute();
+    return g.execution_count("consumer");
+  };
+
+  SECTION("Fold")
+  {
+    int sum = 0;
+    int num_sums = 0;
+    auto const num_folds = run_graph([&](auto& g) {
+      g.fold("consumer", add_ints, concurrency::unlimited)
+        .input_family(
+          product_selector{.creator = "input", .layer = "run/event", .suffix = "number"})
+        .output_product_suffixes("sum");
+      g.observe(
+         "observer",
+         [&](int const total) {
+           sum = total;
+           ++num_sums;
+         },
+         concurrency::serial)
+        .input_family(product_selector{.creator = "consumer", .layer = "job"});
+    });
+    CHECK(num_folds == run_events);
+    CHECK(num_sums == 1);
+    CHECK(sum == 0 + 1 + 2 + 3);
+  }
+
+  SECTION("Unfold")
+  {
+    auto const num_unfolds = run_graph([](auto& g) {
+      g.provide(
+         "provide_run_count", [](data_cell_index const&) { return 2u; }, concurrency::unlimited)
+        .output_product("input", "count", "/job/run/event");
+      g.template unfold<count_up>(
+         "consumer", &count_up::predicate, &count_up::unfold, concurrency::unlimited, "hit")
+        .input_family(product_selector{.creator = "input", .layer = "run/event", .suffix = "count"})
+        .output_product_suffixes("seed");
+    });
+    CHECK(num_unfolds == run_events);
+  }
+
+  SECTION("Two-input join of a parent and a child layer")
+  {
+    auto const num_calls = run_graph([](auto& g) {
+      g.observe(
+         "consumer", [](int const, int const) {}, concurrency::unlimited)
+        .input_family(
+          product_selector{.creator = "input", .layer = "/job/run", .suffix = "run_number"},
+          product_selector{.creator = "input", .layer = "run/event", .suffix = "number"});
+    });
+    CHECK(num_calls == run_events);
+  }
+
+  SECTION("Two inputs naming the same layer with selectors of different lengths")
+  {
+    auto const num_calls = run_graph([](auto& g) {
+      g.provide("provide_run_temperature", provide_temperature, concurrency::unlimited)
+        .output_product("input", "temperature", "/job/run/event");
+      g.observe(
+         "consumer", [](int const, double const) {}, concurrency::unlimited)
+        .input_family(
+          product_selector{.creator = "input", .layer = "event", .suffix = "number"},
+          product_selector{.creator = "input", .layer = "run/event", .suffix = "temperature"});
+    });
+    CHECK(num_calls == run_events);
+  }
+
+  // The graph is destroyed, so any entries left in repeaters have been reported.
+  CHECK_FALSE(output.str().contains("Cached"));
 }
