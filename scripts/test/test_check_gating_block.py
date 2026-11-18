@@ -43,9 +43,9 @@ def test_current_workflows_pass(workflows):
         'contains(fromJSON(\'["OWNER",',
         '"COLLABORATOR", "MEMBER"]\'), github.event.comment.author_association)',
         "startsWith(github.event.comment.body, "
-        "format('@{0}bot pre-commit-fix', github.event.repository.name))",
+        + "format('@{0}bot pre-commit-fix', github.event.repository.name))",
         "startsWith(github.event.comment.body, "
-        "format('@{0}bot format', github.event.repository.name))",
+        + "format('@{0}bot format', github.event.repository.name))",
     ],
 )
 def test_rejects_missing_comment_gate_phrase(workflows, phrase):
