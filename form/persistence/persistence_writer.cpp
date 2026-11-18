@@ -8,9 +8,9 @@
 #include "core/product_identity.hpp"
 #include "core/technology.hpp"
 #include "core/token.hpp"
-#include "descriptor.hpp"
 #include "navigation_naming.hpp"
 #include "persistence/ipersistence_writer.hpp"
+#include "storage/descriptor.hpp"
 #include "storage/istorage.hpp"
 #include "util/error.hpp"
 
@@ -58,8 +58,7 @@ namespace {
     }
   }
 
-  std::vector<std::pair<std::string, std::string>> descriptor_entries(
-    std::set<form::technology::id> const& technologies)
+  descriptor_entries build_descriptor_entries(std::set<form::technology::id> const& technologies)
   {
     std::string technology_names;
     for (auto const& tech : technologies) {
@@ -520,7 +519,7 @@ void persistence_writer::write_descriptors()
 
   for (auto const& [file_name, technologies] : planned_technologies_) {
     check_file_is_describable(file_name, technologies, written);
-    store_writer_->write_descriptor(file_name, descriptor_entries(technologies));
+    store_writer_->write_descriptor(file_name, build_descriptor_entries(technologies));
   }
 }
 

@@ -908,7 +908,10 @@ def test_kilo_env_exit_paths_preserve_callers(tmp_path, sourced, self_test):
     assert ("survived" in result.stdout) == sourced
 
 
-@pytest.mark.parametrize("shell", ["bash", "dash"])
+requires_dash = pytest.mark.skipif(shutil.which("dash") is None, reason="dash is not installed")
+
+
+@pytest.mark.parametrize("shell", ["bash", pytest.param("dash", marks=requires_dash)])
 @pytest.mark.parametrize("options", ["-e", "-u", "-eu"])
 def test_entrypoint_is_source_only(shell, options):
     """Executing the environment entrypoint fails before loading Spack or configuring exports."""
@@ -921,6 +924,7 @@ def test_entrypoint_is_source_only(shell, options):
     assert result.stderr.strip() == "ERROR: entrypoint.sh must be sourced, not executed"
 
 
+@requires_dash
 def test_entrypoint_can_be_sourced_under_dash(tmp_path):
     """Sourcing the entrypoint under dash passes its source-only guard."""
     entrypoint = DEVCONTAINER.parent / "ci/entrypoint.sh"

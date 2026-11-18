@@ -89,6 +89,7 @@ namespace form::test {
     container->set_file(file);
     void const* raw_ptr = nullptr;
 
+    container->prime(typeid(Prod));
     if (!container->read(0, &raw_ptr, typeid(Prod))) {
       throw std::runtime_error("Failed to read a " + get_type_name<Prod>());
     }

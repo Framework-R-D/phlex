@@ -3,6 +3,7 @@
 # Component(s) in the package:
 add_library(
   storage
+  descriptor.cpp
   factories.cpp
   storage_reader.cpp
   storage_writer.cpp

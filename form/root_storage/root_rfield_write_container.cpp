@@ -115,9 +115,19 @@ namespace form::detail::experimental {
     auto const& type_name = demangle_name(type);
     std::unique_ptr<ROOT::RFieldBase> field;
 
+    auto make_streamer_field = [&type, this, &type_name]() {
+      auto* const class_info = TClass::GetClass(type);
+      if (class_info && !class_info->HasDictionary()) {
+        throw std::runtime_error(
+          "root_rfield_write_container_imp::setup_write Cannot write class " + type_name +
+          " that is missing ROOT dictionary in streamer mode");
+      }
+      return std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
+    };
+
     try {
       if (force_streamer_field_) {
-        field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
+        field = make_streamer_field();
       } else {
         auto field_result = ROOT::RFieldBase::Create(col_name(), type_name);
         if (field_result) {
@@ -129,7 +139,7 @@ namespace form::detail::experimental {
             << type_name
             << ".  This class is probably using something obsolete like TLorentzVector.  Storing "
                "it in streamer mode to keep the application going.\n";
-          field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
+          field = make_streamer_field();
         }
       }
 

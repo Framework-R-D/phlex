@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -55,8 +56,8 @@ namespace form::detail::experimental {
     return technologies;
   }
 
-  std::optional<std::string> descriptor_entry(
-    std::vector<std::pair<std::string, std::string>> const& entries, std::string_view key)
+  std::optional<std::string> descriptor_entry(descriptor_entries const& entries,
+                                              std::string_view key)
   {
     for (auto const& [name, value] : entries) {
       if (name == key) {
@@ -66,4 +67,24 @@ namespace form::detail::experimental {
     return std::nullopt;
   }
 
-}
+  descriptor::descriptor(std::string file_name) : file_name_(std::move(file_name)) {}
+
+  std::string const& descriptor::file_name() const { return file_name_; }
+
+  void descriptor::write(descriptor_entries const& entries)
+  {
+    std::set<std::string_view> keys;
+    for (auto const& [key, value] : entries) {
+      if (!keys.insert(key).second) {
+        throw std::runtime_error("descriptor::write descriptor key '" + key +
+                                 "' appears more than once for " + file_name_);
+      }
+    }
+    store(entries);
+  }
+
+  std::optional<descriptor_entries> memory_descriptor::read() { return entries_; }
+
+  void memory_descriptor::store(descriptor_entries const& entries) { entries_ = entries; }
+
+} // namespace form::detail::experimental

@@ -6,6 +6,7 @@ find_package(ROOT REQUIRED COMPONENTS Core RIO Tree)
 set(FORM_ROOT_STORAGE_SOURCES)
 list(
   APPEND FORM_ROOT_STORAGE_SOURCES
+  root_descriptor.cpp
   root_tfile.cpp
   root_thread_safety.cpp
   root_ttree_write_container.cpp
