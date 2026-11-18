@@ -8,7 +8,7 @@
 
 namespace form::detail::experimental
 {
-  void error(std::string const& message, std::source_location const where = std::source_location::current());
+  [[noreturn]] void error(std::string const& message, std::source_location const where = std::source_location::current());
 }
 
 #endif //FORM_UTIL_ERROR_HPP
