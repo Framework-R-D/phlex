@@ -1,0 +1,2 @@
+# Dependabot updates this pin; workflows pass its version to codecov-action.
+codecov-cli==11.3.2

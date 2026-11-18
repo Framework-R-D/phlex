@@ -22,7 +22,8 @@ EXPECTED = {
     },
     "codeql-comment.yaml": {
         "marker": "<!-- codeql-alerts -->",
-        "cleanup_step_name": "Cleanup old CodeQL comments",
+        "cleanup_step_name": "Validate provenance and post CodeQL comment",
+        "cleanup_script_contains": "github.rest.issues.deleteComment",
     },
     "coverage.yaml": {
         "marker": "<!-- coverage-comment -->",
@@ -57,13 +58,13 @@ def test_workflow_cleanup_steps():
                 env = step.get("env", {})
                 if any(expectations["marker"] in v for v in env.values()):
                     marker_found = True
-                # For clang-tidy, the marker is in the script body
-                if wf_name == "clang-tidy-report.yaml":
-                    script = step.get("with", {}).get("script", "")
-                    if expectations["marker"] in script:
-                        marker_found = True
+                script = step.get("with", {}).get("script", "")
+                if expectations["marker"] in script:
+                    marker_found = True
                 if step.get("name", "") == expectations["cleanup_step_name"]:
-                    cleanup_found = True
+                    cleanup_code = step.get("with", {}).get("script", "")
+                    required_cleanup = expectations.get("cleanup_script_contains", "")
+                    cleanup_found = not required_cleanup or required_cleanup in cleanup_code
         assert marker_found, f"Marker {expectations['marker']} not present in {wf_name}"
         assert cleanup_found, (
             f"Cleanup step {expectations['cleanup_step_name']} not present in {wf_name}"

@@ -7,7 +7,9 @@ name: "CodeQL - Post Comment"
       - completed
 
 permissions:
-  pull-requests: write
+  actions: read
+  contents: read
+  pull-requests: read
   issues: write
 
 jobs:
@@ -24,102 +26,128 @@ jobs:
       github.event.workflow_run.conclusion == 'failure')
     steps:
       - name: Download PR comment data
+        id: download
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codeql-pr-data
+          name: codeql-pr-data-${{ github.event.workflow_run.run_attempt }}
           run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.WORKFLOW_PAT }} # Needed to download artifacts from other runs if private/internal
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
           path: pr_comment_data
         continue-on-error: true
 
-      - name: Post Comment
-        # Only run if the artifact was found (meaning alerts exist)
-        if: success() && hashFiles('pr_comment_data/pr_number.txt') != ''
+      - name: Validate provenance and post CodeQL comment
+        if: steps.download.outcome == 'success'
         id: post_comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         with:
-          github-token: ${{ github.token }}
           script: |
-            const core = require('@actions/core');
             const fs = require('fs');
             const path = require('path');
-
-            const prNumberPath = path.join('pr_comment_data', 'pr_number.txt');
-            const commentBodyPath = path.join('pr_comment_data', 'comment_body.md');
-
-            if (!fs.existsSync(prNumberPath) || !fs.existsSync(commentBodyPath)) {
-              console.log('Artifact data missing, skipping comment.');
+            const run = context.payload.workflow_run;
+            const { owner, repo } = context.repo;
+            if (run.name !== 'CodeQL Analysis' ||
+                run.path !== '.github/workflows/codeql-analysis.yaml' ||
+                run.repository?.full_name !== `${owner}/${repo}` || run.event !== 'pull_request' ||
+                !Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1) {
+              throw new Error('The artifact producer is not the expected CodeQL PR workflow.');
+            }
+            const artifactRoot = path.join(process.env.GITHUB_WORKSPACE, 'pr_comment_data');
+            const rootStats = fs.lstatSync(artifactRoot);
+            if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
+              throw new Error('The downloaded comment artifact directory is invalid.');
+            }
+            const readRegularFile = (name, maxBytes) => {
+              const target = path.join(artifactRoot, name);
+              const stats = fs.lstatSync(target);
+              if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maxBytes) {
+                throw new Error(`Invalid CodeQL comment artifact file: ${name}`);
+              }
+              return fs.readFileSync(target, 'utf8');
+            };
+            const expectedFiles = new Set(['comment_body.md', 'pr_number.txt', 'provenance.json']);
+            for (const entry of fs.readdirSync(artifactRoot, { withFileTypes: true })) {
+              if (!entry.isFile() || !expectedFiles.has(entry.name)) {
+                throw new Error(`Unexpected file in CodeQL comment artifact: ${entry.name}`);
+              }
+            }
+            const metadata = JSON.parse(readRegularFile('provenance.json', 4096));
+            const metadataKeys = [
+              'run_attempt', 'run_id', 'source_ref', 'source_repo', 'source_sha', 'workflow_ref'
+            ];
+            if (Object.keys(metadata).sort().join(',') !== metadataKeys.join(',') ||
+                !/^[0-9a-f]{40}$/i.test(metadata.source_sha || '') ||
+                !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(metadata.source_repo || '') ||
+                typeof metadata.source_ref !== 'string' || !metadata.source_ref ||
+                typeof metadata.workflow_ref !== 'string' ||
+                !metadata.workflow_ref.includes('/.github/workflows/codeql-analysis.yaml@') ||
+                metadata.run_id !== String(run.id) || metadata.run_id !== process.env.RUN_ID ||
+                metadata.run_attempt !== String(run.run_attempt) ||
+                metadata.run_attempt !== process.env.RUN_ATTEMPT) {
+              throw new Error('CodeQL comment provenance does not match its workflow run.');
+            }
+            const numberText = readRegularFile('pr_number.txt', 32).trim();
+            if (!/^[1-9][0-9]*$/.test(numberText)) {
+              throw new Error('The artifact contains an invalid pull request number.');
+            }
+            const prNumber = Number(numberText);
+            const linkedPull = (run.pull_requests || []).find(pull => pull.number === prNumber);
+            if (!linkedPull) {
+              console.log('The producing workflow run is not linked to the artifact PR; skipping comment.');
               return;
             }
-
-            const prNumber = Number(fs.readFileSync(prNumberPath, 'utf8').trim());
-            const body = fs.readFileSync(commentBodyPath, 'utf8');
+            if ((linkedPull.head?.sha && linkedPull.head.sha !== metadata.source_sha) ||
+                (linkedPull.head?.ref && linkedPull.head.ref !== metadata.source_ref) ||
+                (linkedPull.head?.repo?.full_name &&
+                 linkedPull.head.repo.full_name !== metadata.source_repo)) {
+              throw new Error('Artifact source snapshot differs from the PR linked to the workflow run.');
+            }
+            const { data: pull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+            const isCurrent = pull.state === 'open' && pull.head.sha === metadata.source_sha &&
+              pull.head.ref === metadata.source_ref &&
+              pull.head.repo?.full_name === metadata.source_repo;
+            if (!isCurrent) {
+              console.log('Skipping stale CodeQL comment data for a moved PR head.');
+              return;
+            }
+            const body = readRegularFile('comment_body.md', 65536);
             const marker = '<!-- codeql-alerts -->';
             const legacyMarker = '<!-- codeql-new-alerts -->';
-
-            // Append marker if missing
             const finalBody = body.includes(marker) ? body : `${body}\n${marker}`;
-
-            console.log(`Processing PR #${prNumber}`);
-
             const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
+              owner,
+              repo,
+              issue_number: prNumber
             });
-
             const existing = comments.find(c => c.body.includes(marker) || c.body.includes(legacyMarker));
-
             let commentId;
             if (existing) {
-              console.log(`Updating existing comment ${existing.id}`);
               await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner,
+                repo,
                 comment_id: existing.id,
                 body: finalBody
               });
               commentId = existing.id;
             } else {
-              console.log(`Creating new comment`);
               const { data: created } = await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner,
+                repo,
                 issue_number: prNumber,
                 body: finalBody
               });
               commentId = created.id;
             }
-            core.setOutput('comment_id', commentId);
-
-      - name: Cleanup old CodeQL comments
-        if: success() && hashFiles('pr_comment_data/pr_number.txt') != ''
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          MARKER: "<!-- codeql-alerts -->"
-        with:
-          script: |
-            const fs = require('fs');
-            const marker = process.env.MARKER;
-            const prNumberPath = 'pr_comment_data/pr_number.txt';
-            if (!fs.existsSync(prNumberPath)) {
-              console.log('pr_number.txt artifact not found, skipping cleanup');
-              process.exit(0);
-            }
-            const pr = parseInt(fs.readFileSync(prNumberPath, 'utf8').trim(), 10);
-            if (isNaN(pr)) { console.log('No PR number, skipping cleanup'); process.exit(0); }
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr
-            });
-            for (const c of comments) {
-              if (c.body && c.body.includes(marker)) {
-                await github.rest.issues.deleteComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: c.id
-                });
-                console.log(`Deleted old comment ${c.id}`);
+            for (const comment of comments) {
+              if (comment.id !== commentId && comment.body &&
+                  (comment.body.includes(marker) || comment.body.includes(legacyMarker))) {
+                await github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id });
               }
             }

@@ -70,7 +70,12 @@ class WorkflowToolingTest(unittest.TestCase):
                         for step in steps
                         if step.get("with", {}).get("path") == "workflow-tools"
                     )
-                    self.assertEqual(checkout["with"]["ref"], "${{ github.workflow_sha }}")
+                    expected_ref = (
+                        "${{ github.event.pull_request.base.sha || github.workflow_sha }}"
+                        if name == "python-check"
+                        else "${{ github.workflow_sha }}"
+                    )
+                    self.assertEqual(checkout["with"]["ref"], expected_ref)
                     self.assertEqual(checkout["with"]["repository"], "${{ github.repository }}")
                     self.assertIs(checkout["with"]["persist-credentials"], False)
 

@@ -1,0 +1,78 @@
+name: Report formatter patch artifact
+description: Report the immutable formatter snapshot and patch-only result.
+
+inputs:
+  tool:
+    description: Fixed formatter identifier.
+    required: true
+  source-sha:
+    description: Authorized source commit SHA.
+    required: true
+  changes:
+    description: Whether a patch artifact was created.
+    required: true
+  patch-name:
+    description: Expected fixed patch file name.
+    required: true
+  run-id:
+    description: Workflow run containing the artifact.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Post patch-only result
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        TOOL: ${{ inputs.tool }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
+        CHANGES: ${{ inputs.changes }}
+        PATCH_NAME: ${{ inputs.patch-name }}
+        RUN_ID: ${{ inputs.run-id }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const pullNumber = context.payload.issue?.number;
+          if (!context.payload.issue?.pull_request || !Number.isSafeInteger(pullNumber)) {
+            throw new Error('Patch reports are only valid for pull requests.');
+          }
+          if (!/^[0-9a-f]{40}$/i.test(process.env.SOURCE_SHA || '') ||
+              !/^[a-z0-9-]{1,40}$/.test(process.env.TOOL || '') ||
+              !/^[0-9]+$/.test(process.env.RUN_ID || '') ||
+              !['true', 'false'].includes(process.env.CHANGES)) {
+            throw new Error('Invalid patch report metadata.');
+          }
+          if (process.env.CHANGES === 'true' &&
+              process.env.PATCH_NAME !== `${process.env.TOOL}.patch`) {
+            throw new Error('Patch report file name does not match the formatter.');
+          }
+          const { data: pull } = await github.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: pullNumber
+          });
+          const isCurrent = pull.state === 'open' && pull.head.sha === process.env.SOURCE_SHA;
+          const artifactUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${process.env.RUN_ID}#artifacts`;
+          const result = process.env.CHANGES === 'true'
+            ? `A patch-only artifact was created: \`${process.env.PATCH_NAME}\`.`
+            : 'No formatting changes were produced.';
+          const freshness = isCurrent
+            ? 'The PR still points to the approved snapshot.'
+            : 'The PR head moved after approval; do not apply this patch. Rerun against the current full SHA.';
+          const artifact = process.env.CHANGES === 'true'
+            ? `Download it from [this run's artifacts](${artifactUrl}).`
+            : '';
+          await github.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: pullNumber,
+            body: [
+              `**${process.env.TOOL} formatter result**`,
+              '',
+              'No repository branch was modified.',
+              `Approved source snapshot: \`${process.env.SOURCE_SHA}\`.`,
+              result,
+              freshness,
+              artifact
+            ].filter(Boolean).join('\n\n')
+          });

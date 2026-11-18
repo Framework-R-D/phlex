@@ -15,6 +15,10 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
         description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
         required: false
         type: string
+      source-sha:
+        description: "Exact 40-character SHA at the selected branch head"
+        required: true
+        type: string
       build-combinations:
         description: |
           A space- or comma-separated list of build combinations to run.
@@ -71,6 +75,10 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
         description: "Head SHA of the PR for relevance check"
         required: false
         type: string
+      source-sha:
+        description: "Exact source SHA for manual or reusable runs"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -103,7 +111,10 @@ jobs:
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       build_path: ${{ steps.setup.outputs.build_path }}
-      has_changes: ${{ steps.setup.outputs.has_changes }}
+      has_changes: ${{ steps.source_relevance.outputs.has_changes }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
+      build_combinations: ${{ steps.source_snapshot.outputs.command_args }}
     steps:
       - name: Workflow setup
         id: setup
@@ -114,10 +125,100 @@ jobs:
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
           build-path: ${{ inputs.build-path }}
-          head-ref: ${{ inputs.pr-head-sha }}
-          file-type: |
-            cpp
-            cmake
+
+      - name: Check out trusted source resolver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/actions/resolve-source-snapshot
+          persist-credentials: false
+
+      - name: Resolve immutable source snapshot
+        id: source_snapshot
+        uses: ./workflow-tools/.github/actions/resolve-source-snapshot
+        with:
+          command: build
+          ref: ${{ steps.setup.outputs.ref }}
+          repo: ${{ steps.setup.outputs.repo }}
+          source-sha: ${{ inputs.source-sha }}
+          allow-arguments: true
+
+      - name: Detect relevant changes in the immutable snapshot
+        id: source_relevance
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ steps.source_snapshot.outputs.source_sha }}
+          SOURCE_REPO: ${{ steps.source_snapshot.outputs.source_repo }}
+          PR_NUMBER: ${{ steps.setup.outputs.pr_number }}
+          SKIP_RELEVANCE: ${{ inputs.skip-relevance-check }}
+        with:
+          script: |
+            const matches = filename => {
+              if (filename.startsWith('scripts/')) return false;
+              const basename = filename.split('/').pop();
+              return /\.(cpp|hpp)(\.in)?$/.test(basename) ||
+                /^(CMakeLists\.txt|.*\.cmake)(\.in)?$/.test(basename);
+            };
+            let relevant = process.env.SKIP_RELEVANCE === 'true';
+            if (!relevant && (context.eventName === 'pull_request' || context.eventName === 'issue_comment')) {
+              try {
+                const pullNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number ||
+                  context.payload.issue?.number);
+                const { data: before } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pullNumber
+                });
+                if (before.head.sha !== process.env.SOURCE_SHA ||
+                    before.head.repo?.full_name !== process.env.SOURCE_REPO) {
+                  relevant = true;
+                } else {
+                  const changedPaths = [];
+                  for (let page = 1; ; page++) {
+                    const { data: files } = await github.rest.pulls.listFiles({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pullNumber,
+                      per_page: 100,
+                      page
+                    });
+                    changedPaths.push(...files.map(file => file.filename));
+                    if (files.length < 100 || page === 30) break;
+                  }
+                  const { data: after } = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pullNumber
+                  });
+                  relevant = after.head.sha !== process.env.SOURCE_SHA ||
+                    after.head.repo?.full_name !== process.env.SOURCE_REPO ||
+                    changedPaths.length >= 3000 || changedPaths.some(matches);
+                }
+              } catch (error) {
+                core.warning(`Could not verify PR relevance; running the build conservatively: ${error.message}`);
+                relevant = true;
+              }
+            } else if (!relevant && context.eventName === 'push' && context.payload.before &&
+                       !/^0+$/.test(context.payload.before)) {
+              try {
+                const { data: comparison } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: context.payload.before,
+                  head: process.env.SOURCE_SHA
+                });
+                relevant = comparison.files?.length >= 300 ||
+                  (comparison.files || []).some(file => matches(file.filename));
+              } catch (error) {
+                core.warning(`Could not verify push relevance; running the build conservatively: ${error.message}`);
+                relevant = true;
+              }
+            } else if (!relevant) {
+              relevant = true;
+            }
+            core.setOutput('has_changes', String(relevant));
 
   generate-matrix:
     needs: setup
@@ -134,8 +235,10 @@ jobs:
       - id: generate
         uses: Framework-R-D/action-generate-build-matrix@a867325d7153f7fcc7d64fc69eafcb2b97edae39 # v1
         with:
-          user-input: ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
-          comment-body: ${{ github.event.comment.body }}
+          user-input: >-
+            ${{ inputs.build-combinations || github.event.inputs.build-combinations ||
+            needs.setup.outputs.build_combinations }}
+          comment-body: ""
 
       - name: Expand architecture matrix
         # Cross each compiler/sanitizer combo with the supported architectures and
@@ -177,24 +280,19 @@ jobs:
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:latest
+      image: >-
+        ghcr.io/framework-r-d/phlex-ci:latest@sha256:d62317baa9f8b886da6db6250bdcc1d97d15bf85fb18b13d9842abafbfd82ce0
       options: --cap-add=SYS_PTRACE
 
     steps:
       - name: Check out code
-        # CodeQL actions/cache-poisoning/poisonable-step: false positive for the
-        # reported schedule/workflow_dispatch origins. The pinned organization
-        # setup action resolves schedules to GITHUB_SHA and manual refs within
-        # this repository; pull-request runs do not share that cache-write scope.
-        # This records the audit rationale, not an inline CodeQL suppression.
+        # The source resolver validates event SHAs, selected manual branch heads,
+        # and explicit issue-comment approvals before this immutable checkout.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
-          ref:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
-          repository:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
-            needs.setup.outputs.repo }}
+          ref: ${{ needs.setup.outputs.source_sha }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           persist-credentials: false
 
       - name: Setup build environment
@@ -271,7 +369,8 @@ jobs:
           # Set perf_event_paranoid for CPU profiling
           if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
             echo "Configuring perf_event_paranoid for CPU profiling"
-            echo -1 | tee /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo "Warning: Could not set perf_event_paranoid"
+            echo -1 | tee /proc/sys/kernel/perf_event_paranoid 2>/dev/null || \
+              echo "Warning: Could not set perf_event_paranoid"
           fi
 
           # Configure profiling based on environment
@@ -289,7 +388,8 @@ jobs:
           TEST_RESULT=0
           if [ "${#TRACEBOX_ARGS[@]}" -gt 0 ]; then
             echo "::group::Running ctest with tracebox"
-              tracebox "${TRACEBOX_ARGS[@]}" -o "perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+              tracebox "${TRACEBOX_ARGS[@]}" -o "perfetto-trace.pftrace" -- \
+                ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
           else
             echo "::group::Running ctest with Perfetto SDK tracing"
             ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
