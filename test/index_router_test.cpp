@@ -69,13 +69,13 @@ TEST_CASE("Index routing requires an explicit driver hierarchy", "[graph]")
 TEST_CASE("Index routing rejects undeclared layer paths", "[graph]")
 {
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   detail::index_router router{graph};
   router.finalize(
     graph,
     {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/spill"}},
     {},
-    {{"dummy", {.input_product = {.layer = "event"}, .port = &indices}}},
+    {{"placeholder_provider", {.input_product = {.layer = "event"}, .port = &placeholder_indices}}},
     {});
 
   auto job = data_cell_index::job();
@@ -109,7 +109,7 @@ TEST_CASE("Index routing accepts data cells from chained unfolds", "[graph][unfo
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
   tbb::flow::queue_node<detail::indexed_end_token> data_tokens{graph};
   detail::index_router router{graph};
@@ -119,12 +119,14 @@ TEST_CASE("Index routing accepts data cells from chained unfolds", "[graph][unfo
     // The dependent comes first both in this list and in lexical node-name order.
     {{.name = "a_split_b", .input_layers = {"a"_id, "spill"_id}, .output_layer = "b"_id},
      {.name = "z_split_a", .input_layers = {"spill"_id}, .output_layer = "a"_id}},
-    {{"dummy", {.input_product = {.layer = "spill"}, .port = &indices}}},
-    {{"fold",
+    {{"placeholder_provider", {.input_product = {.layer = "spill"}, .port = &placeholder_indices}}},
+    {{"placeholder_fold_join",
       {.input_layers = {"b"_id},
        .participants = {
-         {.layer = "spill"_id, .index_port = &indices, .completion_port = &tokens},
-         {.layer = "b"_id, .index_port = &indices, .completion_port = &data_tokens}}}}});
+         {.layer = "spill"_id, .index_port = &placeholder_indices, .completion_port = &tokens},
+         {.layer = "b"_id,
+          .index_port = &placeholder_indices,
+          .completion_port = &data_tokens}}}}});
 
   auto spill = data_cell_index::job()->make_child("spill", 0);
   auto a = spill->make_child("a", 0);
@@ -155,7 +157,7 @@ TEST_CASE("Join participants share partition-constrained invocation accounting",
   using namespace phlex::experimental::literals;
   auto const count = GENERATE(0u, 3u);
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   tbb::flow::queue_node<detail::index_message> accumulator_indices{graph};
   tbb::flow::queue_node<detail::index_message> parent_indices{graph};
   tbb::flow::queue_node<detail::index_message> child_indices{graph};
@@ -168,8 +170,8 @@ TEST_CASE("Join participants share partition-constrained invocation accounting",
     {experimental::layer_path{"/job/run/event/subevent"},
      experimental::layer_path{"/job/event/subevent"}},
     {},
-    {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {{"fold",
+    {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
+    {{"placeholder_fold_join",
       {.input_layers = {"event"_id, "subevent"_id},
        .participants = {
          {.layer = "run"_id,
@@ -243,25 +245,24 @@ TEST_CASE("Fold rejects partitions without strict descendant invocations", "[gra
   phlex::experimental::identifier const partition = GENERATE("run", "spill", "event");
   CAPTURE(partition);
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
-  tbb::flow::queue_node<detail::index_message> partition_indices{graph};
-  tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> placeholder_tokens{graph};
   detail::index_router router{graph};
   CHECK_THROWS_WITH(
     router.finalize(graph,
                     {experimental::layer_path{"/job/event"}, experimental::layer_path{"/job/run"}},
                     {},
                     {},
-                    {{"fold",
+                    {{"fold_join",
                       {.input_layers = {"event"_id},
                        .participants = {{.layer = partition,
-                                         .index_port = &indices,
-                                         .completion_port = &tokens,
-                                         .partition_port = &partition_indices},
+                                         .index_port = &placeholder_indices,
+                                         .completion_port = &placeholder_tokens,
+                                         .partition_port = &placeholder_indices},
                                         {.layer = "event"_id,
-                                         .index_port = &indices,
-                                         .completion_port = &tokens}}}}}),
-    fmt::format("Fold 'fold' partition layer '{}' is not a strict ancestor of any eligible "
+                                         .index_port = &placeholder_indices,
+                                         .completion_port = &placeholder_tokens}}}}}),
+    fmt::format("Fold 'fold_join' partition layer '{}' is not a strict ancestor of any eligible "
                 "invocation path for input layers [event].",
                 partition));
 }
@@ -279,7 +280,7 @@ TEST_CASE("Empty folds accept a partition shared with an ancestor input", "[grap
     {experimental::layer_path{"/job/run/event"}},
     {},
     {},
-    {{"fold",
+    {{"placeholder_fold_join",
       {.input_layers = {"run"_id, "event"_id},
        .participants = {
          {.layer = "run"_id,
@@ -317,7 +318,7 @@ TEST_CASE("Cells outside a participant's storage paths get no completion or part
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   tbb::flow::queue_node<detail::index_message> cached_indices{graph};
   tbb::flow::queue_node<detail::index_message> child_indices{graph};
   tbb::flow::queue_node<detail::index_message> partition_indices{graph};
@@ -328,8 +329,8 @@ TEST_CASE("Cells outside a participant's storage paths get no completion or part
     graph,
     {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/other/run"}},
     {},
-    {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {{"join",
+    {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
+    {{"placeholder_fold_join",
       {.input_layers = {"event"_id},
        .participants = {
          {.layer = "run"_id,
@@ -376,9 +377,10 @@ TEST_CASE("Join participants filter cells only when same-named paths exist elsew
           "[graph][fold]")
 {
   using namespace phlex::experimental::literals;
-  auto const [foreign_path, filter_cached, filter_child] =
-    GENERATE(Catch::Generators::table<char const*, bool, bool>(
-      {{"", false, false}, {"/job/other/run", true, false}, {"/job/event", false, true}}));
+  auto const [foreign_path, filter_cached, filter_child] = GENERATE(
+    Catch::Generators::table<char const*, bool, bool>({{"/placeholder/for/test", false, false},
+                                                       {"/job/other/run", true, false},
+                                                       {"/job/event", false, true}}));
   CAPTURE(foreign_path);
   std::vector<experimental::layer_path> paths{experimental::layer_path{"/job/run/event"}};
   if (filter_cached or filter_child) {
@@ -386,11 +388,8 @@ TEST_CASE("Join participants filter cells only when same-named paths exist elsew
   }
 
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
-  tbb::flow::queue_node<detail::index_message> cached_indices{graph};
-  tbb::flow::queue_node<detail::index_message> child_indices{graph};
-  tbb::flow::queue_node<detail::indexed_end_token> cached_tokens{graph};
-  tbb::flow::queue_node<detail::indexed_end_token> child_tokens{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> placeholder_tokens{graph};
   std::optional<std::unordered_set<std::size_t>> cached_accepted;
   std::optional<std::unordered_set<std::size_t>> child_accepted;
   detail::index_router router{graph};
@@ -398,19 +397,19 @@ TEST_CASE("Join participants filter cells only when same-named paths exist elsew
     graph,
     paths,
     {},
-    {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {{"join",
+    {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
+    {{"placeholder_fold_join",
       {.input_layers = {"event"_id},
        .participants = {{.layer = "run"_id,
-                         .index_port = &cached_indices,
-                         .completion_port = &cached_tokens,
+                         .index_port = &placeholder_indices,
+                         .completion_port = &placeholder_tokens,
                          .accept_cells =
                            [&cached_accepted](std::unordered_set<std::size_t> cells) {
                              cached_accepted = std::move(cells);
                            }},
                         {.layer = "event"_id,
-                         .index_port = &child_indices,
-                         .completion_port = &child_tokens,
+                         .index_port = &placeholder_indices,
+                         .completion_port = &placeholder_tokens,
                          .accept_cells = [&child_accepted](std::unordered_set<std::size_t> cells) {
                            child_accepted = std::move(cells);
                          }}}}}});
@@ -432,20 +431,23 @@ TEST_CASE("Join rejects an ambiguous configuration", "[graph]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
-  tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> placeholder_tokens{graph};
   detail::index_router router{graph};
   CHECK_THROWS_WITH(
     router.finalize(
       graph,
       {experimental::layer_path{"/job/a/b"}, experimental::layer_path{"/job/b/a"}},
       {},
-      {{"dummy", {.input_product = {.layer = "job"}, .port = &indices}}},
+      {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
       {{"join",
         {.input_layers = {"a"_id, "b"_id},
-         .participants =
-           {{.layer = "a"_id, .index_port = &indices, .completion_port = &tokens},
-            {.layer = "b"_id, .index_port = &indices, .completion_port = &tokens}}}}}),
+         .participants = {{.layer = "a"_id,
+                           .index_port = &placeholder_indices,
+                           .completion_port = &placeholder_tokens},
+                          {.layer = "b"_id,
+                           .index_port = &placeholder_indices,
+                           .completion_port = &placeholder_tokens}}}}}),
     "The join for 'join' has an ambiguous configuration: input layers [a, b] match paths "
     "[/job/a/b, /job/b/a], but their ancestor relationship differs between those paths.");
 }
@@ -454,9 +456,8 @@ TEST_CASE("Join completion follows nearest repeated ancestor", "[graph]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> provider_indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   tbb::flow::queue_node<detail::index_message> parent_indices{graph};
-  tbb::flow::queue_node<detail::index_message> child_indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> parent_tokens{graph};
   tbb::flow::queue_node<detail::indexed_end_token> child_tokens{graph};
   detail::index_router router{graph};
@@ -464,12 +465,14 @@ TEST_CASE("Join completion follows nearest repeated ancestor", "[graph]")
     graph,
     {experimental::layer_path{"/job/a/a/b"}},
     {},
-    {{"dummy", {.input_product = {.layer = "job"}, .port = &provider_indices}}},
-    {{"join",
+    {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
+    {{"placeholder_join",
       {.input_layers = {"a"_id, "b"_id},
        .participants = {
          {.layer = "a"_id, .index_port = &parent_indices, .completion_port = &parent_tokens},
-         {.layer = "b"_id, .index_port = &child_indices, .completion_port = &child_tokens}}}}});
+         {.layer = "b"_id,
+          .index_port = &placeholder_indices,
+          .completion_port = &child_tokens}}}}});
   auto job = data_cell_index::job();
   auto outer = job->make_child("a", 0);
   auto inner = outer->make_child("a", 0);
@@ -506,7 +509,7 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   detail::index_router router{graph};
   detail::index_router::unfold_data unfolds;
   std::string expected_error;
@@ -529,11 +532,12 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
   }
 
   CHECK_THROWS_WITH(
-    router.finalize(graph,
-                    {experimental::layer_path{"/job/run"}},
-                    unfolds,
-                    {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {}),
+    router.finalize(
+      graph,
+      {experimental::layer_path{"/job/run"}},
+      unfolds,
+      {{"placeholder_provider", {.input_product = {.layer = "run"}, .port = &placeholder_indices}}},
+      {}),
     expected_error);
 }
 
@@ -542,18 +546,19 @@ TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][un
   using namespace phlex::experimental::literals;
   using experimental::layer_path;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   detail::index_router router{graph};
   auto const driver_path =
     GENERATE(layer_path{"/job/run/spill"}, layer_path{"/job/run/spill/event"});
   CAPTURE(driver_path);
 
   CHECK_THROWS_WITH(
-    router.finalize(graph,
-                    {driver_path},
-                    {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
-                    {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {}),
+    router.finalize(
+      graph,
+      {driver_path},
+      {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
+      {{"placeholder_provider", {.input_product = {.layer = "run"}, .port = &placeholder_indices}}},
+      {}),
     "Unfold 'split' specifies output layer '/job/run/spill' already declared by the driver.");
 }
 
@@ -562,7 +567,7 @@ TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
   using namespace phlex::experimental::literals;
   using experimental::layer_path;
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   detail::index_router router{graph};
 
   auto const driver_path = GENERATE(layer_path{"/job/run"}, layer_path{"/job"});
@@ -575,11 +580,12 @@ TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
   }
 
   CHECK_THROWS_WITH(
-    router.finalize(graph,
-                    {driver_path},
-                    unfolds,
-                    {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
-                    {}),
+    router.finalize(
+      graph,
+      {driver_path},
+      unfolds,
+      {{"placeholder_provider", {.input_product = {.layer = "run"}, .port = &placeholder_indices}}},
+      {}),
     "Unfolds 'split_a' and 'split_b' specify the same output layer '/job/run/spill'.");
 }
 
@@ -595,7 +601,7 @@ TEST_CASE("Counting layers on other branches do not produce end tokens", "[graph
     {experimental::layer_path{"/job/run/calib"}, experimental::layer_path{"/job/spill/event"}},
     {},
     {},
-    {{"fold",
+    {{"placeholder_fold_join",
       {.input_layers = {"event"_id},
        .participants = {
          {.layer = "run"_id, .index_port = &indices, .completion_port = &tokens},
@@ -634,7 +640,7 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
   CAPTURE(description, top_count, nested_count);
 
   tbb::flow::graph graph;
-  tbb::flow::queue_node<detail::index_message> indices{graph};
+  tbb::flow::queue_node<detail::index_message> placeholder_indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
   tbb::flow::queue_node<detail::indexed_end_token> data_tokens{graph};
   detail::index_router router{graph};
@@ -642,12 +648,14 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
     graph,
     {experimental::layer_path{"/job/event"}, experimental::layer_path{"/job/run/event"}},
     {},
-    {{"dummy", {.input_product = {.layer = "job"}, .port = &indices}}},
-    {{"fold",
+    {{"placeholder_provider", {.input_product = {.layer = "job"}, .port = &placeholder_indices}}},
+    {{"placeholder_fold_join",
       {.input_layers = {"event"_id},
        .participants = {
-         {.layer = "job"_id, .index_port = &indices, .completion_port = &tokens},
-         {.layer = "event"_id, .index_port = &indices, .completion_port = &data_tokens}}}}});
+         {.layer = "job"_id, .index_port = &placeholder_indices, .completion_port = &tokens},
+         {.layer = "event"_id,
+          .index_port = &placeholder_indices,
+          .completion_port = &data_tokens}}}}});
 
   auto job = data_cell_index::job();
   auto run = job->make_child("run", 0);
