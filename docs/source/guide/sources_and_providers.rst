@@ -32,6 +32,11 @@ A plugin with a ``PHLEX_REGISTER_PROVIDERS`` entry point (from
 ``output_product(creator, suffix, layer, stage)`` sets the identity of the
 product: algorithms select it with ``.creator = "input"`` and ``.suffix =
 "i"`` in that layer.
+``layer`` can be a complete path such as ``/job/run/event`` or just its end,
+such as ``run/event`` or ``event``.
+When the graph is built, an incomplete path is replaced by the one path in the
+job's data layer hierarchy that ends with it.
+If no path or more than one path does, graph construction throws.
 ``stage`` defaults to the job's stage.
 
 Sources and implicit providers

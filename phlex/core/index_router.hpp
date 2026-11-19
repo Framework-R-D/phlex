@@ -100,6 +100,13 @@ namespace phlex::detail {
     // One entry per uniquely named unfold node, as guaranteed by framework registration.
     using unfold_data = std::vector<unfold_layer_spec>;
 
+    // Every complete layer path in the hierarchy that finalize() establishes from these
+    // declarations, including paths produced by unfolds. Throws as finalize() does for cyclic
+    // unfold chains.
+    static std::vector<phlex::experimental::layer_path> hierarchy_paths(
+      std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
+      unfold_data const& unfolds);
+
     // Establishes the layer hierarchy, registers unfold flush expectations, and wires the TBB
     // graph edges needed before execution. Driver declarations supply the static paths; their
     // intermediate parents and implicit /job roots are included in the hierarchy.
