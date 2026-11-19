@@ -52,20 +52,6 @@
 using namespace phlex;
 
 namespace {
-  // Provider function
-  std::atomic<unsigned int> top_level_provider_calls{0};
-  std::atomic<unsigned int> run_provider_calls{0};
-  unsigned int provide_top_level_number(data_cell_index const& index)
-  {
-    ++top_level_provider_calls;
-    return index.number();
-  }
-  unsigned int provide_run_number(data_cell_index const& index)
-  {
-    ++run_provider_calls;
-    return index.number();
-  }
-
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 
   class split {
@@ -109,11 +95,23 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
     g.add_driver(gen);
 
     // Register provider
-    top_level_provider_calls = 0;
-    run_provider_calls = 0;
-    g.provide("provide_top_level_number", provide_top_level_number, concurrency::unlimited)
+    std::atomic<unsigned int> top_level_provider_calls{0};
+    std::atomic<unsigned int> run_provider_calls{0};
+    g.provide(
+       "provide_top_level_number",
+       [&top_level_provider_calls](data_cell_index const& index) -> unsigned int {
+         ++top_level_provider_calls;
+         return index.number();
+       },
+       concurrency::unlimited)
       .output_product("input", "number", "/job/event");
-    g.provide("provide_run_number", provide_run_number, concurrency::unlimited)
+    g.provide(
+       "provide_run_number",
+       [&run_provider_calls](data_cell_index const& index) -> unsigned int {
+         ++run_provider_calls;
+         return index.number();
+       },
+       concurrency::unlimited)
       .output_product("input", "number", "/job/run/event");
 
     g.fold("run_add", add, concurrency::unlimited, "run", 0u)

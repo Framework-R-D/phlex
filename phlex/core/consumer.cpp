@@ -9,6 +9,7 @@
 #include <fmt/format.h>
 #include <oneapi/tbb/flow_graph.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <ranges>
