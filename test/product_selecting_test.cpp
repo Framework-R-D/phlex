@@ -6,13 +6,16 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <fmt/format.h>
 
 #include <atomic>
@@ -41,22 +44,30 @@ namespace {
     return experimental::product_for(static_cast<int>(dci.number()));
   }
 
+  /// Source of an archived @c int count in the layer given at construction.  The layer is a
+  /// leaf, partial, or complete layer path, and defaults to the leaf layer @c "event".
   class archived_count_source : public source {
   public:
+    archived_count_source() = default;
+    explicit archived_count_source(std::string layer) : layer_{std::move(layer)} {}
+
     provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental::literals;
       phlex::experimental::product_specification spec{
         "archived_input", "archived_count", phlex::experimental::make_type_id<int>()};
-      if (!selector.match(spec, "event"_id, "previous_process"_id)) {
+      if (!selector.match(spec, experimental::layer_path{layer_}, "previous_process"_id)) {
         return {};
       }
       return {{.provider_function = provide_archived_count,
                .max_concurrency = concurrency::unlimited,
                .spec = std::move(spec),
-               .layer = "event",
+               .layer = layer_,
                .stage = "previous_process"}};
     }
+
+  private:
+    std::string layer_{"event"};
   };
 
   class copy_temperature_once {
@@ -252,5 +263,137 @@ TEST_CASE("Querying products in different ways", "[graph]")
     g.observe("ambiguous_creator", [](double const&) {})
       .input_family(product_selector{.suffix = "temperature"});
     CHECK_THROWS_WITH(g.execute(), "Ambiguous product selector -- see errors");
+  }
+}
+
+TEST_CASE("Selecting by layer path segments beyond the leaf", "[graph]")
+{
+  constexpr unsigned runs = 2;
+  constexpr unsigned events_per_run = 3;
+  constexpr unsigned num_events = runs * events_per_run;
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {.parent_layer = "job", .count = runs});
+  gen->add_layer("event", {.parent_layer = "run", .count = events_per_run});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+  g.add_source<archived_count_source>("archived_count_source", "/job/run/event"s);
+  g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
+    .output_product("input", "evt_number", "/job/run/event");
+
+  auto observe_with = [&g](std::string const& layer, bool from_source) {
+    auto selector =
+      from_source ? product_selector{.creator = "archived_input", .layer = layer}
+                  : product_selector{.creator = "input", .layer = layer, .suffix = "evt_number"};
+    g.observe("observer", [](int const&) {}, concurrency::unlimited).input_family(selector);
+  };
+
+  auto [layer, from_source] = GENERATE(table<std::string, bool>({{"event", false},
+                                                                 {"run/event", false},
+                                                                 {"/job/run/event", false},
+                                                                 {"event", true},
+                                                                 {"run/event", true},
+                                                                 {"/job/run/event", true}}));
+  CAPTURE(layer, from_source);
+  observe_with(layer, from_source);
+  g.execute();
+  CHECK(g.execution_count("observer") == num_events);
+}
+
+namespace {
+  void add_ints(std::atomic<int>& total, int const value) { total += value; }
+}
+
+// The observer's selector goes beyond the leaf layer for products made by an upstream
+// transform, fold, or unfold.  Providers are always selected by their leaf layer here.
+TEST_CASE("Selecting by layer path segments after a computed product", "[graph]")
+{
+  constexpr unsigned runs = 2;
+  constexpr unsigned subruns_per_run = 2;
+  constexpr unsigned events_per_subrun = 2;
+  constexpr unsigned num_subruns = runs * subruns_per_run;
+  constexpr unsigned num_events = num_subruns * events_per_subrun;
+
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {.parent_layer = "job", .count = runs});
+  gen->add_layer("subrun", {.parent_layer = "run", .count = subruns_per_run});
+  gen->add_layer("event", {.parent_layer = "subrun", .count = events_per_subrun});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+  g.provide("provide_idx", provide_idx, concurrency::unlimited)
+    .output_product("input", "number", "/job/run/subrun/event");
+  g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
+    .output_product("input", "temperature", "/job/run/subrun/event");
+
+  SECTION("Transform output")
+  {
+    g.transform("plus_one", [](int const i) { return i + 1; })
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
+      .output_product_suffixes("incremented");
+    auto const layer =
+      GENERATE("event", "subrun/event", "run/subrun/event", "/job/run/subrun/event");
+    CAPTURE(layer);
+    g.observe(
+       "observer", [](int const) {}, concurrency::unlimited)
+      .input_family(product_selector{.creator = "plus_one", .layer = layer});
+    g.execute();
+    CHECK(g.execution_count("observer") == num_events);
+  }
+
+  SECTION("Fold output")
+  {
+    g.fold("sum_events", add_ints, concurrency::unlimited, "subrun")
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
+      .output_product_suffixes("sum");
+    auto const layer = GENERATE("subrun", "run/subrun", "/job/run/subrun");
+    CAPTURE(layer);
+    g.observe(
+       "observer", [](int const) {}, concurrency::unlimited)
+      .input_family(product_selector{.creator = "sum_events", .layer = layer});
+    g.execute();
+    CHECK(g.execution_count("observer") == num_subruns);
+  }
+
+  SECTION("Unfold output")
+  {
+    g.unfold<copy_temperature_once>("copy_once",
+                                    &copy_temperature_once::predicate,
+                                    &copy_temperature_once::unfold,
+                                    concurrency::unlimited,
+                                    "chunk")
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "temperature"})
+      .output_product_suffixes("copy");
+    auto const layer =
+      GENERATE("chunk", "event/chunk", "subrun/event/chunk", "/job/run/subrun/event/chunk");
+    CAPTURE(layer);
+    g.observe(
+       "observer", [](double const) {}, concurrency::unlimited)
+      .input_family(product_selector{.creator = "copy_once", .layer = layer});
+    g.execute();
+    CHECK(g.execution_count("observer") == num_events);
+  }
+
+  SECTION("Selectors that do not match the computed product's path deliver nothing")
+  {
+    g.transform("plus_one", [](int const i) { return i + 1; })
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
+      .output_product_suffixes("incremented");
+    g.fold("sum_events", add_ints, concurrency::unlimited, "subrun")
+      .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
+      .output_product_suffixes("sum");
+    auto const [creator, layer] = GENERATE(table<std::string, std::string>({
+      {"plus_one", "spill/event"},       // leaf matches, parent segment differs
+      {"plus_one", "run/event"},         // skips subrun
+      {"plus_one", "/job/subrun/event"}, // complete path that skips run
+      {"plus_one", "/job/run/subrun"},   // wrong leaf
+      {"sum_events", "spill/subrun"},
+      {"sum_events", "/job/run/subrun/event"}, // longer than the fold's layer path
+    }));
+    CAPTURE(creator, layer);
+    g.observe(
+       "observer", [](int const) {}, concurrency::unlimited)
+      .input_family(product_selector{.creator = creator, .layer = layer});
+    // The graph is accepted, but no product reaches the observer.
+    g.execute();
+    CHECK(g.execution_count("observer") == 0);
   }
 }
