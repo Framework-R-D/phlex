@@ -32,15 +32,17 @@ namespace phlex::detail {
     return boost::json::value_to<experimental::identifier>(val);
   }
 
-  std::optional<std::string_view> string_view_if_exists(
-    boost::json::object const& obj, // will be used later for new product_selector
-    std::string_view parameter)
-  {
-    if (!obj.contains(parameter)) {
-      return std::nullopt;
+  namespace {
+    std::optional<std::string_view> string_view_if_exists(
+      boost::json::object const& obj, // will be used later for new product_selector
+      std::string_view parameter)
+    {
+      if (!obj.contains(parameter)) {
+        return std::nullopt;
+      }
+      auto const& val = obj.at(parameter);
+      return boost::json::value_to<std::string_view>(val);
     }
-    auto const& val = obj.at(parameter);
-    return boost::json::value_to<std::string_view>(val);
   }
 }
 
