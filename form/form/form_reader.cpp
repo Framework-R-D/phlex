@@ -5,6 +5,7 @@
 #include "form/config.hpp"
 #include "form/product_with_name.hpp"
 #include "persistence/ipersistence_reader.hpp"
+#include "util/error.hpp"
 
 #include <stdexcept>
 #include <typeinfo>
@@ -35,7 +36,7 @@ namespace form::experimental {
 
     auto config_it = product_to_config_.find(product.label);
     if (config_it == product_to_config_.end()) {
-      throw std::runtime_error("No configuration found for product: " + product.label);
+      form::detail::experimental::error("No configuration found for product: " + product.label);
     }
 
     pers_reader_->read(creator, stage, product.label, segment_id, &product.data, *product.type);

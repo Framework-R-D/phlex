@@ -3,6 +3,7 @@
 #include "descriptor.hpp"
 
 #include "core/technology.hpp"
+#include "util/error.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -18,11 +19,10 @@ namespace form::detail::experimental {
   void check_layout_version(std::string_view version, std::string const& file_name)
   {
     if (version != form_layout_version) {
-      throw std::runtime_error("FORM: file '" + file_name + "' declares layout version '" +
-                               std::string{version} +
-                               "', which this build cannot read; it "
-                               "reads layout version " +
-                               std::string{form_layout_version});
+      error("file '" + file_name + "' declares layout version '" + std::string{version} +
+            "', which this build cannot read; it "
+            "reads layout version " +
+            std::string{form_layout_version});
     }
   }
 
@@ -30,8 +30,7 @@ namespace form::detail::experimental {
                                                        std::string const& file_name)
   {
     if (text.empty()) {
-      throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                               "' names no storage technology");
+      error("the layout descriptor in file '" + file_name + "' names no storage technology");
     }
 
     std::vector<form::technology::id> technologies;
@@ -42,9 +41,8 @@ namespace form::detail::experimental {
         start, comma == std::string_view::npos ? std::string_view::npos : comma - start);
       auto const technology = form::technology::find_on_disk_token(token);
       if (!technology) {
-        throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                                 "' names an unknown storage technology '" + std::string{token} +
-                                 "'");
+        error("the layout descriptor in file '" + file_name +
+              "' names an unknown storage technology '" + std::string{token} + "'");
       }
       technologies.push_back(*technology);
       if (comma == std::string_view::npos) {
@@ -75,8 +73,7 @@ namespace form::detail::experimental {
     std::set<std::string_view> keys;
     for (auto const& [key, value] : entries) {
       if (!keys.insert(key).second) {
-        throw std::runtime_error("descriptor::write descriptor key '" + key +
-                                 "' appears more than once for " + file_name_);
+        error("descriptor key '" + key + "' appears more than once for " + file_name_);
       }
     }
     store(entries);

@@ -14,6 +14,8 @@ add_library(
   storage_associative_write_container.cpp
 )
 
+list(APPEND STORAGE_LIBS form_util)
 if(FORM_USE_ROOT_STORAGE)
-  target_link_libraries(storage PUBLIC core PRIVATE root_storage)
+  list(APPEND STORAGE_LIBS root_storage)
 endif()
+target_link_libraries(storage PUBLIC core PRIVATE ${STORAGE_LIBS})

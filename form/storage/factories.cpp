@@ -8,6 +8,7 @@
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
+#include "util/error.hpp"
 
 #include <memory>
 #include <string>
@@ -51,12 +52,12 @@ namespace form::detail::experimental {
 #ifdef USE_ROOT_STORAGE
       return std::make_shared<root_tfile_imp>(name, mode);
 #else
-      throw std::runtime_error("FORM: ROOT support is not compiled into this build");
+      error("ROOT support is not compiled into this build");
 #endif
     case major::hdf5:
-      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
+      error("HDF5 storage is recognized but not yet implemented");
     }
-    throw std::runtime_error("FORM: unsupported storage technology requested");
+    error("unsupported storage technology requested");
   }
 
   std::shared_ptr<i_storage_write_container> create_write_association(form::technology::id tech,
@@ -74,18 +75,18 @@ namespace form::detail::experimental {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<root_rntuple_write_container_imp>(name);
 #else
-        throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
+        error("ROOT RNTUPLE support is not compiled into this build");
 #endif
       }
       // Recognized ROOT major, but an unsupported subtype/minor.
-      throw std::runtime_error("FORM: requested ROOT write-association backend is not available");
+      error("requested ROOT write-association backend is not available");
 #else
-      throw std::runtime_error("FORM: ROOT support is not compiled into this build");
+      error("ROOT support is not compiled into this build");
 #endif
     case major::hdf5:
-      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
+      error("HDF5 storage is recognized but not yet implemented");
     }
-    throw std::runtime_error("FORM: unsupported storage technology requested");
+    error("unsupported storage technology requested");
   }
 
   std::shared_ptr<i_storage_read_container> create_read_container(form::technology::id tech,
@@ -103,18 +104,18 @@ namespace form::detail::experimental {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<root_rfield_read_container_imp>(name);
 #else
-        throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
+        error("ROOT RNTUPLE support is not compiled into this build");
 #endif
       }
       // Recognized ROOT major, but an unsupported subtype/minor.
-      throw std::runtime_error("FORM: requested ROOT read-container backend is not available");
+      error("requested ROOT read-container backend is not available");
 #else
-      throw std::runtime_error("FORM: ROOT support is not compiled into this build");
+      error("ROOT support is not compiled into this build");
 #endif
     case major::hdf5:
-      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
+      error("HDF5 storage is recognized but not yet implemented");
     }
-    throw std::runtime_error("FORM: unsupported storage technology requested");
+    error("unsupported storage technology requested");
   }
 
   std::shared_ptr<i_storage_write_container> create_write_container(form::technology::id tech,
@@ -132,18 +133,18 @@ namespace form::detail::experimental {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<root_rfield_write_container_imp>(name);
 #else
-        throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
+        error("ROOT RNTUPLE support is not compiled into this build");
 #endif
       }
       // Recognized ROOT major, but an unsupported subtype/minor.
-      throw std::runtime_error("FORM: requested ROOT write-container backend is not available");
+      error("requested ROOT write-container backend is not available");
 #else
-      throw std::runtime_error("FORM: ROOT support is not compiled into this build");
+      error("ROOT support is not compiled into this build");
 #endif
     case major::hdf5:
-      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
+      error("HDF5 storage is recognized but not yet implemented");
     }
-    throw std::runtime_error("FORM: unsupported storage technology requested");
+    error("unsupported storage technology requested");
   }
 
 } // namespace form::detail::experimental

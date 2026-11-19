@@ -7,6 +7,7 @@
 #include "root_ttree_write_container.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_write_container.hpp"
+#include "util/error.hpp"
 
 #include <RtypesCore.h>
 #include <TBranch.h>
@@ -35,8 +36,7 @@ void root_tbranch_write_container_imp::set_attribute(std::string const& key,
   if (key == "auto_flush") {
     tree_->SetAutoFlush(std::stol(value));
   } else {
-    throw std::runtime_error("root_tbranch_write_container_imp accepts some attributes, but not " +
-                             key);
+    error("accepts some attributes, but not " + key);
   }
 }
 
@@ -45,8 +45,7 @@ void root_tbranch_write_container_imp::set_file(std::shared_ptr<i_storage_file> 
   this->storage_associative_write_container::set_file(file);
   auto* root_file = dynamic_cast<root_tfile_imp*>(file.get());
   if (root_file == nullptr) {
-    throw std::runtime_error(
-      "root_tbranch_write_container_imp::set_file can't attach to non-ROOT file");
+    error("can't attach to non-ROOT file");
   }
   tfile_ = root_file->get_tfile();
 }
@@ -56,7 +55,7 @@ void root_tbranch_write_container_imp::set_parent(std::shared_ptr<i_storage_writ
   this->storage_associative_write_container::set_parent(parent);
   auto* root_ttree_imp = dynamic_cast<root_ttree_write_container_imp*>(parent.get());
   if (root_ttree_imp == nullptr) {
-    throw std::runtime_error("root_tbranch_write_container_imp::set_parent");
+    error("parent is not a root_ttree_write_container_imp");
   }
   tree_ = root_ttree_imp->get_ttree();
 }
@@ -80,21 +79,19 @@ void root_tbranch_write_container_imp::setup_write(std::type_info const& type)
                                                                 {kBool_t, "/O"}};
 
   if (tree_ == nullptr) {
-    throw std::runtime_error("root_tbranch_write_container_imp::setup_write no tree found");
+    error("no tree found");
   }
 
   auto* const class_info = TClass::GetClass(type);
   if (class_info && !class_info->HasDictionary()) {
-    throw std::runtime_error("root_tbranch_write_container_imp::setup_write cannot write type " +
-                             std::string(class_info->GetName()) +
-                             " that is missing ROOT dictionary");
+    error("cannot write type " + std::string(class_info->GetName()) +
+          " that is missing ROOT dictionary");
   }
 
   auto* dict_info = TDictionary::GetDictionary(type);
   if (branch_ == nullptr) {
     if (!dict_info) {
-      throw std::runtime_error("root_tbranch_write_container_imp::setup_write unsupported type: " +
-                               demangle_name(type));
+      error("unsupported type: " + demangle_name(type));
     }
     if (dict_info->Property() & EProperty::kIsFundamental) {
       branch_ = tree_->Branch(
@@ -109,7 +106,7 @@ void root_tbranch_write_container_imp::setup_write(std::type_info const& type)
     }
   }
   if (branch_ == nullptr) {
-    throw std::runtime_error("root_tbranch_write_container_imp::setup_write no branch created");
+    error("no branch created");
   }
 }
 
@@ -122,7 +119,7 @@ std::uint64_t root_tbranch_write_container_imp::fill(void const* data)
   // we will reset the branch address after reading to avoid any unintended
   // consequences of casting away the `const`ness.
   if (branch_ == nullptr) {
-    throw std::runtime_error("root_tbranch_write_container_imp::fill no branch found");
+    error("no branch found");
   }
   TLeaf const* leaf = branch_->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
@@ -136,8 +133,7 @@ std::uint64_t root_tbranch_write_container_imp::fill(void const* data)
   Int_t const nbytes = branch_->Fill();
   branch_->ResetAddress();
   if (nbytes < 0) {
-    throw std::runtime_error("root_tbranch_write_container_imp::fill TBranch::Fill() failed for " +
-                             col_name());
+    error("TBranch::Fill() failed for " + col_name());
   }
 
   // 0-based entries: GetEntries() is the total count after this Fill(); row = count - 1.
@@ -149,16 +145,15 @@ void root_tbranch_write_container_imp::commit()
 {
   // Forward the tree
   if (!tree_) {
-    throw std::runtime_error("root_tbranch_write_container_imp::commit no tree attached");
+    error("no tree attached");
   }
 
   if (!branch_) {
-    throw std::runtime_error("root_tbranch_write_container_imp::commit no branch found");
+    error("no branch found");
   }
 
   if (branch_->GetEntries() == tree_->GetEntries()) {
-    throw std::runtime_error(
-      "root_tbranch_write_container_imp::commit called without new entries since last fill/commit");
+    error("called without new entries since last fill/commit");
   }
 
   tree_->SetEntries(branch_->GetEntries());

@@ -5,7 +5,7 @@
 # Component(s) in the package:
 add_library(form SHARED form_reader.cpp form_writer.cpp config.cpp form_source_type_registry.cpp)
 
-target_link_libraries(form PRIVATE persistence PUBLIC phlex::model)
+target_link_libraries(form PRIVATE persistence form_util PUBLIC phlex::model)
 
 target_include_directories(
   form

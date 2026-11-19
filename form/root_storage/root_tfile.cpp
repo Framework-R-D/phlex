@@ -4,6 +4,7 @@
 
 #include "root_descriptor.hpp"
 #include "storage/storage_file.hpp"
+#include "util/error.hpp"
 
 #include <Compression.h>
 #include <TFile.h>
@@ -51,7 +52,7 @@ void root_tfile_imp::set_attribute(std::string const& key, std::string const& va
 
     file_->SetCompressionAlgorithm(compression);
   } else {
-    throw std::runtime_error("root_tfile_imp does not recognize an attribute named " + key);
+    error("does not recognize an attribute named " + key);
   }
 }
 
