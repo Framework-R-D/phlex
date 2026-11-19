@@ -53,7 +53,7 @@ TEST_CASE("algorithm_name tests", "[model]")
   {
     auto const an = algorithm_name::create("plugin:algo");
     REQUIRE(an.plugin().has_value());
-    CHECK(*an.plugin() == "plugin"_id);
+    CHECK(an.plugin().value() == "plugin"_id);
     CHECK(an.algorithm() == "algo"_id);
   }
   SECTION("Construct from typed components")
@@ -71,7 +71,7 @@ TEST_CASE("algorithm_name tests", "[model]")
   }
   SECTION("Create error - structural problems are reported as invalid_argument")
   {
-    auto const forms = R"( Expected "algorithm" or "plugin_label:algorithm".)";
+    auto const *const forms = R"( Expected "algorithm" or "plugin_label:algorithm".)";
     auto const message = [forms](std::string_view text, std::string_view reason) {
       return std::string{"Invalid algorithm name \""} + std::string{text} +
              "\": " + std::string{reason} + forms;
@@ -168,7 +168,7 @@ TEST_CASE("make_algorithm_name tests", "[core]")
 
     auto const name = make_algorithm_name(&config, "my_algorithm");
     REQUIRE(name.plugin().has_value());
-    CHECK(*name.plugin() == "my_module"_id);
+    CHECK(name.plugin().value() == "my_module"_id);
     CHECK(name.to_string() == "my_module:my_algorithm");
   }
 
