@@ -355,10 +355,12 @@ namespace phlex::detail {
         // A repeater's caching mode is fixed, even when the same layer name occurs on
         // multiple branches. Do not register a domain requiring both modes for one slot.
         if (pass_through and cached) {
-          throw std::runtime_error(
-            fmt::format("Join '{}' participant '{}' requires mixed caching and pass-through modes.",
-                        node_name,
-                        participant.layer));
+          throw std::runtime_error(fmt::format(
+            "The join for '{}' has an ambiguous configuration: input layers [{}] match paths "
+            "[{}], but their ancestor relationship differs between those paths.",
+            node_name,
+            fmt::join(registration.input_layers, ", "),
+            fmt::join(node_slots.invocation_paths, ", ")));
         }
         if (participant.partition_port and not cached) {
           throw std::runtime_error(fmt::format(

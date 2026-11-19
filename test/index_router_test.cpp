@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -429,14 +428,14 @@ TEST_CASE("Join participants filter cells only when same-named paths exist elsew
   CHECK(child_accepted == expected_child);
 }
 
-TEST_CASE("Join rejects participants with mixed caching roles", "[graph]")
+TEST_CASE("Join rejects an ambiguous configuration", "[graph]")
 {
   using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
   detail::index_router router{graph};
-  CHECK_THROWS_AS(
+  CHECK_THROWS_WITH(
     router.finalize(
       graph,
       {experimental::layer_path{"/job/a/b"}, experimental::layer_path{"/job/b/a"}},
@@ -447,7 +446,8 @@ TEST_CASE("Join rejects participants with mixed caching roles", "[graph]")
          .participants =
            {{.layer = "a"_id, .index_port = &indices, .completion_port = &tokens},
             {.layer = "b"_id, .index_port = &indices, .completion_port = &tokens}}}}}),
-    std::runtime_error);
+    "The join for 'join' has an ambiguous configuration: input layers [a, b] match paths "
+    "[/job/a/b, /job/b/a], but their ancestor relationship differs between those paths.");
 }
 
 TEST_CASE("Join completion follows nearest repeated ancestor", "[graph]")
