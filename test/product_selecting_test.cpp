@@ -544,8 +544,8 @@ TEST_CASE("Incomplete provider layers resolve against the hierarchy", "[graph]")
   auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
-  auto const provider_layer = GENERATE("event", "run/event");
-  auto const selector_layer = GENERATE("event", "run/event", "/job/run/event");
+  auto const* const provider_layer = GENERATE("event", "run/event");
+  auto const* const selector_layer = GENERATE("event", "run/event", "/job/run/event");
   CAPTURE(provider_layer, selector_layer);
   g.provide("provide_idx", provide_idx, concurrency::unlimited)
     .output_product("input", "number", provider_layer);
