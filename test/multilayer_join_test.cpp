@@ -3,6 +3,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 
@@ -65,7 +66,8 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   auto join = multilayer_join_node<2>{
     graph,
     "multilayer_join_test",
-    std::vector<identifier>{identifier{"left_layer"}, identifier{"right_layer"}}};
+    std::vector<experimental::layer_path>{experimental::layer_path{"left_layer"},
+                                          experimental::layer_path{"right_layer"}}};
 
   oneapi::tbb::flow::queue_node<message_tuple<2>> sink{graph};
   make_edge(output_port<0>(join), sink);

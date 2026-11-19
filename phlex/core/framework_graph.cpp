@@ -73,14 +73,16 @@ namespace phlex::detail {
       result.reserve(unfolds.size());
 
       using phlex::experimental::identifier;
+      using phlex::experimental::layer_path;
       for (auto const& [name, n] : unfolds) {
         index_router::unfold_layer_spec spec{
           .name = name,
-          .input_layers = std::views::transform(n->input(),
-                                                [](auto const& input) -> identifier const& {
-                                                  return input.layer->leaf();
-                                                }) |
-                          std::ranges::to<std::vector>(),
+          .input_layers =
+            std::views::transform(n->input(),
+                                  [](auto const& input) -> layer_path const& {
+                                    return static_cast<layer_path const&>(input.layer);
+                                  }) |
+            std::ranges::to<std::vector>(),
           .output_layer = identifier{n->child_layer()}};
         result.push_back(std::move(spec));
       }
