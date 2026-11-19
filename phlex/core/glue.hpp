@@ -70,7 +70,7 @@ namespace phlex::detail {
     auto fold(std::string_view name,
               auto f, // NOLINT(performance-unnecessary-value-param)
               concurrency c,
-              std::string partition,
+              phlex::experimental::layer_path partition,
               InitArgs&&... init_args)
     {
       internal::verify_name(name, config_);

@@ -86,7 +86,7 @@ namespace phlex::detail {
       if (collapsed_layers.size() > 1) {
         repeaters_.reserve(NInputs);
         for (auto const& layer : layers_) {
-          repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer.leaf()));
+          repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
         }
       }
 

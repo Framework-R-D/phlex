@@ -74,7 +74,7 @@ namespace phlex::detail {
     auto fold(std::string_view name,
               is_fold_like auto f, // NOLINT(performance-unnecessary-value-param)
               concurrency c = concurrency::serial,
-              std::string partition = "job",
+              phlex::experimental::layer_path partition = "job",
               InitArgs&&... init_args) const;
 
     /// @brief Registers an observer node.
@@ -194,7 +194,7 @@ namespace phlex::detail {
   auto graph_proxy<T>::fold(std::string_view name,
                             is_fold_like auto f,
                             concurrency c,
-                            std::string partition,
+                            phlex::experimental::layer_path partition,
                             InitArgs&&... init_args) const
   {
     return create_glue().fold(

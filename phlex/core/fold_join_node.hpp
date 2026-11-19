@@ -85,7 +85,7 @@ namespace phlex::detail {
       result_repeater_{g,
                        node_name,
                        stage,
-                       partition_layer_name.leaf(),
+                       partition_layer_name,
                        std::move(output),
                        std::move(result_initializer)},
       join_{make_join(g, std::make_index_sequence<NProducts>{})},
@@ -100,7 +100,7 @@ namespace phlex::detail {
       // that serve as input to the fold operation.
       repeaters_.reserve(NProducts);
       for (auto const& layer : layers_) {
-        repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer.leaf()));
+        repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
       }
 
       make_edge(tbb::flow::output_port<1>(result_repeater_), input_port<0>(join_));

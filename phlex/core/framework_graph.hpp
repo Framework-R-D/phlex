@@ -99,7 +99,7 @@ namespace phlex::detail {
     auto fold(std::string_view name,
               is_fold_like auto f,
               concurrency c = concurrency::serial,
-              std::string partition = "job",
+              phlex::experimental::layer_path partition = "job",
               InitArgs&&... init_args)
     {
       return make_glue().fold(
