@@ -15,6 +15,7 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_core_export.hpp"
 
 #include <array>
@@ -201,9 +202,13 @@ namespace phlex::detail {
     {
     }
 
+    /// @brief Registers the explicit provider's output product.
+    ///
+    /// @param output_layer Path of the data layer of the product, for example
+    ///        @c "/job/run/event" or @c "run/event".
     auto output_product(phlex::experimental::algorithm_name creator,
                         phlex::experimental::identifier suffix,
-                        phlex::experimental::identifier output_layer,
+                        phlex::experimental::layer_path output_layer,
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
       using namespace phlex::experimental;

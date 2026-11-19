@@ -51,12 +51,12 @@ namespace phlex::detail {
                   tbb::flow::graph& g,
                   phlex::experimental::provider_function provider_func,
                   phlex::experimental::product_specification output_spec,
-                  phlex::experimental::identifier output_layer,
+                  phlex::experimental::layer_path output_layer,
                   phlex::experimental::identifier stage);
 
     phlex::experimental::algorithm_name const& name() const noexcept;
     phlex::experimental::product_specification const& output_product() const noexcept;
-    phlex::experimental::identifier const& layer() const noexcept;
+    phlex::experimental::layer_path const& layer() const noexcept;
     phlex::experimental::identifier const& stage() const noexcept;
 
     tbb::flow::receiver<index_message>* input_port() { return &provider_; }
@@ -66,7 +66,7 @@ namespace phlex::detail {
   private:
     phlex::experimental::algorithm_name name_;
     phlex::experimental::product_specification output_;
-    phlex::experimental::identifier layer_;
+    phlex::experimental::layer_path layer_;
     phlex::experimental::identifier stage_;
     tbb::flow::function_node<index_message, message> provider_;
     std::atomic<std::size_t> calls_;
