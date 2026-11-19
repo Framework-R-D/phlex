@@ -1,0 +1,4 @@
+<lcgdict>
+  <class name="std::pair&lt;std::string,std::string&gt;"/>
+  <class name="std::vector&lt;std::pair&lt;std::string,std::string&gt; &gt;"/>
+</lcgdict>

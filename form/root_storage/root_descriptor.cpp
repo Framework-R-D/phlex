@@ -8,29 +8,48 @@
 #include <TFile.h>
 #include <TKey.h>
 
-#include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
 
+// Reference the generated dictionary initialization function to ensure its object file is linked
+// from the static archive and the dictionary is registered at runtime.
+// NOLINTNEXTLINE(readability-identifier-naming)
+void TriggerDictionaryInitialization_root_storage();
+
 namespace form::detail::experimental {
 
-  namespace {
-    // ROOT provides a compiled collection proxy for this map type, so no generated dictionary is
-    // needed for the descriptor.
-    using descriptor_map = std::map<std::string, std::string>;
+  TClass const& require_descriptor_class(TClass const* cls)
+  {
+    if (cls == nullptr) {
+      throw std::runtime_error("root_descriptor: ROOT cannot resolve the descriptor type "
+                               "std::vector<std::pair<std::string, std::string>>");
+    }
+    return *cls;
+  }
 
+  // HasDictionary() is what separates a compiled dictionary from an interpreted one.
+  // GetCollectionProxy() cannot: it is non-null for both, including for the instantiation
+  // TFile::WriteObject refuses to write, so it would never catch the case this guards against.
+  void require_descriptor_dictionary(TClass const& cls)
+  {
+    if (!cls.HasDictionary()) {
+      throw std::runtime_error("root_descriptor: no compiled ROOT dictionary for "
+                               "std::vector<std::pair<std::string, std::string>>");
+    }
+  }
+
+  namespace {
     TClass const& descriptor_class()
     {
-      TClass const* const cls = TClass::GetClass<descriptor_map>();
-      if (cls == nullptr || cls->GetCollectionProxy() == nullptr) {
-        throw std::runtime_error("root_descriptor: ROOT has no dictionary for the descriptor type "
-                                 "std::map<std::string, std::string>");
-      }
-      return *cls;
+      static std::once_flag dictionary_once;
+      std::call_once(dictionary_once, [] { TriggerDictionaryInitialization_root_storage(); });
+
+      return require_descriptor_class(TClass::GetClass<descriptor_entries>());
     }
   }
 
@@ -45,18 +64,18 @@ namespace form::detail::experimental {
       throw std::runtime_error("root_descriptor::store no file attached for " + file_name());
     }
 
-    descriptor_map const stored_descriptor{entries.begin(), entries.end()};
+    require_descriptor_dictionary(descriptor_class());
 
-    if (file_->WriteObject(&stored_descriptor, std::string{descriptor_object_name}.c_str()) <= 0) {
+    if (file_->WriteObject(&entries, std::string{descriptor_object_name}.c_str()) <= 0) {
       throw std::runtime_error("root_descriptor::store failed to write the descriptor to " +
                                file_name());
     }
   }
 
-  std::optional<descriptor_entries> root_descriptor::read()
+  std::optional<descriptor_entries> root_descriptor::load()
   {
     if (file_ == nullptr) {
-      throw std::runtime_error("root_descriptor::read no file attached for " + file_name());
+      throw std::runtime_error("root_descriptor::load no file attached for " + file_name());
     }
 
     std::string const object_name{descriptor_object_name};
@@ -68,26 +87,20 @@ namespace form::detail::experimental {
     std::string_view const stored_class{key->GetClassName()};
     std::string_view const expected_class{descriptor_class().GetName()};
     if (stored_class != expected_class) {
-      throw std::runtime_error("root_descriptor::read object '" + object_name + "' in " +
+      throw std::runtime_error("root_descriptor::load object '" + object_name + "' in " +
                                file_name() + " is a '" + std::string{stored_class} + "', not a '" +
                                std::string{expected_class} + "'");
     }
 
     // Get() transfers ownership of the returned non-TObject to the caller.
-    std::unique_ptr<descriptor_map const> const stored{
-      file_->Get<descriptor_map>(object_name.c_str())};
+    std::unique_ptr<descriptor_entries> const stored{
+      file_->Get<descriptor_entries>(object_name.c_str())};
     if (!stored) {
-      throw std::runtime_error("root_descriptor::read failed to read object '" + object_name +
+      throw std::runtime_error("root_descriptor::load failed to read object '" + object_name +
                                "' from " + file_name());
     }
 
-    // Entries are returned in map key order; callers must look them up by key.
-    descriptor_entries entries;
-    entries.reserve(stored->size());
-    for (auto const& [key_text, value] : *stored) {
-      entries.emplace_back(key_text, value);
-    }
-    return entries;
+    return std::move(*stored);
   }
 
 } // namespace form::detail::experimental

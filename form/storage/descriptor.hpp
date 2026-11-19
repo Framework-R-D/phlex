@@ -61,15 +61,20 @@ namespace form::detail::experimental {
     /// Stores the entries, rejecting duplicate keys consistently across all backends.
     void write(descriptor_entries const& entries);
 
-    /// Returns std::nullopt if the file has no descriptor. Entry order is not guaranteed; callers
-    /// must look up entries by key rather than rely on their position.
-    virtual std::optional<descriptor_entries> read() = 0;
+    /// Returns std::nullopt if the file has no descriptor. Entries come back in the order they
+    /// were written: a backend stores the sequence it is given rather than reordering it. A
+    /// stored descriptor whose keys repeat is rejected, the same rule write() applies, so a
+    /// file cannot smuggle in an entry that lookups would silently shadow.
+    std::optional<descriptor_entries> read();
 
     std::string const& file_name() const;
 
   protected:
     /// Stores entries whose keys write() has already found to be unique.
     virtual void store(descriptor_entries const& entries) = 0;
+
+    /// Returns what the backend holds, unvalidated; read() applies the unique-key rule.
+    virtual std::optional<descriptor_entries> load() = 0;
 
   private:
     std::string file_name_;
@@ -80,10 +85,9 @@ namespace form::detail::experimental {
   public:
     using descriptor::descriptor;
 
-    std::optional<descriptor_entries> read() override;
-
   protected:
     void store(descriptor_entries const& entries) override;
+    std::optional<descriptor_entries> load() override;
 
   private:
     std::optional<descriptor_entries> entries_;

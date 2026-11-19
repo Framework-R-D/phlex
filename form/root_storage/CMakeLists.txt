@@ -40,3 +40,12 @@ if(FORM_USE_RNTUPLE_STORAGE)
 endif()
 
 target_link_libraries(root_storage PUBLIC ${FORM_ROOT_STORAGE_DEPS} PRIVATE Microsoft.GSL::GSL)
+
+target_include_directories(root_storage PRIVATE ${ROOT_INCLUDE_DIRS})
+reflex_generate_dictionary(root_storage descriptor_dict.h SELECTION classes_def.xml)
+
+# Suppress a GCC false positive triggered by LTO when linking ROOT-generated dictionaries, the
+# same workaround the test dictionaries use
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_options(root_storage PUBLIC "-Wno-alloc-size-larger-than")
+endif()
