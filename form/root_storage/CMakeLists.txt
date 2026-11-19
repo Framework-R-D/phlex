@@ -41,8 +41,6 @@ endif()
 
 target_link_libraries(
   root_storage
-  PUBLIC
-    ${FORM_ROOT_STORAGE_DEPS}
-  PRIVATE
-    Microsoft.GSL::GSL
-    form_util)
+  PUBLIC ${FORM_ROOT_STORAGE_DEPS}
+  PRIVATE Microsoft.GSL::GSL form_util
+)
