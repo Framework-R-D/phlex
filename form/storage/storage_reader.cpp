@@ -92,8 +92,8 @@ std::uint64_t storage_reader::get_index(
   auto const& index = index_map(token, settings);
   auto const found = index.find(id);
   if (found == index.end()) {
-    error("Index id not found: " + id + " in container: " +
-                             token.container_name() + " of file: " + token.file_name());
+    error("Index id not found: " + id + " in container: " + token.container_name() +
+          " of file: " + token.file_name());
   }
   return found->second;
 }
@@ -157,14 +157,14 @@ std::map<std::string, std::uint64_t> const& storage_reader::index_map(
   while (cont->second->read(row, &raw_data, type)) {
     std::unique_ptr<std::string const> const id(static_cast<std::string const*>(raw_data));
     if (!index.emplace(*id, row).second) {
-      error("Index id " + *id + " appears more than once in container: " +
-                               token.container_name() + " of file: " + token.file_name());
+      error("Index id " + *id + " appears more than once in container: " + token.container_name() +
+            " of file: " + token.file_name());
     }
     ++row;
   }
   if (index.empty()) {
     error("Unable to read index data from container: " + token.container_name() +
-                             " of file: " + token.file_name());
+          " of file: " + token.file_name());
   }
   return index_maps_.emplace(cont_key, std::move(index)).first->second;
 }

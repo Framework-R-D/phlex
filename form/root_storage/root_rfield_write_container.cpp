@@ -66,7 +66,7 @@ namespace form::detail::experimental {
   std::uint64_t root_rfield_write_container_imp::fill(void const* data)
   {
     if (!rntuple_parent_) {
-        error("No parent RNTuple set up before first fill() call");
+      error("No parent RNTuple set up before first fill() call");
     }
 
     std::uint64_t n_entries = std::numeric_limits<std::uint64_t>::max();

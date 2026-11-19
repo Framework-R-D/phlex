@@ -62,10 +62,7 @@ std::uint64_t root_ttree_write_container_imp::fill(void const* /* data*/)
   error("not implemented");
 }
 
-void root_ttree_write_container_imp::commit()
-{
-  error("not implemented");
-}
+void root_ttree_write_container_imp::commit() { error("not implemented"); }
 
 TTree* root_ttree_write_container_imp::get_ttree() { return tree_.get(); }
 

@@ -39,8 +39,7 @@ namespace {
     auto const file_major = planned.begin()->major;
     for (auto const& tech : planned) {
       if (tech.major != file_major) {
-        error("file '" + file_name +
-                                 "' mixes major technologies; its layout cannot be described");
+        error("file '" + file_name + "' mixes major technologies; its layout cannot be described");
       }
     }
 
@@ -51,9 +50,9 @@ namespace {
     for (auto const& tech : actual->second) {
       if (!planned.contains(tech)) {
         error("file '" + file_name + "' holds '" +
-                                 std::string{form::technology::on_disk_token(tech)} +
-                                 "' products that were never planned; its descriptor would be "
-                                 "inconsistent with its contents");
+              std::string{form::technology::on_disk_token(tech)} +
+              "' products that were never planned; its descriptor would be "
+              "inconsistent with its contents");
       }
     }
   }
@@ -141,14 +140,12 @@ void persistence_writer::create_containers(
     // Reserve the "navigation_prefix" namespace for navigation containers.
     auto const row_space = row_space_of(plcmnt.container_name());
     if (row_space.starts_with(navigation_prefix)) {
-      error("row space '" + row_space +
-                               "' begins with '" + std::string{navigation_prefix} +
-                               "', which is reserved for FORM navigation containers");
+      error("row space '" + row_space + "' begins with '" + std::string{navigation_prefix} +
+            "', which is reserved for FORM navigation containers");
     }
     if (row_space.starts_with(form_block_prefix)) {
-      error("row space '" + row_space +
-                               "' begins with '" + std::string{form_block_prefix} +
-                               "', which is reserved for FORM's own file-level containers");
+      error("row space '" + row_space + "' begins with '" + std::string{form_block_prefix} +
+            "', which is reserved for FORM's own file-level containers");
     }
 
     staged_technologies[plcmnt.file_name()].insert(plcmnt.technology());
@@ -203,10 +200,9 @@ token persistence_writer::register_write(product_identity const& product,
   // located on read; reject it here rather than return an unusable token.
   if (row == invalid_row_id) {
     abandon_record();
-    error("backend for container '" +
-                             plcmnt.container_name() +
-                             "' does not address rows; cannot produce a token locating the "
-                             "written product");
+    error("backend for container '" + plcmnt.container_name() +
+          "' does not address rows; cannot produce a token locating the "
+          "written product");
   }
 
   // Remember the write for navigation table; commit_place() supplies the data cell that keys it.
@@ -245,14 +241,14 @@ std::map<persistence_writer::stream_key, std::uint64_t> persistence_writer::rows
   for (auto const& write : pending) {
     if (!seen.insert(write.product).second) {
       error("product '" + write.product.label + "' of " +
-                               stream_text(write.product.creator, write.product.stage) +
-                               " was written more than once for data cell " + cell.id);
+            stream_text(write.product.creator, write.product.stage) +
+            " was written more than once for data cell " + cell.id);
     }
     auto const [it, inserted] = row_by_stream.try_emplace(write.stream(), write.row);
     if (!inserted && it->second != write.row) {
       error(
-        stream_text(write.product.creator, write.product.stage) +
-        " wrote container '" + write.container_name + "' at row " + std::to_string(write.row) +
+        stream_text(write.product.creator, write.product.stage) + " wrote container '" +
+        write.container_name + "' at row " + std::to_string(write.row) +
         " but its other products for data cell " + cell.id + " went to row " +
         std::to_string(it->second) +
         "; all products in a stream for one data cell must share a row navigation to locate them");
@@ -290,10 +286,9 @@ void persistence_writer::check_row_space_owner(placement const& plcmnt,
   if (it == row_space_owners_.end() || it->second == stream) {
     return;
   }
-  error("" + stream_text(stream.creator, stream.stage) +
-                           " and " + stream_text(it->second.creator, it->second.stage) +
-                           " both map to row space '" + row_space + "' in file '" +
-                           plcmnt.file_name() + "'");
+  error("" + stream_text(stream.creator, stream.stage) + " and " +
+        stream_text(it->second.creator, it->second.stage) + " both map to row space '" + row_space +
+        "' in file '" + plcmnt.file_name() + "'");
 }
 
 persistence_writer::staged_record persistence_writer::stage_navigation(placement const& plcmnt,
@@ -304,10 +299,8 @@ persistence_writer::staged_record persistence_writer::stage_navigation(placement
   auto pending = std::exchange(pending_by_place_[place], {});
 
   if (!cell.consistent()) {
-    error("data cell " + cell.id + " has " +
-                             std::to_string(cell.hierarchy.layer_names.size()) +
-                             " layer names but " + std::to_string(cell.layer_values.size()) +
-                             " layer values");
+    error("data cell " + cell.id + " has " + std::to_string(cell.hierarchy.layer_names.size()) +
+          " layer names but " + std::to_string(cell.layer_values.size()) + " layer values");
   }
 
   if (pending.empty()) {
@@ -406,10 +399,10 @@ bool persistence_writer::check_table_name(navigation_key const& key,
     return true;
   }
   if (it->second != key.hierarchy) {
-    error(
-      "hierarchies [" + layer_names_text(it->second) + "] and [" +
-      layer_names_text(key.hierarchy) + "] both name their navigation container '" + table_name +
-      "' in file '" + key.file_name + "'; rename a layer so the two can be told apart on disk");
+    error("hierarchies [" + layer_names_text(it->second) + "] and [" +
+          layer_names_text(key.hierarchy) + "] both name their navigation container '" +
+          table_name + "' in file '" + key.file_name +
+          "'; rename a layer so the two can be told apart on disk");
   }
   return false;
 }
@@ -428,8 +421,8 @@ void persistence_writer::check_rows_are_new(
   }
   for (auto const& [stream, row] : row_by_stream) {
     if (rows_it->second.contains(stream)) {
-      error("" + stream_text(stream.creator, stream.stage) +
-                               " wrote data cell " + cell.id + " more than once");
+      error("" + stream_text(stream.creator, stream.stage) + " wrote data cell " + cell.id +
+            " more than once");
     }
   }
 }
@@ -441,9 +434,8 @@ void persistence_writer::stage_column(std::map<std::string, std::string>& staged
                                       std::string const& source)
 {
   auto const clash = [&](std::string const& holder) {
-    error("in navigation table '" + table_name + "', " +
-          holder + " and " + source + " both name column '" + column +
-          "'; rename one so the two can be told apart on disk");
+    error("in navigation table '" + table_name + "', " + holder + " and " + source +
+          " both name column '" + column + "'; rename one so the two can be told apart on disk");
   };
 
   if (table != nullptr) {
@@ -512,8 +504,8 @@ void persistence_writer::write_descriptors()
   for (auto const& [file_name, technologies] : written) {
     if (!planned_technologies_.contains(file_name)) {
       error("file '" + file_name +
-                               "' holds products but was never planned; it would be written "
-                               "without a descriptor");
+            "' holds products but was never planned; it would be written "
+            "without a descriptor");
     }
   }
 

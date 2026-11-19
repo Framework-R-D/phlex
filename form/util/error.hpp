@@ -6,9 +6,9 @@
 #include <source_location>
 #include <string>
 
-namespace form::detail::experimental
-{
-  [[noreturn]] void error(std::string const& message, std::source_location where = std::source_location::current());
+namespace form::detail::experimental {
+  [[noreturn]] void error(std::string const& message,
+                          std::source_location where = std::source_location::current());
 }
 
 #endif //FORM_UTIL_ERROR_HPP

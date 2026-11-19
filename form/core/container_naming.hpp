@@ -66,9 +66,8 @@ namespace form::detail::experimental {
   inline void check_row_space_parts(std::string_view creator, std::string_view stage)
   {
     if (creator.contains(row_space_label_separator) || stage.contains(row_space_label_separator)) {
-      error("creator '" + std::string{creator} + "' and stage '" +
-                               std::string{stage} + "' cannot contain '" +
-                               row_space_label_separator + "'");
+      error("creator '" + std::string{creator} + "' and stage '" + std::string{stage} +
+            "' cannot contain '" + row_space_label_separator + "'");
     }
   }
 

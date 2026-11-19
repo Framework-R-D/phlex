@@ -81,7 +81,7 @@ void root_tbranch_read_container_imp::set_file(std::shared_ptr<i_storage_file> f
 {
   auto* root_file = dynamic_cast<root_tfile_imp*>(file.get());
   if (root_file == nullptr) {
-      error("can't attach to non-ROOT file");
+    error("can't attach to non-ROOT file");
   }
   tfile_ = root_file->get_tfile();
 }
@@ -164,8 +164,8 @@ bool root_tbranch_read_container_imp::read(std::uint64_t id,
   } else {
     auto* klass = TClass::GetClass(type);
     if (!klass) {
-      error(std::string{"missing TClass"} +
-            " (col_name='" + col_name() + "', type='" + demangle_name(type) + "')");
+      error(std::string{"missing TClass"} + " (col_name='" + col_name() + "', type='" +
+            demangle_name(type) + "')");
     }
     // ROOT returns ownership of dynamically created branch payload objects here.
     // NOLINTNEXTLINE(readability-redundant-casting)
@@ -178,9 +178,8 @@ bool root_tbranch_read_container_imp::read(std::uint64_t id,
   }
 
   if (branch_status < 0) {
-    error(std::string{"SetBranchAddress() failed"} +
-          " (col_name='" + col_name() + "', type='" + demangle_name(type) + "')" + " with error code " +
-          std::to_string(branch_status));
+    error(std::string{"SetBranchAddress() failed"} + " (col_name='" + col_name() + "', type='" +
+          demangle_name(type) + "')" + " with error code " + std::to_string(branch_status));
   }
 
   // ROOT addresses entries as Long64_t; id < GetEntries() was checked above.

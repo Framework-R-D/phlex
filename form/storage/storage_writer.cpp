@@ -123,8 +123,7 @@ std::uint64_t storage_writer::fill_container(placement const& plcmnt,
   auto cont = write_containers_.find(plcmnt);
   if (cont == write_containers_.end()) {
     // TODO: For now throw an exception here, but in future, we may have storage technology do that.
-    error("Container doesn't exist: " +
-                             plcmnt.container_name());
+    error("Container doesn't exist: " + plcmnt.container_name());
   }
   return cont->second->fill(data);
 }
@@ -134,8 +133,7 @@ void storage_writer::write_descriptor(
 {
   auto const file = files_.find(file_name);
   if (file == files_.end()) {
-    error("no file named '" + file_name +
-                             "' was created; refusing to leave it undescribed");
+    error("no file named '" + file_name + "' was created; refusing to leave it undescribed");
   }
   file->second->write_descriptor(entries);
 }
@@ -144,8 +142,7 @@ void storage_writer::commit_containers(placement const& plcmnt)
 {
   auto cont = write_containers_.find(plcmnt);
   if (cont == write_containers_.end()) {
-    error("Container doesn't exist: " +
-                             plcmnt.container_name());
+    error("Container doesn't exist: " + plcmnt.container_name());
   }
   cont->second->commit();
 }

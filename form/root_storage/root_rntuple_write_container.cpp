@@ -61,10 +61,7 @@ namespace form::detail::experimental {
     error("not implemented");
   }
 
-  void root_rntuple_write_container_imp::commit()
-  {
-    error("not implemented");
-  }
+  void root_rntuple_write_container_imp::commit() { error("not implemented"); }
 
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {

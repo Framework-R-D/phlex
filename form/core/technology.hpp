@@ -203,8 +203,8 @@ namespace form::technology {
   {
     auto const* const found = detail::lookup_by_on_disk_token(token);
     if (found == nullptr) {
-      form::detail::experimental::error("Unknown FORM on-disk technology token: '" + std::string{token} +
-                                        "'");
+      form::detail::experimental::error("Unknown FORM on-disk technology token: '" +
+                                        std::string{token} + "'");
     }
     if (!found->is_implemented) {
       form::detail::experimental::error("FORM technology '" + std::string{token} +

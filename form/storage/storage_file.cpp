@@ -24,8 +24,7 @@ char storage_file::mode() { return mode_; }
 
 void storage_file::set_attribute(std::string const& /*name*/, std::string const& /*value*/)
 {
-  error(
-    "does not accept any attributes for a file named " + name_);
+  error("does not accept any attributes for a file named " + name_);
 }
 
 void storage_file::set_descriptor(std::unique_ptr<descriptor> descriptor)

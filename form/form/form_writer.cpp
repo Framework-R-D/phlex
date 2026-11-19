@@ -179,10 +179,10 @@ namespace form::experimental {
     // Writes are not allowed after finalize(): the navigation tables have already been written and
     // cannot record products written afterwards.
     if (finalized_) {
-      form::detail::experimental::error("creator '" + creator + "' at stage '" +
-                                        stage + "' wrote data cell " + cell.id +
-                                        " after the writer was finalized; the navigation tables are "
-                                        "already written and cannot record it");
+      form::detail::experimental::error(
+        "creator '" + creator + "' at stage '" + stage + "' wrote data cell " + cell.id +
+        " after the writer was finalized; the navigation tables are "
+        "already written and cannot record it");
     }
 
     check_unique_labels(creator, stage, cell, products);

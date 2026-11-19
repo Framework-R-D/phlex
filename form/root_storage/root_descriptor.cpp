@@ -68,9 +68,8 @@ namespace form::detail::experimental {
     std::string_view const stored_class{key->GetClassName()};
     std::string_view const expected_class{descriptor_class().GetName()};
     if (stored_class != expected_class) {
-      error("object '" + object_name + "' in " +
-            file_name() + " is a '" + std::string{stored_class} + "', not a '" +
-            std::string{expected_class} + "'");
+      error("object '" + object_name + "' in " + file_name() + " is a '" +
+            std::string{stored_class} + "', not a '" + std::string{expected_class} + "'");
     }
 
     // Get() transfers ownership of the returned non-TObject to the caller.
