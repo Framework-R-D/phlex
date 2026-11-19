@@ -329,7 +329,7 @@ TEST_CASE("Selecting by layer path segments after a computed product", "[graph]"
     g.transform("plus_one", [](int const i) { return i + 1; })
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
       .output_product_suffixes("incremented");
-    auto const layer =
+    auto const* const layer =
       GENERATE("event", "subrun/event", "run/subrun/event", "/job/run/subrun/event");
     CAPTURE(layer);
     g.observe(
@@ -344,7 +344,7 @@ TEST_CASE("Selecting by layer path segments after a computed product", "[graph]"
     g.fold("sum_events", add_ints, concurrency::unlimited, "subrun")
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
       .output_product_suffixes("sum");
-    auto const layer = GENERATE("subrun", "run/subrun", "/job/run/subrun");
+    auto const* const layer = GENERATE("subrun", "run/subrun", "/job/run/subrun");
     CAPTURE(layer);
     g.observe(
        "observer", [](int const) {}, concurrency::unlimited)
@@ -362,7 +362,7 @@ TEST_CASE("Selecting by layer path segments after a computed product", "[graph]"
                                     "chunk")
       .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "temperature"})
       .output_product_suffixes("copy");
-    auto const layer =
+    auto const* const layer =
       GENERATE("chunk", "event/chunk", "subrun/event/chunk", "/job/run/subrun/event/chunk");
     CAPTURE(layer);
     g.observe(
