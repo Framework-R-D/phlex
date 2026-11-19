@@ -39,4 +39,10 @@ if(FORM_USE_RNTUPLE_STORAGE)
   list(APPEND FORM_ROOT_STORAGE_DEPS ROOT::ROOTNTuple)
 endif()
 
-target_link_libraries(root_storage PUBLIC ${FORM_ROOT_STORAGE_DEPS} PRIVATE Microsoft.GSL::GSL form_util)
+target_link_libraries(
+  root_storage
+  PUBLIC
+    ${FORM_ROOT_STORAGE_DEPS}
+  PRIVATE
+    Microsoft.GSL::GSL
+    form_util)
