@@ -201,6 +201,14 @@ namespace phlex::detail {
     {
     }
 
+    /// @brief Declares the data product created by this provider.
+    ///
+    /// @param creator       Creator name recorded for the product, as matched by
+    ///                      @c product_selector::creator.
+    /// @param suffix        Suffix recorded for the product.
+    /// @param output_layer  Data layer whose data cells this provider is called for.
+    /// @param stage         Stage recorded for the product.  The default, @c "CURRENT",
+    ///                      is replaced by the stage configured for the job.
     auto output_product(phlex::experimental::algorithm_name creator,
                         phlex::experimental::identifier suffix,
                         phlex::experimental::identifier output_layer,
