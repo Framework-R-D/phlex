@@ -44,6 +44,18 @@ target_link_libraries(root_storage PUBLIC ${FORM_ROOT_STORAGE_DEPS} PRIVATE Micr
 target_include_directories(root_storage PRIVATE ${ROOT_INCLUDE_DIRS})
 reflex_generate_dictionary(root_storage descriptor_dict.h SELECTION classes_def.xml)
 
+# The dictionary code is linked into libphlex_form, so ROOT's PCM must be placed alongside that
+# library for dynamic loading.
+add_custom_command(
+  TARGET root_storage
+  POST_BUILD
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/root_storage_rdict.pcm
+    $<TARGET_FILE_DIR:form>
+  VERBATIM
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/root_storage_rdict.pcm DESTINATION lib)
+
 # Suppress a GCC false positive triggered by LTO when linking ROOT-generated dictionaries, the
 # same workaround the test dictionaries use
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
