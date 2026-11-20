@@ -16,3 +16,7 @@ config-variables: null
 # are ignored. This is similar to the "-ignore" command line option.
 paths:
   .github/{workflows,actions}/**/*.y{a,}ml:
+    ignore:
+      # actionlint 1.7.12 predates these documented reusable-workflow fields.
+      - 'property "workflow_repository" is not defined in object type'
+      - 'property "workflow_sha" is not defined in object type'

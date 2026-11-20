@@ -4,8 +4,30 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
+multi-ecosystem-groups:
+  format-tools:
+    schedule:
+      interval: "weekly"
 updates:
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/.github/format-tools"
+    multi-ecosystem-group: "format-tools"
+    patterns: ["*"]
+    cooldown:
+      default-days: 3
+  - package-ecosystem: "uv"
+    directory: "/.github/format-tools"
+    multi-ecosystem-group: "format-tools"
+    patterns: ["*"]
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/ci"
+    schedule:
+      interval: "weekly"

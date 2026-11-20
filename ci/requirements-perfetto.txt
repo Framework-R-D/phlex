@@ -1,0 +1,3 @@
+# Perfetto's own release package carries the versioned tracebox prebuilt manifest.
+perfetto==0.59.1 \
+    --hash=sha256:fde529ecdf28042112d452ed431d51b797b4eea1378c10d7d25af5d36db719a3

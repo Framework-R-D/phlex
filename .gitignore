@@ -43,6 +43,9 @@ _codeql_detected_source_root
 .\#*
 \#*#
 
+# Workflow formatter dependencies
+/.github/format-tools/node_modules/
+
 # Python caches
 __pycache__/
 *.pyc
