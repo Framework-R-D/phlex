@@ -32,9 +32,10 @@ using namespace std::string_literals;
 
 namespace phlex::detail {
   namespace {
-    provider_node* find_matching_provider(provider_nodes& providers,
-                                          product_selector const& input_product,
-                                          phlex::experimental::identifier const& stage)
+    std::vector<provider_node*> find_matching_providers(
+      provider_nodes& providers,
+      product_selector const& input_product,
+      phlex::experimental::identifier const& stage)
     {
       auto query = input_product;
       if (query.stage == "CURRENT"_idq) {
@@ -47,12 +48,15 @@ namespace phlex::detail {
 
       auto candidates = providers | std::views::transform(proj) | std::views::filter(pred) |
                         std::ranges::to<std::vector>();
-      switch (candidates.size()) {
-      case 0:
-        return nullptr;
-      case 1:
-        return candidates[0];
-      default:
+      // Providers of one product at one stage may coexist if they serve different layer paths.
+      auto const conflict = [](provider_node const* a, provider_node const* b) {
+        return a != b and (a->layer() == b->layer() or a->output_product() != b->output_product() or
+                           a->stage() != b->stage());
+      };
+      bool const ambiguous = std::ranges::any_of(candidates, [&](auto const* a) {
+        return std::ranges::any_of(candidates, [&](auto const* b) { return conflict(a, b); });
+      });
+      if (ambiguous) {
         auto items = candidates | std::views::transform([](provider_node* p) {
                        return fmt::format("spec: {}, layer: {}, stage: {}",
                                           p->output_product().to_string(),
@@ -63,6 +67,7 @@ namespace phlex::detail {
                                              input_product.to_string(),
                                              bulleted_list(items)));
       }
+      return candidates;
     }
 
     provider_bundles find_matching_implicit_providers(source_map const& sources,
@@ -99,21 +104,21 @@ namespace phlex::detail {
         for (auto const& [input_product, port] : ports) {
           // Find the provider that has the right product name (hidden in the
           // output port) and the right family (hidden in the input port).
-          if (auto* matched_provider =
-                find_matching_provider(explicit_providers, input_product, stage)) {
+          auto const matched_providers =
+            find_matching_providers(explicit_providers, input_product, stage);
+          for (auto* matched_provider : matched_providers) {
             auto const provider_name = matched_provider->name().to_string();
             auto&& [it, _] = provider_input_ports.try_emplace(
               provider_name, input_product, matched_provider->input_port());
-            // Rewrite the stored layer if it's empty
-            if (!input_product.layer) {
-              it->second.input_product.layer = matched_provider->layer();
-            }
+            // Index routing follows the provider's layer, not the selector's.
+            it->second.input_product.layer = matched_provider->layer();
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider_name,
                           node_name,
                           input_product.to_string());
             make_edge(matched_provider->output_port(), *port);
-          } else {
+          }
+          if (matched_providers.empty()) {
             unconsumed_head_ports[node_name].push_back(
               {.input_product = input_product, .port = port});
           }
@@ -132,9 +137,21 @@ namespace phlex::detail {
       index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
+          // A provider that serves a layer can supply any selector whose layer ends with it.
+          // The consumer filters out the cells that it does not select.
           auto existing_provider_it = std::ranges::find_if(
             provider_input_ports, [&input_product](auto const& provider_entry) {
-              return input_product.match(provider_entry.second.input_product);
+              auto const& provider_selector = provider_entry.second.input_product;
+              if (input_product.layer and
+                  (not provider_selector.layer or
+                   not input_product.layer->ends_with(provider_selector.layer))) {
+                return false;
+              }
+              auto selector = input_product;
+              selector.layer = {};
+              auto provided = provider_selector;
+              provided.layer = {};
+              return selector.match(provided);
             });
 
           if (existing_provider_it != provider_input_ports.end()) {
@@ -183,10 +200,8 @@ namespace phlex::detail {
           auto it =
             provider_input_ports.try_emplace(provider_name, input_product, node->input_port())
               .first;
-          // Rewrite the stored layer if it's empty
-          if (!input_product.layer) {
-            it->second.input_product.layer = node->layer();
-          }
+          // Index routing follows the provider's layer, not the selector's.
+          it->second.input_product.layer = node->layer();
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }

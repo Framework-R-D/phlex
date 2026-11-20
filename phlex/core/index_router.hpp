@@ -137,11 +137,13 @@ namespace phlex::detail {
       std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
       unfold_data const& unfolds);
     void wire_provider_index_sets(tbb::flow::graph& g, provider_input_ports_t provider_input_ports);
+    void connect_index_set(tbb::flow::graph& g,
+                           phlex::experimental::layer_path const& target_layer,
+                           tbb::flow::receiver<index_message>& port);
     void wire_fold_partition_index_sets(tbb::flow::graph& g,
                                         fold_partition_ports_t fold_partition_ports);
     void build_multilayer_join_slots(
       tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports);
-    internal::index_set_node_ptr index_set_node_for(phlex::experimental::layer_path const& layer);
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
@@ -180,13 +182,9 @@ namespace phlex::detail {
 
     // ==========================================================================================
     // Routing to provider nodes
-    // The following maps are used to route data-cell indices to provider nodes.
-    // The first map is from layer name to the corresponding index-set node.
-    tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::index_set_node_ptr>
-      index_set_nodes_;
-    // The second map is a cache from a layer hash to an index-set node, to avoid
-    // repeated lookups for the same layer.
-    tbb::concurrent_unordered_map<std::size_t, internal::index_set_node_ptr> index_set_node_cache_;
+    // The following map is used to route data-cell indices to provider nodes.
+    // It is from a layer path hash to the corresponding index-set node.
+    tbb::concurrent_unordered_map<std::size_t, internal::index_set_node_ptr> index_set_nodes_;
 
     // ==========================================================================================
     // Routing to multi-layer join nodes

@@ -27,6 +27,7 @@ namespace phlex {
     bool layer_path_ends_with(experimental::layer_path const& layer_path_suffix) const noexcept;
     std::size_t depth() const noexcept;
     data_cell_index_ptr parent(experimental::identifier const& layer_name) const;
+    data_cell_index_ptr parent(experimental::layer_path const& ancestor_path) const noexcept;
     data_cell_index_ptr parent() const noexcept;
     bool has_parent() const noexcept;
     std::size_t number() const;

@@ -1111,10 +1111,12 @@ namespace {
     // as for now such mixing isn't supported by the product selector
     if (input_selectors[0].layer) {
       output_layer = input_selectors[0].layer;
-      // TODO: it's not clear what the output layer will be if the input layers are not
-      // all the same, so for now, simply raise an error if their is any ambiguity
+      // Input layers that are suffixes of one another name the same layer, as the consumer
+      // lengthens them all to the longest. Any other mix leaves the output layer ambiguous.
       for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
-        if (iq_pq.layer != output_layer) {
+        if (iq_pq.layer && iq_pq.layer->ends_with(output_layer)) {
+          output_layer = iq_pq.layer;
+        } else if (!iq_pq.layer || !output_layer->ends_with(iq_pq.layer)) {
           PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
           return {}; // error return
         }

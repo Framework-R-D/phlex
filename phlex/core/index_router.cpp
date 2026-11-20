@@ -58,14 +58,16 @@ namespace phlex::detail {
       Expects(not input_layers.empty());
 
       // At least one of the input layers must equal the path's last component.
-      if (std::ranges::none_of(
-            input_layers, [&path](auto const& input) { return path.ends_with(input.leaf()); })) {
+      if (std::ranges::none_of(input_layers,
+                               [&path](auto const& input) { return path.ends_with(input); })) {
         return false;
       }
 
-      // Check that all input layers are present in the path.
-      return std::ranges::all_of(
-        input_layers, [&path](auto const& input) { return path.contains(input.leaf()); });
+      // Check that all input layers are present in the path. An input need not start at the root,
+      // so it must match anywhere along the path rather than as a prefix.
+      return std::ranges::all_of(input_layers, [&path](auto const& input) {
+        return not std::ranges::search(path.components(), input.components()).empty();
+      });
     }
   }
 
@@ -111,22 +113,22 @@ namespace phlex::detail {
 
     void multilayer_slot::put_message(data_cell_index_ptr const& index, std::size_t message_id)
     {
-      if (layer_.leaf() == index->layer_name()) {
+      if (index->layer_path_ends_with(layer_)) {
         broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
         return;
       }
 
-      broadcaster_.try_put({.index = index->parent(layer_.leaf()), .msg_id = message_id});
+      broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
     bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
     {
-      return layer_path.ends_with(layer_.leaf());
+      return layer_path.ends_with(layer_);
     }
 
     bool multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
     {
-      return index->parent(layer_.leaf()) != nullptr;
+      return index->parent(layer_) != nullptr;
     }
   }
 
@@ -157,7 +159,6 @@ namespace phlex::detail {
                               fold_partition_ports_t fold_partition_ports,
                               std::map<std::string, named_index_ports> const& multilayer_join_ports)
   {
-    using namespace phlex::experimental::literals;
     if (layer_paths_from_driver.empty()) {
       throw std::runtime_error("Cannot finalize index_router with an empty driver hierarchy.");
     }
@@ -258,14 +259,26 @@ namespace phlex::detail {
     }
   }
 
+  void index_router::connect_index_set(tbb::flow::graph& g,
+                                       layer_path const& target_layer,
+                                       tbb::flow::receiver<index_message>& port)
+  {
+    for (auto const& path : sorted_layer_paths_) {
+      if (path.ends_with(target_layer)) {
+        auto [it, _] =
+          index_set_nodes_.emplace(path.hash(), std::make_shared<internal::index_set_node>(g));
+        make_edge(*it->second, port);
+      }
+    }
+  }
+
   void index_router::wire_provider_index_sets(tbb::flow::graph& g,
                                               provider_input_ports_t provider_input_ports)
   {
     for (auto& [input_product, provider_port] : provider_input_ports | std::views::values) {
-      auto [it, _] =
-        index_set_nodes_.emplace(input_product.layer ? input_product.layer->leaf() : "*"_id,
-                                 std::make_shared<internal::index_set_node>(g));
-      make_edge(*it->second, *provider_port);
+      if (input_product.layer) {
+        connect_index_set(g, *input_product.layer, *provider_port);
+      }
     }
   }
 
@@ -273,9 +286,7 @@ namespace phlex::detail {
                                                     fold_partition_ports_t fold_partition_ports)
   {
     for (auto& [layer, port] : fold_partition_ports | std::views::values) {
-      auto [it, _] =
-        index_set_nodes_.emplace(layer.leaf(), std::make_shared<internal::index_set_node>(g));
-      make_edge(*it->second, *port);
+      connect_index_set(g, layer, *port);
     }
   }
 
@@ -291,6 +302,15 @@ namespace phlex::detail {
       slot_layers.reserve(join_ports.size());
       for (auto const& port : join_ports) {
         slot_layers.push_back(port.layer);
+      }
+      if (std::ranges::none_of(sorted_layer_paths_, [&slot_layers](auto const& path) {
+            return matches_input_chain(path, slot_layers);
+          })) {
+        throw std::runtime_error(
+          fmt::format("The input layers of node '{}' do not all lie on one path through the "
+                      "data-layer hierarchy:\n{}",
+                      node_name,
+                      bulleted_list(slot_layers)));
       }
       layer_path const node_deepest_layer = deepest_layer_name(slot_layers);
 
@@ -320,8 +340,8 @@ namespace phlex::detail {
                                           bool const is_lowest_layer,
                                           std::size_t const message_id)
   {
-    if (auto index_set_node = index_set_node_for(index)) {
-      index_set_node->try_put({.index = index, .msg_id = message_id});
+    if (auto it = index_set_nodes_.find(index->layer_hash()); it != index_set_nodes_.end()) {
+      it->second->try_put({.index = index, .msg_id = message_id});
     }
 
     auto [message_slots, end_token_entries] = multilayer_slots_for(index);
@@ -362,44 +382,6 @@ namespace phlex::detail {
 
     throw std::runtime_error(fmt::format(
       "Index layer path '{}' is not in the established layer hierarchy.", index->layer_path()));
-  }
-
-  internal::index_set_node_ptr index_router::index_set_node_for(data_cell_index_ptr const& index)
-  {
-    auto const layer_hash = index->layer_hash();
-    if (auto it = index_set_node_cache_.find(layer_hash); it != index_set_node_cache_.end()) {
-      return it->second;
-    }
-
-    layer_path const layerish_path{{index->layer_name()}};
-    auto broadcaster = index_set_node_for(layerish_path);
-    index_set_node_cache_.insert({layer_hash, broadcaster});
-    return broadcaster;
-  }
-
-  auto index_router::index_set_node_for(layer_path const& layer_path)
-    -> internal::index_set_node_ptr
-  {
-    std::vector<decltype(index_set_nodes_.begin())> candidates;
-    for (auto it = index_set_nodes_.begin(), e = index_set_nodes_.end(); it != e; ++it) {
-      if (layer_path.ends_with(it->first)) {
-        candidates.push_back(it);
-      }
-    }
-
-    if (candidates.size() == 1uz) {
-      return candidates[0]->second;
-    }
-
-    if (candidates.empty()) {
-      return nullptr;
-    }
-
-    std::string const msg = fmt::format(
-      "Multiple layers match specification {}:\n{}",
-      layer_path,
-      bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));
-    throw std::runtime_error(msg);
   }
 
   std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr>
@@ -505,7 +487,7 @@ namespace phlex::detail {
       if (not partition_layer_path.is_strict_prefix_of(candidate)) {
         continue;
       }
-      if (not candidate.ends_with(counting_layer_name.leaf())) {
+      if (not candidate.ends_with(counting_layer_name)) {
         continue;
       }
       if (not matches_input_chain(candidate, chain)) {
@@ -518,10 +500,12 @@ namespace phlex::detail {
 
   layer_path index_router::deepest_layer_name(std::vector<layer_path> const& layer_names) const
   {
-    auto depth_of = [this](layer_path const& name) -> std::size_t {
+    // Only paths containing every layer are compared, so an unrelated deeper path cannot make a
+    // parent layer look deeper than its child.
+    auto depth_of = [this, &layer_names](layer_path const& name) -> std::size_t {
       std::size_t best = 0;
       for (auto const& path : sorted_layer_paths_) {
-        if (path.ends_with(name.leaf())) {
+        if (path.ends_with(name) and matches_input_chain(path, layer_names)) {
           best = std::max(path.depth(), best);
         }
       }

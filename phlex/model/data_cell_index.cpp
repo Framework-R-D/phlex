@@ -142,6 +142,19 @@ namespace phlex {
     return nullptr;
   }
 
+  data_cell_index_ptr data_cell_index::parent(
+    experimental::layer_path const& ancestor_path) const noexcept
+  {
+    auto curr = parent_;
+    while (curr) {
+      if (curr->layer_path_ends_with(ancestor_path)) {
+        return curr;
+      }
+      curr = curr->parent_;
+    }
+    return nullptr;
+  }
+
   std::string data_cell_index::to_string() const
   {
     // TODO: prefix needs to be adjusted esp. if a root name can be supplied by the user.
