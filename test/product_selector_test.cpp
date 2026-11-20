@@ -111,7 +111,7 @@ TEST_CASE("Selector suffix matching and diagnostics preserve three states", "[da
   using experimental::algorithm_name;
   using experimental::empty_string;
   using experimental::product_specification;
-  auto const creator = algorithm_name::create("reco:find_hits");
+  auto const creator = algorithm_name{"reco:find_hits"};
   product_specification const empty_product{creator, empty_string{}, {}};
   product_specification const named_product{creator, "hits", {}};
   product_selector const omitted;
@@ -139,8 +139,8 @@ TEST_CASE("Selector creator criterion matches one name or is unrestricted", "[da
 {
   using experimental::algorithm_name;
   using experimental::product_specification;
-  product_specification const qualified{algorithm_name::create("reco:find_hits"), "hits", {}};
-  product_specification const unqualified{algorithm_name::create("find_hits"), "hits", {}};
+  product_specification const qualified{algorithm_name{"reco:find_hits"}, "hits", {}};
+  product_specification const unqualified{algorithm_name{"find_hits"}, "hits", {}};
   product_selector const omitted{.suffix = "hits"};
   product_selector const plugin{.creator = "reco", .suffix = "hits"};
   product_selector const algorithm{.creator = "find_hits", .suffix = "hits"};
