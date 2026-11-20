@@ -394,7 +394,7 @@ if(FORM_USE_ROOT_STORAGE)
     test
     TEST_PROPERTIES
     PASS_REGULAR_EXPRESSION
-    "Invalid parameter 'creator': Invalid algorithm name \"bad creator\": algorithm \"bad creator\" must start with"
+    "Invalid parameter 'creator': Invalid algorithm name \"bad creator\": algorithm \"bad creator\" must not be empty and must start with"
     ENVIRONMENT
     "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
   )

@@ -239,7 +239,7 @@ set_tests_properties(
   py:badname
   PROPERTIES
     PASS_REGULAR_EXPRESSION
-      "ValueError: Invalid identifier \"bad name\": it must start with an ASCII letter"
+      "ValueError: Invalid identifier \"bad name\": an identifier must not be empty and must start with an ASCII letter"
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badname)
 

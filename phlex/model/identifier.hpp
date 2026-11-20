@@ -21,7 +21,8 @@ namespace phlex::detail {
   /// The rule enforced by `valid_identifier`, phrased to follow a subject (for example,
   /// "it" or `algorithm "x"`) in error messages.
   inline constexpr std::string_view identifier_rule{
-    "must start with an ASCII letter and contain only ASCII letters, digits, or underscores"};
+    "must not be empty and must start with an ASCII letter and contain only ASCII letters, digits, "
+    "or underscores"};
 
   // This implementation does not use std::regex for the validation because
   // std::regex does not support compile-time regular expressions.

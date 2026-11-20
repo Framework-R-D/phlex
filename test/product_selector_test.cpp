@@ -15,7 +15,9 @@ using namespace phlex;
 
 TEST_CASE("Empty creator name", "[data model]")
 {
-  CHECK_THROWS((product_selector{.creator = "", .layer = "layer"}));
+  CHECK_THROWS_WITH((product_selector{.creator = "", .layer = "layer"}),
+                    "Invalid identifier \"\": an identifier " +
+                      std::string{phlex::detail::identifier_rule});
 }
 
 TEST_CASE("Creator name formatting", "[data model]")
@@ -26,7 +28,9 @@ TEST_CASE("Creator name formatting", "[data model]")
 
 TEST_CASE("Empty layer name", "[data model]")
 {
-  CHECK_THROWS((product_selector{.creator = "creator", .layer = ""}));
+  CHECK_THROWS_WITH((product_selector{.creator = "creator", .layer = ""}),
+                    "Invalid identifier \"\": an identifier " +
+                      std::string{phlex::detail::identifier_rule});
 }
 
 TEST_CASE("Retrieving a non-existent layer name", "[data model]")

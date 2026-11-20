@@ -37,17 +37,20 @@ TEST_CASE("Identifier errors quote the offending text and state the rule", "[ide
 {
   auto const rule = std::string{phlex::detail::identifier_rule};
   CHECK_THROWS_AS(identifier{"run-name"}, std::invalid_argument);
-  CHECK_THROWS_WITH(identifier{"run-name"}, "Invalid identifier \"run-name\": it " + rule);
-  CHECK_THROWS_WITH(identifier{""}, "Invalid identifier \"\": it " + rule);
-  CHECK_THROWS_WITH(identifier{std::string{"a\nb"}}, "Invalid identifier \"a\\nb\": it " + rule);
-  CHECK_THROWS_WITH(suffix_t{"bad name"sv}, "Invalid identifier \"bad name\": it " + rule);
+  CHECK_THROWS_WITH(identifier{"run-name"},
+                    "Invalid identifier \"run-name\": an identifier " + rule);
+  CHECK_THROWS_WITH(identifier{""}, "Invalid identifier \"\": an identifier " + rule);
+  CHECK_THROWS_WITH(identifier{std::string{"a\nb"}},
+                    "Invalid identifier \"a\\nb\": an identifier " + rule);
+  CHECK_THROWS_WITH(suffix_t{"bad name"sv},
+                    "Invalid identifier \"bad name\": an identifier " + rule);
 }
 
 TEST_CASE("Identifier errors shorten very long text", "[identifier]")
 {
   std::string const text = std::string(100, 'a') + "-";
   CHECK_THROWS_WITH(identifier{text},
-                    "Invalid identifier \"" + std::string(64, 'a') + "...\": it " +
+                    "Invalid identifier \"" + std::string(64, 'a') + "...\": an identifier " +
                       std::string{phlex::detail::identifier_rule});
 }
 

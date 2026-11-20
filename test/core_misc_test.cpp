@@ -195,10 +195,12 @@ TEST_CASE("make_algorithm_name tests", "[core]")
     phlex::configuration const config{obj};
 
     CHECK_THROWS_AS(make_algorithm_name(&config, "my-algorithm"), std::invalid_argument);
-    CHECK_THROWS_WITH(make_algorithm_name(&config, "my-algorithm"),
-                      Catch::Matchers::ContainsSubstring("Invalid algorithm name "
-                                                         "\"my_module:my-algorithm\": algorithm "
-                                                         "\"my-algorithm\" must start with"));
+    CHECK_THROWS_WITH(
+      make_algorithm_name(&config, "my-algorithm"),
+      Catch::Matchers::ContainsSubstring("Invalid algorithm name "
+                                         "\"my_module:my-algorithm\": algorithm "
+                                         "\"my-algorithm\" " +
+                                         std::string{phlex::detail::identifier_rule}));
     CHECK_THROWS_AS(make_algorithm_name(nullptr, "a[0]"), std::invalid_argument);
   }
 
@@ -208,9 +210,9 @@ TEST_CASE("make_algorithm_name tests", "[core]")
     obj["module_label"] = "1module";
     phlex::configuration const config{obj};
 
-    CHECK_THROWS_WITH(
-      make_algorithm_name(&config, "my_algorithm"),
-      Catch::Matchers::ContainsSubstring("plugin label \"1module\" must start with"));
+    CHECK_THROWS_WITH(make_algorithm_name(&config, "my_algorithm"),
+                      Catch::Matchers::ContainsSubstring(
+                        "plugin label \"1module\" " + std::string{phlex::detail::identifier_rule}));
   }
 }
 

@@ -86,16 +86,19 @@ TEST_CASE("Retrieve product_selector", "[config]")
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
                       ContainsSubstring("Invalid product selector field \"layer\": "
-                                        "Invalid identifier \"\": it must start with"));
+                                        "Invalid identifier \"\": an identifier " +
+                                        std::string{phlex::detail::identifier_rule}));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
                     ContainsSubstring("Error retrieving parameter 'malformed3'") &&
                       ContainsSubstring("Invalid product selector field \"creator\": "
-                                        "Invalid identifier \"\": it must start with"));
+                                        "Invalid identifier \"\": an identifier " +
+                                        std::string{phlex::detail::identifier_rule}));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed4"),
                     ContainsSubstring("Error retrieving parameter 'malformed4'") &&
                       ContainsSubstring("Product selector contains unrecognized keys"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed5"),
                     ContainsSubstring("Error retrieving parameter 'malformed5'") &&
                       ContainsSubstring("Invalid product selector field \"suffix\": "
-                                        "Invalid identifier \"bad name\": it must start with"));
+                                        "Invalid identifier \"bad name\": an identifier " +
+                                        std::string{phlex::detail::identifier_rule}));
 }

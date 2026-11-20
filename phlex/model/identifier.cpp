@@ -15,7 +15,7 @@ namespace phlex::experimental {
     void validate_identifier(std::string_view str)
     {
       if (!phlex::detail::valid_identifier(str)) {
-        throw std::invalid_argument{fmt::format("Invalid identifier {}: it {}",
+        throw std::invalid_argument{fmt::format("Invalid identifier {}: an identifier {}",
                                                 phlex::detail::excerpt(str),
                                                 phlex::detail::identifier_rule)};
       }
