@@ -7,6 +7,7 @@
 #include "phlex/model/flush_gate.hpp"
 #include "phlex/model/flush_messages.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_core_export.hpp"
 
 #include <oneapi/tbb/concurrent_hash_map.h>
@@ -38,7 +39,7 @@ namespace phlex::detail {
     // Descendants ending in the counting layer supply one combined completion count
     // forwarded as an indexed_end_token to flush_port.
     struct flush_spec {
-      phlex::experimental::identifier counting_layer;
+      phlex::experimental::layer_path counting_layer;
       tbb::flow::receiver<indexed_end_token>* flush_port;
     };
 
@@ -48,6 +49,8 @@ namespace phlex::detail {
     struct join_node_slots {
       multilayer_slots slots;
       std::vector<flush_spec> flush_specs;
+      // The layers of every input of the node. Counting is limited to paths on which they all lie.
+      std::vector<phlex::experimental::layer_path> input_layers;
     };
 
     // One completion token per slot combines all applicable descendant counting paths.
@@ -77,7 +80,7 @@ namespace phlex::detail {
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
 
     struct fold_input_port_t {
-      phlex::experimental::identifier layer;
+      phlex::experimental::layer_path layer;
       tbb::flow::receiver<index_message>* partition_port;
     };
     using fold_partition_ports_t = std::map<std::string, fold_input_port_t>;
@@ -87,7 +90,7 @@ namespace phlex::detail {
     // This metadata lets the router discover generated paths before any runtime indices arrive.
     struct unfold_layer_spec {
       std::string name;
-      std::vector<phlex::experimental::identifier> input_layers;
+      std::vector<phlex::experimental::layer_path> input_layers;
       phlex::experimental::identifier output_layer;
     };
 
@@ -156,13 +159,15 @@ namespace phlex::detail {
     flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
-    // Resolve descendant paths ending in the counting layer beneath this partition.
+    // Resolve descendant paths ending in the counting layer beneath this partition, keeping only
+    // paths on which all of the node's input layers lie.
     std::vector<std::size_t> counting_layer_hashes_under(
       phlex::experimental::layer_path const& partition_layer_path,
-      phlex::experimental::identifier const& counting_layer_name) const;
+      phlex::experimental::layer_path const& counting_layer_name,
+      std::vector<phlex::experimental::layer_path> const& input_layers) const;
 
-    phlex::experimental::identifier deepest_layer_name(
-      std::vector<phlex::experimental::identifier> const& layer_names) const;
+    phlex::experimental::layer_path deepest_layer_name(
+      std::vector<phlex::experimental::layer_path> const& layer_names) const;
 
     tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
     tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;

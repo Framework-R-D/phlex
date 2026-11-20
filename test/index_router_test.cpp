@@ -80,8 +80,12 @@ TEST_CASE("Index routing accepts data cells from chained unfolds", "[graph][unfo
   router.finalize(
     graph,
     {experimental::layer_path{"/job/spill"}},
-    {{.name = "a_split_b", .input_layers = {"a"_id, "spill"_id}, .output_layer = "b"_id},
-     {.name = "z_split_a", .input_layers = {"spill"_id}, .output_layer = "a"_id}},
+    {{.name = "a_split_b",
+      .input_layers = {experimental::layer_path{"a"}, experimental::layer_path{"spill"}},
+      .output_layer = "b"_id},
+     {.name = "z_split_a",
+      .input_layers = {experimental::layer_path{"spill"}},
+      .output_layer = "a"_id}},
     {{"dummy", {.input_product = {.layer = "spill"}, .port = &indices}}},
     {},
     {});
@@ -106,7 +110,9 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
 
   SECTION("Self-cycle")
   {
-    unfolds = {{.name = "split_run", .input_layers = {"run"_id}, .output_layer = "run"_id}};
+    unfolds = {{.name = "split_run",
+                .input_layers = {experimental::layer_path{"run"}},
+                .output_layer = "run"_id}};
     expected_error =
       "Unfold layer hierarchy expansion exceeded max depth 3 (initial deepest 2 + 1 unfold "
       "node(s)). Offending unfold: split_run";
@@ -114,8 +120,12 @@ TEST_CASE("Unfold hierarchy rejects cyclic layer production", "[graph][unfold]")
 
   SECTION("Two-unfold cycle")
   {
-    unfolds = {{.name = "split_spill", .input_layers = {"run"_id}, .output_layer = "spill"_id},
-               {.name = "split_run", .input_layers = {"spill"_id}, .output_layer = "run"_id}};
+    unfolds = {{.name = "split_spill",
+                .input_layers = {experimental::layer_path{"run"}},
+                .output_layer = "spill"_id},
+               {.name = "split_run",
+                .input_layers = {experimental::layer_path{"spill"}},
+                .output_layer = "run"_id}};
     expected_error =
       "Unfold layer hierarchy expansion exceeded max depth 4 (initial deepest 2 + 2 unfold "
       "node(s)). Offending unfold: split_spill";
@@ -138,14 +148,16 @@ TEST_CASE("Unfold hierarchy rejects driver output layer collisions", "[graph][un
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> indices{graph};
   detail::index_router router{graph};
-  auto const driver_path =
-    GENERATE(layer_path{"/job/run/spill"}, layer_path{"/job/run/spill/event"});
+  auto const driver_path = GENERATE(experimental::layer_path{"/job/run/spill"},
+                                    experimental::layer_path{"/job/run/spill/event"});
   CAPTURE(driver_path);
 
   CHECK_THROWS_WITH(
     router.finalize(graph,
                     {driver_path},
-                    {{.name = "split", .input_layers = {"run"_id}, .output_layer = "spill"_id}},
+                    {{.name = "split",
+                      .input_layers = {experimental::layer_path{"run"}},
+                      .output_layer = "spill"_id}},
                     {{"dummy", {.input_product = {.layer = "run"}, .port = &indices}}},
                     {},
                     {}),
@@ -160,13 +172,19 @@ TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
   tbb::flow::queue_node<detail::index_message> indices{graph};
   detail::index_router router{graph};
 
-  auto const driver_path = GENERATE(layer_path{"/job/run"}, layer_path{"/job"});
+  auto const driver_path =
+    GENERATE(experimental::layer_path{"/job/run"}, experimental::layer_path{"/job"});
   CAPTURE(driver_path);
-  detail::index_router::unfold_data unfolds{
-    {.name = "split_a", .input_layers = {"run"_id}, .output_layer = "spill"_id},
-    {.name = "split_b", .input_layers = {"run"_id}, .output_layer = "spill"_id}};
-  if (driver_path == layer_path{"/job"}) {
-    unfolds.push_back({.name = "split_run", .input_layers = {"job"_id}, .output_layer = "run"_id});
+  detail::index_router::unfold_data unfolds{{.name = "split_a",
+                                             .input_layers = {experimental::layer_path{"run"}},
+                                             .output_layer = "spill"_id},
+                                            {.name = "split_b",
+                                             .input_layers = {experimental::layer_path{"run"}},
+                                             .output_layer = "spill"_id}};
+  if (driver_path == experimental::layer_path{"/job"}) {
+    unfolds.push_back({.name = "split_run",
+                       .input_layers = {experimental::layer_path{"job"}},
+                       .output_layer = "run"_id});
   }
 
   CHECK_THROWS_WITH(
@@ -181,7 +199,6 @@ TEST_CASE("Unfold hierarchy rejects duplicate output layers", "[graph][unfold]")
 
 TEST_CASE("Counting layers on other branches do not produce end tokens", "[graph]")
 {
-  using namespace phlex::experimental::literals;
   tbb::flow::graph graph;
   tbb::flow::queue_node<detail::index_message> indices{graph};
   tbb::flow::queue_node<detail::indexed_end_token> tokens{graph};
@@ -193,8 +210,8 @@ TEST_CASE("Counting layers on other branches do not produce end tokens", "[graph
     {},
     {},
     {{"fold",
-      {{.layer = "run"_id,
-        .counting_layer = "event"_id,
+      {{.layer = experimental::layer_path{"run"},
+        .counting_layer = experimental::layer_path{"event"},
         .token_port = &tokens,
         .index_port = &indices}}}});
 
@@ -222,7 +239,6 @@ TEST_CASE("Counting layers on other branches do not produce end tokens", "[graph
 
 TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][issue955]")
 {
-  using namespace phlex::experimental::literals;
   auto const [description, top_count, nested_count] =
     GENERATE(Catch::Generators::table<char const*, unsigned int, unsigned int>(
       {{"Both event paths populated", 2u, 3u},
@@ -242,8 +258,8 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
     {{"dummy", {.input_product = {.layer = "job"}, .port = &indices}}},
     {},
     {{"fold",
-      {{.layer = "job"_id,
-        .counting_layer = "event"_id,
+      {{.layer = experimental::layer_path{"job"},
+        .counting_layer = experimental::layer_path{"event"},
         .token_port = &tokens,
         .index_port = &indices}}}});
 
@@ -267,4 +283,57 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
   CHECK(token.index == job);
   CHECK(std::cmp_equal(token.count, top_count + nested_count));
   CHECK_FALSE(tokens.try_get(token));
+}
+
+TEST_CASE("Counting layers outside the join's input chain are not counted", "[graph]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> job_indices{graph};
+  tbb::flow::queue_node<detail::index_message> run_indices{graph};
+  tbb::flow::queue_node<detail::index_message> event_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> job_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> run_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> event_tokens{graph};
+  detail::index_router router{graph};
+  // The join takes job, run and event, so only /job/run/event lies on its input chain.
+  router.finalize(
+    graph,
+    {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/mc/event"}},
+    {},
+    {},
+    {},
+    {{"join",
+      {{.layer = experimental::layer_path{"job"},
+        .token_port = &job_tokens,
+        .index_port = &job_indices},
+       {.layer = experimental::layer_path{"run"},
+        .token_port = &run_tokens,
+        .index_port = &run_indices},
+       {.layer = experimental::layer_path{"event"},
+        .token_port = &event_tokens,
+        .index_port = &event_indices}}}});
+
+  auto const job = data_cell_index::job();
+  auto const run = job->make_child("run", 0);
+  auto const mc = job->make_child("mc", 0);
+  router.route(job, {});
+  router.route(run, {});
+  router.route(mc, {});
+
+  auto job_counts = std::make_shared<detail::data_cell_counts>();
+  job_counts->emplace(run->layer_hash(), 1);
+  job_counts->emplace(mc->layer_hash(), 1);
+  auto run_counts = std::make_shared<detail::data_cell_counts>();
+  run_counts->emplace(run->make_child("event", 0)->layer_hash(), 2);
+  auto mc_counts = std::make_shared<detail::data_cell_counts>();
+  mc_counts->emplace(mc->make_child("event", 0)->layer_hash(), 5);
+  router.drain({{.index = run, .counts = run_counts},
+                {.index = mc, .counts = mc_counts},
+                {.index = job, .counts = job_counts}});
+  graph.wait_for_all();
+
+  detail::indexed_end_token token;
+  REQUIRE(job_tokens.try_get(token));
+  CHECK(token.index == job);
+  CHECK(token.count == 2);
 }

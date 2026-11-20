@@ -6,6 +6,7 @@
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
@@ -60,15 +61,15 @@ namespace phlex::detail {
   //
   //  - `layer`           — the *routing* layer.  The router decides whether a routed index
   //                        feeds this slot's `index_port` (and whether the slot should
-  //                        receive a flush token) using this layer name via
+  //                        receive a flush token) using this layer path via
   //                        `matches_exactly` / `is_parent_of` checks.
   //
   //  - `counting_layer`  — the *counting* layer preference.  `std::nullopt` selects the
   //                        node's deepest layer, while a populated value selects that
-  //                        explicit layer name.
+  //                        explicit layer path.
   struct named_index_port {
-    phlex::experimental::identifier layer;
-    std::optional<phlex::experimental::identifier> counting_layer;
+    phlex::experimental::layer_path layer;
+    std::optional<phlex::experimental::layer_path> counting_layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };

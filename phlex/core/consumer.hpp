@@ -7,6 +7,7 @@
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/phlex_core_export.hpp"
 
 #include <oneapi/tbb/flow_graph.h>
@@ -34,7 +35,7 @@ namespace phlex::detail {
     std::vector<std::string> const& when() const noexcept;
 
     product_selectors const& input() const noexcept;
-    std::vector<phlex::experimental::identifier> const& layers() const noexcept;
+    std::vector<phlex::experimental::layer_path> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_selector const& input_product);
 
     virtual named_index_ports index_ports() = 0;
@@ -53,7 +54,7 @@ namespace phlex::detail {
     std::vector<std::string> predicates_;
     std::reference_wrapper<tbb::flow::graph> graph_;
     product_selectors input_products_;
-    std::vector<phlex::experimental::identifier> layers_;
+    std::vector<phlex::experimental::layer_path> layers_;
     std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
   };
 }

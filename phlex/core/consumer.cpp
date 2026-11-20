@@ -3,7 +3,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
@@ -17,16 +17,13 @@
 #include <vector>
 
 namespace {
-  std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
+  std::vector<phlex::experimental::layer_path> layers_from(phlex::product_selectors const& queries)
   {
-    using namespace phlex::experimental::literals;
-    std::vector<phlex::experimental::identifier> result;
+    std::vector<phlex::experimental::layer_path> result;
     result.reserve(queries.size());
     for (auto const& query : queries) {
       if (query.layer) {
-        result.push_back(query.layer->leaf());
-      } else {
-        result.push_back("*"_id);
+        result.push_back(*query.layer);
       }
     }
     return result;
@@ -101,7 +98,7 @@ namespace phlex::detail {
   }
 
   product_selectors const& consumer::input() const noexcept { return input_products_; }
-  std::vector<phlex::experimental::identifier> const& consumer::layers() const noexcept
+  std::vector<phlex::experimental::layer_path> const& consumer::layers() const noexcept
   {
     return layers_;
   }

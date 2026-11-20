@@ -21,7 +21,7 @@ namespace phlex::detail {
              std::move(input_products),
              graph,
              require_layers::always},
-    partition_layer_{std::move(partition_layer)}
+    partition_layer_{partition_layer}
   {
   }
 
