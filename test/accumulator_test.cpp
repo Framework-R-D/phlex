@@ -4,6 +4,7 @@
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "test/data_cell_index_helpers.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -38,13 +39,9 @@ using namespace oneapi;
 using namespace phlex::detail;
 using phlex::experimental::product_specification;
 using phlex::experimental::product_specifications;
+using phlex::test::make_run_index;
 
 namespace {
-  auto make_run_index(int run_number)
-  {
-    return phlex::data_cell_index::job()->make_child("run", run_number);
-  }
-
   class message_collector : public tbb::flow::function_node<message> {
   public:
     explicit message_collector(tbb::flow::graph& g) :

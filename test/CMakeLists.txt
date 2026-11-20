@@ -105,6 +105,12 @@ cet_test(
   layer_generator_internal
 )
 cet_test(
+  predicate_resources
+  USE_CATCH2_MAIN
+  SOURCE predicate_resources_test.cpp
+  LIBRARIES phlex::core_internal Boost::json layer_generator_internal
+)
+cet_test(
   framework_graph
   USE_CATCH2_MAIN
   SOURCE
@@ -235,6 +241,12 @@ cet_test(
   spdlog::spdlog
   layer_generator_internal
 )
+cet_test(
+  fold_resources
+  USE_CATCH2_MAIN
+  SOURCE fold_resources_test.cpp
+  LIBRARIES phlex::core_internal spdlog::spdlog layer_generator_internal
+)
 add_subdirectory(compile-fail)
 cet_test(
   repeater_node
@@ -252,7 +264,25 @@ cet_test(
   LIBRARIES
   phlex::core_internal
 )
-cet_test(node_builder USE_CATCH2_MAIN SOURCE node_builder_test.cpp LIBRARIES phlex::core_internal)
+cet_test(
+  transform_node_resources
+  USE_CATCH2_MAIN
+  SOURCE transform_node_resources_test.cpp
+  LIBRARIES phlex::core_internal
+)
+cet_test(node_builder SOURCE node_builder_test.cpp LIBRARIES phlex::core_internal)
+cet_test(
+  node_builder_resources
+  USE_CATCH2_MAIN
+  SOURCE node_builder_resources_test.cpp
+  LIBRARIES phlex::core_internal
+)
+cet_test(
+  node_builder_concurrency
+  USE_CATCH2_MAIN
+  SOURCE node_builder_concurrency_test.cpp
+  LIBRARIES phlex::core_internal
+)
 cet_test(
   multilayer_join
   USE_CATCH2_MAIN
@@ -298,8 +328,19 @@ cet_test(
   phlex::core_internal
   layer_generator_internal
 )
-cet_test(resources USE_CATCH2_MAIN SOURCE resources_test.cpp LIBRARIES
-         phlex::core_internal
+cet_test(resource_concepts SOURCE resource_concepts_test.cpp LIBRARIES phlex::core_internal)
+cet_test(resource_dependencies SOURCE resource_dependencies_test.cpp LIBRARIES phlex::core_internal)
+cet_test(
+  resource_catalog
+  USE_CATCH2_MAIN
+  SOURCE resource_catalog_test.cpp
+  LIBRARIES phlex::core_internal
+)
+cet_test(
+  graph_resources
+  USE_CATCH2_MAIN
+  SOURCE graph_resources_test.cpp
+  LIBRARIES phlex::core_internal
 )
 cet_test(
   type_distinction
@@ -322,6 +363,12 @@ cet_test(
   TBB::tbb
   spdlog::spdlog
   layer_generator_internal
+)
+cet_test(
+  unfold_resources
+  USE_CATCH2_MAIN
+  SOURCE unfold_resources_test.cpp
+  LIBRARIES Boost::json phlex::core_internal TBB::tbb spdlog::spdlog layer_generator_internal
 )
 
 add_subdirectory(benchmarks)

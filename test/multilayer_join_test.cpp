@@ -1,50 +1,25 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
-#include "phlex/model/product_specification.hpp"
-#include "phlex/model/product_store.hpp"
+#include "test/node_test_products.hpp"
+#include "test/product_store_helpers.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <string>
-#include <utility>
 #include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
+using namespace phlex::test;
 
 namespace {
   constexpr auto message_id = 42u;
-
-  struct input_type_1 {
-    int value;
-  };
-
-  struct input_type_2 {
-    int value;
-  };
-
-  template <typename T>
-  product_specification spec(algorithm_name const& creator)
-  {
-    return {creator, ""_id, make_type_id<T>()};
-  }
-
-  template <typename T>
-  product_store_ptr store_with_product(gsl::not_null<algorithm_name const*> creator,
-                                       gsl::not_null<identifier const*> stage,
-                                       T value)
-  {
-    auto store = product_store::base(creator, stage);
-    store->add_product(spec<T>(*creator), std::move(value));
-    return store;
-  }
 }
 
 TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
