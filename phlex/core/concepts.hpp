@@ -3,6 +3,7 @@
 
 #include "phlex/core/fold/send.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/metaprogramming/make_fold_like.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/fwd.hpp"
 
@@ -20,6 +21,10 @@ namespace phlex::detail {
   template <typename T>
   concept sendable = requires { typename phlex::experimental::sendable_type<T>; };
 
+  /// For use with Boost.Mp11 algorithms, which cannot take a concept.
+  template <typename T>
+  using is_sendable = std::bool_constant<sendable<T>>;
+
   template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
 
@@ -27,19 +32,14 @@ namespace phlex::detail {
   concept at_least_one_input_parameter = at_least_n_input_parameters<T, 1>;
 
   template <typename T>
-  concept at_least_two_input_parameters = at_least_n_input_parameters<T, 2>;
-
-  template <typename T>
   concept at_least_one_output_object = number_output_objects<T> >= 1ull;
 
   template <typename T>
-  concept first_input_parameter_is_non_const_lvalue_reference =
-    at_least_one_input_parameter<T> &&
-    is_non_const_lvalue_reference<function_parameter_type<0, T>>::value;
+  concept has_fold_accumulator = fold_like_traits<T>::num_accumulators::value >= 1;
 
   template <typename T>
-  concept first_input_parameter_is_sendable =
-    at_least_one_input_parameter<T> && sendable<function_parameter_type<0, T>>;
+  concept fold_accumulators_are_sendable =
+    boost::mp11::mp_all_of<typename fold_like_traits<T>::accumulator_tuple_t, is_sendable>::value;
 
   template <typename T, typename R>
   concept returns = std::same_as<return_type<T>, R>;
@@ -62,11 +62,11 @@ namespace phlex::detail {
   concept is_provider_like =
     expects_input_parameters<T, data_cell_index const&> && number_output_objects<T> == 1ull;
 
+  // fold_like_traits static_asserts that there is at least one input parameter.
   template <typename T>
   concept is_fold_like =
-    at_least_two_input_parameters<T> && first_input_parameter_is_non_const_lvalue_reference<T> &&
-    first_input_parameter_is_sendable<T> &&
-    returns<T, void>; // <= May change if data products can be created per fold step.
+    has_fold_accumulator<T> && fold_accumulators_are_sendable<T> &&
+    returns<T, void>; // <<< May change if data products can be created per fold step.
 
   template <typename T>
   concept is_unfold_like = expects_input_parameters<T, generator&> && returns<T, void>;

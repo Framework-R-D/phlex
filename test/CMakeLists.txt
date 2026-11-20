@@ -28,6 +28,9 @@ cet_test(config USE_CATCH2_MAIN SOURCE config_test.cpp LIBRARIES
 cet_test(type_deduction SOURCE type_deduction_test.cpp LIBRARIES
          phlex::metaprogramming
 )
+cet_test(make_fold_like USE_CATCH2_MAIN SOURCE make_fold_like_test.cpp LIBRARIES
+         phlex::core_internal
+)
 cet_test(type_id USE_CATCH2_MAIN SOURCE type_id_test.cpp LIBRARIES phlex::model_internal fmt::fmt)
 cet_test(layer_path USE_CATCH2_MAIN SOURCE layer_path_test.cpp LIBRARIES phlex::model_internal fmt::fmt)
 cet_test(identifier USE_CATCH2_MAIN SOURCE identifier_test.cpp LIBRARIES phlex::model phlex::configuration Boost::json)
