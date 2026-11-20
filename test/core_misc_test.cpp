@@ -29,29 +29,29 @@ TEST_CASE("algorithm_name tests", "[model]")
 
   SECTION("Create from string with colon")
   {
-    auto an = algorithm_name::create("plugin:algo");
+    auto an = algorithm_name{"plugin:algo"};
     CHECK(an.to_string() == "plugin:algo");
   }
   SECTION("Create from string without colon")
   {
-    auto an = algorithm_name::create("algo");
+    auto an = algorithm_name{"algo"};
     // For 'either' cases, the word is stored as algorithm_
     CHECK(an.to_string() == "algo");
   }
   SECTION("Create from char pointer")
   {
-    auto an = algorithm_name::create("ptr:algo");
+    auto an = algorithm_name{"ptr:algo"};
     CHECK(an.to_string() == "ptr:algo");
   }
   SECTION("Unqualified name has no plugin")
   {
-    auto const an = algorithm_name::create("algo");
+    auto const an = algorithm_name{"algo"};
     CHECK_FALSE(an.plugin().has_value());
     CHECK(an.algorithm() == "algo"_id);
   }
   SECTION("Qualified name has plugin and algorithm")
   {
-    auto const an = algorithm_name::create("plugin:algo");
+    auto const an = algorithm_name{"plugin:algo"};
     REQUIRE(an.plugin().has_value());
     CHECK(an.plugin().value() == "plugin"_id);
     CHECK(an.algorithm() == "algo"_id);
@@ -61,66 +61,64 @@ TEST_CASE("algorithm_name tests", "[model]")
     algorithm_name const unqualified{std::nullopt, "algo"_id};
     CHECK_FALSE(unqualified.plugin().has_value());
     CHECK(unqualified.to_string() == "algo");
-    CHECK(unqualified == algorithm_name::create("algo"));
+    CHECK(unqualified == algorithm_name{"algo"});
 
     algorithm_name const qualified{"plugin"_id, "algo"_id};
     REQUIRE(qualified.plugin().has_value());
     CHECK(qualified.to_string() == "plugin:algo");
-    CHECK(qualified == algorithm_name::create("plugin:algo"));
+    CHECK(qualified == algorithm_name{"plugin:algo"});
     CHECK(qualified != unqualified);
   }
   SECTION("Create error - structural problems are reported as invalid_argument")
   {
-    auto const *const forms = R"( Expected "algorithm" or "plugin_label:algorithm".)";
+    auto const* const forms = R"( Expected "algorithm" or "plugin_label:algorithm".)";
     auto const message = [forms](std::string_view text, std::string_view reason) {
       return std::string{"Invalid algorithm name \""} + std::string{text} +
              "\": " + std::string{reason} + forms;
     };
 
-    CHECK_THROWS_AS(algorithm_name::create(""), std::invalid_argument);
-    CHECK_THROWS_WITH(algorithm_name::create(""), message("", "it is empty."));
-    CHECK_THROWS_WITH(algorithm_name::create("plugin:"),
+    CHECK_THROWS_AS(algorithm_name{""}, std::invalid_argument);
+    CHECK_THROWS_WITH(algorithm_name{""}, message("", "it is empty."));
+    CHECK_THROWS_WITH(algorithm_name{"plugin:"},
                       message("plugin:", "the algorithm after ':' is missing."));
-    CHECK_THROWS_WITH(algorithm_name::create(":algo"),
+    CHECK_THROWS_WITH(algorithm_name{":algo"},
                       message(":algo", "the plugin label before ':' is missing."));
-    CHECK_THROWS_WITH(algorithm_name::create(":"),
-                      message(":", "the plugin label before ':' is missing."));
-    CHECK_THROWS_WITH(algorithm_name::create("a:b:c"),
-                      message("a:b:c", "it contains more than one ':'."));
+    CHECK_THROWS_WITH(algorithm_name{":"}, message(":", "the plugin label before ':' is missing."));
+    CHECK_THROWS_WITH(algorithm_name{"a:b:c"}, message("a:b:c", "it contains more than one ':'."));
   }
   SECTION("Create error - malformed components are reported as invalid_argument")
   {
     auto const rule = std::string{phlex::detail::identifier_rule};
 
-    CHECK_THROWS_AS(algorithm_name::create("_x"), std::invalid_argument);
-    CHECK_THROWS_WITH(algorithm_name::create("_x"),
+    CHECK_THROWS_AS(algorithm_name{"_x"}, std::invalid_argument);
+    CHECK_THROWS_WITH(algorithm_name{"_x"},
                       "Invalid algorithm name \"_x\": algorithm \"_x\" " + rule);
-    CHECK_THROWS_WITH(algorithm_name::create("a[0]"),
+    CHECK_THROWS_WITH(algorithm_name{"a[0]"},
                       "Invalid algorithm name \"a[0]\": algorithm \"a[0]\" " + rule);
-    CHECK_THROWS_WITH(algorithm_name::create("a b"),
+    CHECK_THROWS_WITH(algorithm_name{"a b"},
                       "Invalid algorithm name \"a b\": algorithm \"a b\" " + rule);
-    CHECK_THROWS_WITH(algorithm_name::create("1p:a"),
+    CHECK_THROWS_WITH(algorithm_name{"1p:a"},
                       "Invalid algorithm name \"1p:a\": plugin label \"1p\" " + rule);
-    CHECK_THROWS_WITH(algorithm_name::create("pl ugin:algo"),
+    CHECK_THROWS_WITH(algorithm_name{"pl ugin:algo"},
                       "Invalid algorithm name \"pl ugin:algo\": plugin label \"pl ugin\" " + rule);
-    CHECK_THROWS_WITH(algorithm_name::create("p:1a"),
+    CHECK_THROWS_WITH(algorithm_name{"p:1a"},
                       "Invalid algorithm name \"p:1a\": algorithm \"1a\" " + rule);
     // Only the first problem is reported, and the plugin label is checked first.
-    CHECK_THROWS_WITH(algorithm_name::create("1p:1a"),
+    CHECK_THROWS_WITH(algorithm_name{"1p:1a"},
                       "Invalid algorithm name \"1p:1a\": plugin label \"1p\" " + rule);
   }
   SECTION("Create error - long text is shortened in the message")
   {
     std::string const text = std::string(100, 'a') + "-";
     std::string const shown = std::string(64, 'a') + "...";
-    CHECK_THROWS_WITH(algorithm_name::create(text),
+    CHECK_THROWS_WITH(algorithm_name{text},
                       Catch::Matchers::ContainsSubstring("\"" + shown + "\"") &&
                         !Catch::Matchers::ContainsSubstring(text));
   }
   SECTION("Create from optional plugin and algorithm")
   {
-    CHECK(algorithm_name::create(std::nullopt, "algo") == algorithm_name::create("algo"));
-    CHECK(algorithm_name::create("plugin", "algo") == algorithm_name::create("plugin:algo"));
+    CHECK(algorithm_name::create(std::nullopt, "algo") == algorithm_name{"algo"});
+    CHECK(algorithm_name::create("plugin", "algo") == algorithm_name{"plugin:algo"});
     // An empty plugin is not the same as an absent plugin.
     CHECK_THROWS_AS(algorithm_name::create("", "algo"), std::invalid_argument);
     CHECK_THROWS_AS(algorithm_name::create(std::nullopt, ""), std::invalid_argument);
@@ -130,14 +128,13 @@ TEST_CASE("algorithm_name tests", "[model]")
   }
   SECTION("Match both")
   {
-    algorithm_name const an = algorithm_name::create("p:a");
-    CHECK(an.match(algorithm_name::create("p:a")));
-    CHECK_FALSE(an.match(algorithm_name::create("p:b")));
+    algorithm_name const an = algorithm_name{"p:a"};
+    CHECK(an.match(algorithm_name{"p:a"}));
+    CHECK_FALSE(an.match(algorithm_name{"p:b"}));
   }
   SECTION("Bulleted list of algorithm_name")
   {
-    std::vector<algorithm_name> const ans = {algorithm_name::create("p:a1"),
-                                             algorithm_name::create("p:a2")};
+    std::vector<algorithm_name> const ans = {algorithm_name{"p:a1"}, algorithm_name{"p:a2"}};
     CHECK(bulleted_list(ans) == "  - p:a1\n  - p:a2");
   }
   SECTION("Empty bulleted list")
@@ -237,7 +234,7 @@ TEST_CASE("Moving a registrar transfers node creation", "[core]")
   int creations = 0;
   auto creator = [&](auto const&, auto const&) -> declared_output_ptr {
     ++creations;
-    return std::make_unique<declared_output>(phlex::experimental::algorithm_name::create("output"),
+    return std::make_unique<declared_output>(phlex::experimental::algorithm_name{"output"},
                                              1,
                                              std::vector<std::string>{},
                                              graph,

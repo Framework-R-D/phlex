@@ -106,7 +106,7 @@ namespace {
 TEST_CASE("transform_node directly transforms one input product", "[transform_node]")
 {
   oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
+  auto const input_creator_name = algorithm_name{"input"};
   identifier const stage_name = "test_stage"_id;
   auto input_selector = selector<input_type_1>(input_creator_name);
   auto input_store = store_with_product(
@@ -153,7 +153,7 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
 TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 {
   oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
+  auto const input_creator_name = algorithm_name{"input"};
   identifier const stage{"test_stage"};
   auto input_selector = selector<input_type_1>(input_creator_name);
   auto input_store =
@@ -203,7 +203,7 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
 {
   oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
+  auto const input_creator_name = algorithm_name{"input"};
   identifier const stage_name = "test_stage"_id;
   auto input_selector = selector<input_type_1>(input_creator_name);
   auto input_store = store_with_product(
@@ -239,7 +239,7 @@ TEST_CASE("transform_node receives a resource token", "[transform_node][resource
 TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
 {
   oneapi::tbb::flow::graph graph;
-  auto const input_creator_name = algorithm_name::create("input");
+  auto const input_creator_name = algorithm_name{"input"};
   identifier const stage_name = "test_stage"_id;
   auto input_selector = selector<input_type_1>(input_creator_name);
   auto input_store = store_with_product(

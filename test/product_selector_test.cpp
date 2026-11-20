@@ -102,11 +102,11 @@ TEST_CASE("Selectors match product specifications by creator, suffix, and type",
   using experimental::type_id;
 
   product_specification const qualified{
-    experimental::algorithm_name::create("plugin:algo"), "prod"_id, make_type_id<int>()};
+    experimental::algorithm_name{"plugin:algo"}, "prod"_id, make_type_id<int>()};
   product_specification const unqualified{
-    experimental::algorithm_name::create("algo"), "prod"_id, make_type_id<int>()};
+    experimental::algorithm_name{"algo"}, "prod"_id, make_type_id<int>()};
   product_specification const empty_suffix{
-    experimental::algorithm_name::create("algo"), suffix_t{}, type_id{}};
+    experimental::algorithm_name{"algo"}, suffix_t{}, type_id{}};
 
   SECTION("A creator selects by plugin or by algorithm")
   {

@@ -52,8 +52,8 @@ TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
   oneapi::tbb::flow::graph graph;
 
   auto const stage = "test_stage"_id;
-  auto const left_creator_name = algorithm_name::create("left_input");
-  auto const right_creator_name = algorithm_name::create("right_input");
+  auto const left_creator_name = algorithm_name{"left_input"};
+  auto const right_creator_name = algorithm_name{"right_input"};
 
   auto left_store = store_with_product(
     gsl::make_not_null(&left_creator_name), gsl::make_not_null(&stage), input_type_1{17});

@@ -22,7 +22,9 @@ namespace phlex::experimental {
   public:
     // There is no default or creator-less construction: every specification names its creator.
 
-    // Text constructors parse the `creator/suffix` form, which must contain the slash.
+    // Text constructors parse the `creator/suffix` form, which must contain the slash. Structural
+    // errors throw `std::runtime_error`; an invalid creator or suffix throws
+    // `std::invalid_argument`.
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     product_specification(char const* name);
     product_specification(std::string const& name);
@@ -39,9 +41,6 @@ namespace phlex::experimental {
     void set_type(type_id&& type) { type_id_ = std::move(type); }
 
     auto operator<=>(product_specification const&) const = default;
-
-    static product_specification create(char const* c);
-    static product_specification create(std::string_view s);
 
     friend struct std::hash<product_specification>;
 

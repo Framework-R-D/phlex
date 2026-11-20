@@ -38,11 +38,28 @@ namespace {
 }
 
 namespace phlex::experimental {
+  namespace {
+    // Splits `spec` into an optional plugin label and an algorithm, then validates them through
+    // the component overload of `algorithm_name::create`.
+    algorithm_name parse(std::string_view spec)
+    {
+      auto const colon = spec.find(':');
+      if (colon == std::string_view::npos) {
+        return algorithm_name::create(std::nullopt, spec);
+      }
+      auto const algorithm = spec.substr(colon + 1);
+      if (algorithm.contains(':')) {
+        throw_invalid(spec, fmt::format("it contains more than one ':'. {}", expected_forms));
+      }
+      return algorithm_name::create(spec.substr(0, colon), algorithm);
+    }
+  }
+
   algorithm_name::algorithm_name(char const* spec) : algorithm_name{std::string_view{spec}} {}
   algorithm_name::algorithm_name(std::string const& spec) : algorithm_name{std::string_view{spec}}
   {
   }
-  algorithm_name::algorithm_name(std::string_view spec) : algorithm_name{create(spec)} {}
+  algorithm_name::algorithm_name(std::string_view spec) : algorithm_name{parse(spec)} {}
 
   algorithm_name::algorithm_name(std::optional<identifier> plugin, identifier algorithm) :
     plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
@@ -58,21 +75,6 @@ namespace phlex::experimental {
   }
 
   bool algorithm_name::match(algorithm_name const& other) const { return operator==(other); }
-
-  algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
-
-  algorithm_name algorithm_name::create(std::string_view spec)
-  {
-    auto const colon = spec.find(':');
-    if (colon == std::string_view::npos) {
-      return create(std::nullopt, spec);
-    }
-    auto const algorithm = spec.substr(colon + 1);
-    if (algorithm.contains(':')) {
-      throw_invalid(spec, fmt::format("it contains more than one ':'. {}", expected_forms));
-    }
-    return create(spec.substr(0, colon), algorithm);
-  }
 
   algorithm_name algorithm_name::create(std::optional<std::string_view> plugin,
                                         std::string_view algorithm)

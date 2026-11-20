@@ -12,6 +12,11 @@
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT algorithm_name {
   public:
+    /// Parse text that is either `algorithm` or `plugin_label:algorithm`.
+    ///
+    /// Throws `std::invalid_argument` if `spec` is malformed. The message quotes the offending
+    /// text and says which part of the name is invalid and why. Only the first problem found is
+    /// reported.
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     algorithm_name(char const* spec);
     algorithm_name(std::string const& spec);
@@ -28,17 +33,10 @@ namespace phlex::experimental {
     bool match(algorithm_name const& other) const;
     auto operator<=>(algorithm_name const&) const noexcept = default;
 
-    /// Parses `spec`, which is either `algorithm` or `plugin_label:algorithm`.
-    ///
-    /// Throws `std::invalid_argument` if `spec` is malformed. The message quotes the offending
-    /// text and says which part of the name is invalid and why. Only the first problem found is
-    /// reported.
-    static algorithm_name create(char const* spec);
-    static algorithm_name create(std::string_view spec);
-
     /// Validates the components of a name and constructs it. This is the single place where
     /// the text of an algorithm name is checked: the character rules are those of `identifier`,
-    /// and failures are reported as described for `create(std::string_view)`.
+    /// and failures are reported as described for the text constructors, which parse their
+    /// argument and then call this function.
     ///
     /// An unqualified name is represented by `std::nullopt`. An empty `plugin` is not the same
     /// as `std::nullopt`; it is rejected.

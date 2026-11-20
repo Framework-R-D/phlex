@@ -42,8 +42,8 @@ TEST_CASE("Product specification text requires creator and slash", "[data model]
 {
   SECTION("Creator with a named suffix")
   {
-    auto const spec = product_specification::create("creator/number");
-    CHECK(spec.creator() == algorithm_name::create("creator"));
+    auto const spec = product_specification{"creator/number"};
+    CHECK(spec.creator() == algorithm_name{"creator"});
     CHECK_FALSE(spec.creator().plugin().has_value());
     CHECK(spec.suffix() == "number"_id);
     CHECK_FALSE(spec.type().valid());
@@ -51,44 +51,44 @@ TEST_CASE("Product specification text requires creator and slash", "[data model]
   }
   SECTION("Plugin-qualified creator")
   {
-    auto const spec = product_specification::create("plugin:creator/number");
-    CHECK(spec.creator() == algorithm_name::create("plugin:creator"));
+    auto const spec = product_specification{"plugin:creator/number"};
+    CHECK(spec.creator() == algorithm_name{"plugin:creator"});
     CHECK(spec.suffix() == "number"_id);
     CHECK(spec.to_string() == "plugin:creator/number");
   }
   SECTION("Trailing slash means an explicit empty suffix")
   {
-    auto const spec = product_specification::create("creator/");
-    CHECK(spec.creator() == algorithm_name::create("creator"));
+    auto const spec = product_specification{"creator/"};
+    CHECK(spec.creator() == algorithm_name{"creator"});
     CHECK(spec.suffix() == suffix_t{});
     CHECK(spec.suffix().empty());
     CHECK(spec.to_string() == "creator/");
-    CHECK(product_specification::create(spec.to_string()) == spec);
+    CHECK(product_specification{spec.to_string()} == spec);
   }
   SECTION("Implicit conversion from text")
   {
     product_specification const from_literal{"plugin:creator/number"};
-    CHECK(from_literal == product_specification::create("plugin:creator/number"));
+    CHECK(from_literal ==
+          product_specification{algorithm_name{"plugin:creator"}, "number"_id, type_id{}});
     product_specification const from_string{std::string{"creator/"}};
-    CHECK(from_string == product_specification::create("creator/"));
+    CHECK(from_string == product_specification{algorithm_name{"creator"}, suffix_t{}, type_id{}});
     product_specification const from_view{std::string_view{"creator/number"}};
-    CHECK(from_view == product_specification::create("creator/number"));
+    CHECK(from_view == product_specification{algorithm_name{"creator"}, "number"_id, type_id{}});
   }
   SECTION("Invalid forms are rejected")
   {
-    CHECK_THROWS(product_specification::create(""));
-    CHECK_THROWS(product_specification::create("number"));
-    CHECK_THROWS(product_specification::create("creator"));
-    CHECK_THROWS(product_specification::create("/number"));
-    CHECK_THROWS(product_specification::create("/"));
-    CHECK_THROWS(product_specification::create("plugin:/number"));
-    CHECK_THROWS(product_specification::create(":creator/number"));
-    CHECK_THROWS(product_specification::create("creator/a/b"));
+    CHECK_THROWS(product_specification{""});
     CHECK_THROWS(product_specification{"number"});
+    CHECK_THROWS(product_specification{"creator"});
+    CHECK_THROWS(product_specification{"/number"});
+    CHECK_THROWS(product_specification{"/"});
+    CHECK_THROWS(product_specification{"plugin:/number"});
+    CHECK_THROWS(product_specification{":creator/number"});
+    CHECK_THROWS(product_specification{"creator/a/b"});
     // Malformed creator text is reported by algorithm_name, as invalid_argument.
-    CHECK_THROWS_AS(product_specification::create("_x/number"), std::invalid_argument);
+    CHECK_THROWS_AS(product_specification{"_x/number"}, std::invalid_argument);
     CHECK_THROWS_WITH(
-      product_specification::create("1p:a/number"),
+      product_specification{"1p:a/number"},
       Catch::Matchers::ContainsSubstring("Invalid algorithm name \"1p:a\": "
                                          "plugin label \"1p\" " +
                                          std::string{phlex::detail::identifier_rule}));
@@ -98,7 +98,7 @@ TEST_CASE("Product specification text requires creator and slash", "[data model]
 
 TEST_CASE("Product specification type mutation", "[data model]")
 {
-  auto spec = product_specification::create("creator/number");
+  auto spec = product_specification{"creator/number"};
   REQUIRE_FALSE(spec.type().valid());
 
   spec.set_type(make_type_id<int>());
@@ -109,15 +109,15 @@ TEST_CASE("Product specification type mutation", "[data model]")
 
   spec.set_type(type_id{});
   CHECK_FALSE(spec.type().valid());
-  CHECK(spec == product_specification::create("creator/number"));
-  CHECK(spec.creator() == algorithm_name::create("creator"));
+  CHECK(spec == product_specification{"creator/number"});
+  CHECK(spec.creator() == algorithm_name{"creator"});
   CHECK(spec.suffix() == "number"_id);
 }
 
 TEST_CASE("Product specification hash and equality", "[data model]")
 {
-  auto const creator = algorithm_name::create("plugin:producer");
-  auto const unqualified = algorithm_name::create("producer");
+  auto const creator = algorithm_name{"plugin:producer"};
+  auto const unqualified = algorithm_name{"producer"};
   product_specification const named{creator, "number"_id, make_type_id<int>()};
   product_specification const unqualified_spec{unqualified, "number"_id, make_type_id<int>()};
   product_specification const untyped{creator, "number"_id, type_id{}};
@@ -149,8 +149,8 @@ TEST_CASE("Product specification hash and equality", "[data model]")
   CHECK(specs.contains(product_specification{unqualified, "number"_id, make_type_id<int>()}));
   CHECK_FALSE(specs.contains(product_specification{creator, "other"_id, make_type_id<int>()}));
   CHECK_FALSE(specs.contains(product_specification{creator, "number"_id, make_type_id<double>()}));
-  CHECK_FALSE(specs.contains(product_specification{
-    algorithm_name::create("plugin:other"), "number"_id, make_type_id<int>()}));
+  CHECK_FALSE(specs.contains(
+    product_specification{algorithm_name{"plugin:other"}, "number"_id, make_type_id<int>()}));
 }
 
 TEST_CASE("Product store default source", "[data model]")
@@ -164,7 +164,7 @@ TEST_CASE("Product store default source", "[data model]")
 
 TEST_CASE("Product store insertion", "[data model]")
 {
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto creator_ptr = gsl::make_not_null(&creator);
   auto stage_ptr = gsl::make_not_null(&stage);
@@ -206,7 +206,7 @@ TEST_CASE("Product retrieval requires exactly one match", "[data model]")
 {
   using Catch::Matchers::ContainsSubstring;
 
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
   phlex::detail::message const msg{.store = store};
@@ -258,7 +258,7 @@ TEST_CASE("Product store derivation", "[data model]")
 {
   using namespace phlex::experimental::detail;
 
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto creator_ptr = gsl::make_not_null(&creator);
   auto stage_ptr = gsl::make_not_null(&stage);

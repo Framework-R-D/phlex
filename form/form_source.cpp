@@ -181,7 +181,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   // Parse the creator once, here, where its parameter name is known.
   auto const advertised_creator = [&creator_text] {
     try {
-      return phlex::experimental::algorithm_name::create(creator_text);
+      return phlex::experimental::algorithm_name{creator_text};
     } catch (std::invalid_argument const& e) {
       throw std::invalid_argument{std::string{"Invalid parameter 'creator': "} + e.what()};
     }

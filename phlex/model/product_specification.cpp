@@ -15,6 +15,27 @@
 #include <vector>
 
 namespace phlex::experimental {
+  namespace {
+    // Parses the `creator/suffix` form. The specification's type is left unspecified.
+    product_specification parse(std::string_view s)
+    {
+      auto const forward_slash = s.find('/');
+      if (forward_slash == std::string_view::npos) {
+        throw std::runtime_error(
+          fmt::format("The specification '{}' is not a valid product specification: "
+                      "expected the form 'creator/suffix' (use 'creator/' for an empty suffix).",
+                      s));
+      }
+      if (forward_slash == 0) {
+        throw std::runtime_error(
+          fmt::format("The product specification '{}' does not name a creator.", s));
+      }
+      return {algorithm_name{s.substr(0, forward_slash)},
+              suffix_t(s.substr(forward_slash + 1)),
+              type_id{}};
+    }
+  }
+
   product_specification::product_specification(char const* name) :
     product_specification{std::string_view{name}}
   {
@@ -24,7 +45,7 @@ namespace phlex::experimental {
   {
   }
   product_specification::product_specification(std::string_view name) :
-    product_specification{create(name)}
+    product_specification{parse(name)}
   {
   }
 
@@ -39,30 +60,6 @@ namespace phlex::experimental {
   {
     return fmt::format("{}/{}", creator_.to_string(), suffix_);
   }
-
-  product_specification product_specification::create(char const* c)
-  {
-    return create(std::string_view{c});
-  }
-
-  product_specification product_specification::create(std::string_view s)
-  {
-    auto const forward_slash = s.find('/');
-    if (forward_slash == std::string_view::npos) {
-      throw std::runtime_error(
-        fmt::format("The specification '{}' is not a valid product specification: "
-                    "expected the form 'creator/suffix' (use 'creator/' for an empty suffix).",
-                    s));
-    }
-    if (forward_slash == 0) {
-      throw std::runtime_error(
-        fmt::format("The product specification '{}' does not name a creator.", s));
-    }
-    return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
-            experimental::suffix_t(s.substr(forward_slash + 1)),
-            type_id{}};
-  }
-
 }
 
 namespace phlex::detail {

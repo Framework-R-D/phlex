@@ -62,7 +62,7 @@ TEST_CASE("Filter data map", "[filtering]")
   data_map data{data_products_to_cache};
 
   // Stores with the data products "a" and "b" in the spill data layer
-  auto const creator = algorithm_name::create("input");
+  auto const creator = algorithm_name{"input"};
   auto const stage = "test_stage"_id;
   auto creator_ptr = gsl::make_not_null(&creator);
   auto stage_ptr = gsl::make_not_null(&stage);
@@ -94,7 +94,7 @@ TEST_CASE("Data map for output only", "[filtering]")
   CHECK(not data.is_complete(msg_id));
 
   // Output-only data maps accept any store (no product lookup required)
-  auto const creator = algorithm_name::create("output_only");
+  auto const creator = algorithm_name{"output_only"};
   auto const stage = "test_stage"_id;
   auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
 
