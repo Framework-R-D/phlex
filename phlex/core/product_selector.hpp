@@ -2,6 +2,7 @@
 #define PHLEX_CORE_PRODUCT_SELECTOR_HPP
 
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
@@ -52,27 +53,19 @@ namespace phlex {
       std::optional<experimental::identifier> content_;
     };
 
-    class layer_name {
+    class layer_selector {
     public:
-      layer_name() = default;
-      layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
-      {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
-      }
+      layer_selector() = default;
+      layer_selector(std::optional<std::string_view> const& content) : content_{content} {}
       template <typename U>
-        requires std::constructible_from<experimental::identifier, U>
+        requires std::constructible_from<experimental::layer_path, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      layer_name(U&& rhs) : content_(std::forward<U>(rhs))
+      layer_selector(U&& rhs) : content_(std::forward<U>(rhs))
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator experimental::identifier const&() const
+      operator experimental::layer_path const&() const
       {
         if (!content_.has_value()) {
           throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
@@ -80,19 +73,18 @@ namespace phlex {
         return *content_;
       }
 
-      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      explicit operator std::string_view() const noexcept
+      experimental::layer_path const& operator*() const noexcept { return content_.operator*(); }
+      experimental::layer_path const* operator->() const noexcept { return content_.operator->(); }
+      explicit operator std::string() const noexcept
       {
-        using namespace std::string_view_literals;
-        return content_
-          .transform([](experimental::identifier const& id) { return std::string_view(id); })
-          .value_or("[ANY]"sv);
+        using namespace std::string_literals;
+        return content_ ? content_->to_string() : "[ANY]"s;
       }
       operator bool() const noexcept { return content_.has_value(); }
-      auto operator<=>(layer_name const&) const noexcept = default;
+      auto operator<=>(layer_selector const&) const noexcept = default;
 
     private:
-      std::optional<experimental::identifier> content_;
+      std::optional<experimental::layer_path> content_;
     };
   }
 
@@ -107,7 +99,7 @@ namespace phlex {
     detail::creator_name creator;
     /// Data layer of the product.  Required for every input of multi-input algorithms,
     /// folds and unfolds; products from other layers are not delivered.
-    detail::layer_name layer;
+    detail::layer_selector layer;
     /// Product suffix, as given to @c output_product_suffixes(...).
     std::optional<experimental::identifier> suffix;
     /// Stage that created the product; @c "CURRENT" means the job's own stage.
@@ -123,7 +115,7 @@ namespace phlex {
 
     // Check if a product_specification, layer, and stage together satisfies this query
     bool match(experimental::product_specification const& spec,
-               experimental::identifier const& layer,
+               experimental::layer_path const& layer,
                experimental::identifier const& stage) const;
 
     // Check if an algorithm name matches this query's creator

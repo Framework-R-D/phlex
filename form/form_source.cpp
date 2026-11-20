@@ -106,7 +106,8 @@ namespace {
           algorithm_name::create(advertised_creator_), identifier{name}, selector.type};
 
         // Read and provide products at the configured stage.
-        identifier const selector_layer = selector.layer;
+        // FIXME: This layer is always going to match
+        identifier const selector_layer = selector.layer->leaf();
         identifier const product_stage{stage_};
 
         if (!selector.match(spec, selector_layer, product_stage)) {

@@ -42,6 +42,9 @@ namespace phlex::experimental {
 
     std::span<identifier const> components() const noexcept { return layer_path_; }
 
+    /// Return the lowest level (leaf) layer identifier
+    identifier const& leaf() const noexcept { return layer_path_.back(); }
+
     std::string to_string() const;
 
     /// This function assumes incomplete paths have an implicit job root

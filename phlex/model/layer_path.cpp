@@ -29,7 +29,7 @@ namespace phlex::experimental {
     if (layer_path_.empty()) {
       throw std::runtime_error("Layer paths cannot be empty.");
     }
-    if (path.starts_with("/") and not is_complete()) {
+    if (path.starts_with('/') and not is_complete()) {
       throw std::runtime_error(
         fmt::format("A complete layer path must start with '/job'. '{}' does not!", path));
     }
