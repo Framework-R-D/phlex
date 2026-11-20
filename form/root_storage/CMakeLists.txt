@@ -45,20 +45,29 @@ target_link_libraries(
   PRIVATE Microsoft.GSL::GSL form_util
 )
 
-target_include_directories(root_storage PRIVATE ${ROOT_INCLUDE_DIRS})
-reflex_generate_dictionary(root_storage descriptor_dict.h SELECTION classes_def.xml)
+# ROOT dictionary for the descriptor's on-disk type.
+add_library(root_storage_dict OBJECT)
+target_include_directories(
+  root_storage_dict
+  PRIVATE ${PROJECT_SOURCE_DIR}/form ${ROOT_INCLUDE_DIRS}
+)
+reflex_generate_dictionary(root_storage_dict descriptor_dict.h SELECTION classes_def.xml)
 
-# The dictionary code is linked into libphlex_form, so ROOT's PCM must be placed alongside that
-# library for dynamic loading.
+# Link directly into form to prevent the dictionary object from being discarded as an unreferenced
+# member of the root_storage static library.
+target_link_libraries(form PRIVATE root_storage_dict)
+
+# Ensure the PCM is generated before copying it next to libphlex_form.
+add_dependencies(root_storage root_storage_dict)
 add_custom_command(
   TARGET root_storage
   POST_BUILD
   COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/root_storage_rdict.pcm
+    ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/root_storage_dict_rdict.pcm
     $<TARGET_FILE_DIR:form>
   VERBATIM
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/root_storage_rdict.pcm DESTINATION lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/root_storage_dict_rdict.pcm DESTINATION lib)
 
 # Suppress a GCC false positive triggered by LTO when linking ROOT-generated dictionaries, the
 # same workaround the test dictionaries use

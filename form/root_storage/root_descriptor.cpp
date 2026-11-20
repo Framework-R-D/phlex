@@ -10,17 +10,11 @@
 #include <TKey.h>
 
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
-
-// Reference the generated dictionary initialization function to ensure its object file is linked
-// from the static archive and the dictionary is registered at runtime.
-// NOLINTNEXTLINE(readability-identifier-naming)
-void TriggerDictionaryInitialization_root_storage();
 
 namespace form::detail::experimental {
 
@@ -47,9 +41,6 @@ namespace form::detail::experimental {
   namespace {
     TClass const& descriptor_class()
     {
-      static std::once_flag dictionary_once;
-      std::call_once(dictionary_once, [] { TriggerDictionaryInitialization_root_storage(); });
-
       return require_descriptor_class(TClass::GetClass<descriptor_entries>());
     }
   }
