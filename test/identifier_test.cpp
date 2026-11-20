@@ -82,14 +82,26 @@ TEST_CASE("Identifier accepts ASCII letters, digits, and underscores", "[identif
   CHECK("AbC_012"_id == "AbC_012"_idq);
 }
 
-TEST_CASE("Identifier validates every length-bearing construction path", "[identifier]")
+TEST_CASE("Identifier constructors, literals, and optional wrappers reject invalid names",
+          "[identifier]")
 {
   CHECK_THROWS(identifier{"bad name"sv});
   CHECK_THROWS(identifier{std::string{"bad name"}});
   CHECK_THROWS("bad name"_id);
-  CHECK_THROWS("abc\0def"_id);
   CHECK_THROWS(identifier_or_empty{"bad name"sv});
+}
+
+// The following tests the constructors that process the whole series of bytes because they
+// are not using any functions that make use of null-terminated character arrays.
+TEST_CASE("Identifier literals and suffixes reject embedded NULs in explicitly sized input",
+          "[identifier]")
+{
+  CHECK_THROWS("abc\0def"_id);
   CHECK_THROWS(suffix_t{std::string{"abc\0def", 7}});
+}
+
+TEST_CASE("identifier_or_empty accepts an empty name", "[identifier]")
+{
   CHECK(identifier_or_empty{""}.empty());
 }
 
