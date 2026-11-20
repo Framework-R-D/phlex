@@ -16,6 +16,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeindex>
 #include <vector>
 
 namespace phlex::experimental {
@@ -99,6 +100,8 @@ namespace phlex::experimental {
     };
 
     bool exact_compare(type_id const& rhs) const { return *exact_ == *(rhs.exact_); }
+
+    std::type_index exact_type() const { return std::type_index{*exact_}; }
 
     std::string exact_name() const { return boost::core::demangle(exact_->name()); }
 

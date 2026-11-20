@@ -59,6 +59,5 @@ PHLEX_REGISTER_ALGORITHMS(graph)
              })
     .input_family(
       product_selector{.creator = "test_waveforms", .layer = "apa", .suffix = "test_waveforms"});
-  form::experimental::register_form_vector_product_type<form::test::waveform>(
-    "form::test::waveform");
+  form::experimental::register_form_vector_product_type<form::test::waveform>();
 }

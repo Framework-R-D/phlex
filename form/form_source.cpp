@@ -15,6 +15,8 @@
 #include "phlex/model/products.hpp"
 #include "phlex/source.hpp"
 
+#include <boost/core/demangle.hpp>
+
 #include <cassert>
 #include <cstddef>
 #include <exception>
@@ -23,6 +25,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
@@ -92,13 +95,8 @@ namespace {
       using namespace phlex::experimental;
       phlex::provider_bundles bundles;
 
-      std::string const* product_type_name =
-        form::experimental::find_form_product_type_name(selector.type);
-      if (product_type_name == nullptr) {
-        return bundles;
-      }
-
-      auto const* selected_entry = form::experimental::find_form_product_type(*product_type_name);
+      auto const product_type = selector.type.exact_type();
+      auto const* selected_entry = form::experimental::find_form_product_type(product_type);
       if (selected_entry == nullptr || selected_entry->cpp_type == nullptr) {
         return bundles;
       }
@@ -118,7 +116,7 @@ namespace {
         reader_->prime(actual_creator_, stage_, name, *selected_entry->cpp_type);
 
         auto provider_func =
-          [this, name, product_type = *product_type_name](
+          [this, name, product_type](
             phlex::data_cell_index const& id) -> phlex::experimental::product_ptr {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
@@ -152,7 +150,7 @@ namespace {
     phlex::experimental::product_ptr read_product_from_form(std::string const& creator,
                                                             std::string const& product_name,
                                                             std::string const& index_str,
-                                                            std::string const& product_type)
+                                                            std::type_index product_type)
     {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);
@@ -162,7 +160,8 @@ namespace {
         reader_->read(creator, stage_, index_str, pb);
         return entry->product_from_data_fn(pb.data, product_name, index_str);
       }
-      throw std::runtime_error("Unsupported FORM product type: " + product_type);
+      throw std::runtime_error("Unsupported FORM product type: " +
+                               boost::core::demangle(product_type.name()));
     }
 
   private:

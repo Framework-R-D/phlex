@@ -14,7 +14,6 @@
 #include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
-#include "phlex/model/products.hpp"
 #include "phlex/model/type_id.hpp"
 #include "storage/descriptor.hpp"
 #include "storage/factories.hpp"
@@ -47,6 +46,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <typeindex>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -688,23 +688,17 @@ TEST_CASE("form::experimental::config tests", "[form]")
   }
 }
 
-TEST_CASE("FORM source registry prefers exact type matches", "[form]")
+TEST_CASE("FORM source registry resolves exact type matches", "[form]")
 {
   struct local_product {
     int value{};
   };
 
-  constexpr char const* local_name = "std::vector<local_product>";
-
-  form::experimental::register_form_vector_product_type<local_product>(local_name);
+  form::experimental::register_form_vector_product_type<local_product>();
 
   auto const local_type = phlex::experimental::make_type_id<std::vector<local_product>>();
-  auto const* resolved_name = form::experimental::find_form_product_type_name(local_type);
-
-  REQUIRE(resolved_name != nullptr);
-  CHECK(*resolved_name == local_name);
-
-  auto const* entry = form::experimental::find_form_product_type(*resolved_name);
+  CHECK(local_type.exact_type() == std::type_index{typeid(std::vector<local_product>)});
+  auto const* entry = form::experimental::find_form_product_type(local_type.exact_type());
   REQUIRE(entry != nullptr);
   REQUIRE(entry->cpp_type != nullptr);
   CHECK(*entry->cpp_type == typeid(std::vector<local_product>));
@@ -713,10 +707,11 @@ TEST_CASE("FORM source registry prefers exact type matches", "[form]")
 TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
 {
   auto const bool_type = phlex::experimental::make_type_id<std::vector<bool>>();
-  auto const* resolved_name = form::experimental::find_form_product_type_name(bool_type);
+  auto const* entry = form::experimental::find_form_product_type(bool_type.exact_type());
 
-  REQUIRE(resolved_name != nullptr);
-  CHECK(*resolved_name == "std::vector<bool>");
+  REQUIRE(entry != nullptr);
+  REQUIRE(entry->cpp_type != nullptr);
+  CHECK(*entry->cpp_type == typeid(std::vector<bool>));
 }
 
 TEST_CASE("persistence_reader: throws for missing product in config", "[form]")
@@ -1006,7 +1001,7 @@ TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", 
   using namespace form::experimental;
 
   ensure_builtin_form_product_types_registered();
-  auto const* entry = find_form_product_type("std::vector<int>");
+  auto const* entry = find_form_product_type(typeid(std::vector<int>));
   REQUIRE(entry != nullptr);
   REQUIRE(entry->product_from_data_fn != nullptr);
 
@@ -1015,42 +1010,26 @@ TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", 
 
 TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
 {
-  // find_form_product_type_name returns nullptr for a type never registered.
-  // Exercises the null-return path form_source::create_providers checks at L76-77.
   struct never_registered {};
   auto const unknown_type = phlex::experimental::make_type_id<never_registered>();
-  CHECK(form::experimental::find_form_product_type_name(unknown_type) == nullptr);
+  CHECK(form::experimental::find_form_product_type(unknown_type.exact_type()) == nullptr);
 }
 
-TEST_CASE("FORM source registry: unknown name returns nullptr entry", "[form]")
+TEST_CASE("FORM source registry rejects coarse-only type matches", "[form]")
 {
-  // find_form_product_type returns nullptr for an unregistered name.
-  // Exercises the null-entry path form_source::create_providers checks at L80-82.
-  CHECK(form::experimental::find_form_product_type("__nonexistent_product_type__") == nullptr);
+  std::type_index const registered_type{typeid(std::vector<int>)};
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays) -- testing a type that a user might try to register
+  std::type_index const unregistered_type{typeid(int[3])};
+  CHECK(form::experimental::find_form_product_type(registered_type) != nullptr);
+  CHECK(form::experimental::find_form_product_type(unregistered_type) == nullptr);
 }
 
 TEST_CASE("FORM source registry: registration error paths", "[form]")
 {
-  using phlex::experimental::make_type_id;
-
-  SECTION("empty product type name throws")
-  {
-    CHECK_THROWS_AS(form::experimental::register_form_product_type(
-                      "",
-                      make_type_id<int>(),
-                      typeid(int),
-                      [](void const*, std::string const&, std::string const&)
-                        -> phlex::experimental::product_ptr { return nullptr; }),
-                    std::runtime_error);
-  }
-
   SECTION("null conversion function throws")
   {
     CHECK_THROWS_AS(form::experimental::register_form_product_type(
-                      "some_new_type_for_error_test",
-                      make_type_id<double>(),
-                      typeid(double),
-                      form::experimental::form_source_product_from_data_fn{}),
+                      typeid(double), form::experimental::form_source_product_from_data_fn{}),
                     std::runtime_error);
   }
 }

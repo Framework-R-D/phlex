@@ -8,6 +8,7 @@
 #include <functional>
 #include <tuple>
 #include <type_traits>
+#include <typeindex>
 #include <vector>
 
 using phlex::experimental::make_type_id;
@@ -80,6 +81,14 @@ TEST_CASE("Type ID equality and comparison", "[type_id]")
   CHECK(make_type_id<int>() == make_type_id<int const&>());
   CHECK(make_type_id<test_enum>() == make_type_id<std::underlying_type_t<test_enum>>());
   CHECK(make_type_id<test_struct>() > make_type_id<bool>());
+}
+
+TEST_CASE("Type ID exact type identity", "[type_id]")
+{
+  CHECK(make_type_id<int const&>().exact_type() == std::type_index{typeid(int)});
+  CHECK(make_type_id<std::vector<int>>().exact_type() == std::type_index{typeid(std::vector<int>)});
+  CHECK(make_type_id<test_enum>().exact_type() !=
+        make_type_id<std::underlying_type_t<test_enum>>().exact_type());
 }
 
 TEST_CASE("Type ID children detection", "[type_id]")
