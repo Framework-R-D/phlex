@@ -50,6 +50,24 @@
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
             }
+        },
+        {
+            "name": "perftest",
+            "inherits": "default",
+            "displayName": "Performance Measurement",
+            "description": "Build with performance measurement enabled.",
+            "cacheVariables": {
+                "ENABLE_PERFETTO": "ON",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_BUILD_TYPE": "Release",
+                "TBB_TEST_PERF": "ON",
+                "TBB_TEST_PERF_TRACE": "OFF"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
         }
     ],
     "version": 3

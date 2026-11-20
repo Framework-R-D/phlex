@@ -5,7 +5,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^test/perf/
       - id: end-of-file-fixer
+        exclude: ^test/perf/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict
@@ -35,6 +37,7 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
+        exclude: ^test/perf/
   - repo: local
     hooks:
       - id: fix-header-guards
@@ -42,6 +45,7 @@ repos:
         entry: python3 scripts/fix_header_guards.py
         language: system
         files: \.(h|hpp)$
+        exclude: ^test/perf/
       - id: scripts-unit-tests
         name: scripts, CI, and devcontainer unit tests
         entry: pytest scripts/test/ -v
@@ -57,6 +61,7 @@ repos:
     rev: 0.28.0
     hooks:
       - id: gersemi
+        exclude: ^test/perf/
   - repo: https://github.com/google/go-jsonnet
     rev: v0.22.0
     hooks:
@@ -75,6 +80,7 @@ repos:
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
+        exclude: ^test/perf/
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:

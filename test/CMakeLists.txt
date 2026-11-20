@@ -338,3 +338,7 @@ add_subdirectory(tbb-preview)
 if(PHLEX_USE_FORM)
   add_subdirectory(form)
 endif()
+
+if(TBB_TEST_PERF)
+  add_subdirectory(perf)
+endif()
