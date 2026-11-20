@@ -237,6 +237,12 @@ namespace phlex::detail {
     }
   } // namespace
 
+  std::vector<layer_path> index_router::hierarchy_paths(
+    std::vector<layer_path> const& layer_paths_from_driver, unfold_data const& unfolds)
+  {
+    return expand_unfold_layer_paths(layer_paths_from_driver, unfolds).sorted_paths;
+  }
+
   // --------------------------------------------------------------------------------------------
   void index_router::establish_layer_hierarchy(
     std::vector<layer_path> const& layer_paths_from_driver, unfold_data const& unfolds)

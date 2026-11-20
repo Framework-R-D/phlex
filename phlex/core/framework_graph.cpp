@@ -65,6 +65,39 @@ namespace phlex::detail {
       return result;
     }
 
+    // An explicit provider may name its layer by a suffix of its path, such as "run/event".
+    // Replace that suffix with the one complete path in the hierarchy that it names.
+    void resolve_provider_layers(provider_nodes& providers,
+                                 std::vector<phlex::experimental::layer_path> const& hierarchy)
+    {
+      for (auto const& [name, provider] : providers) {
+        if (provider->layer().is_complete()) {
+          continue;
+        }
+        auto const candidates = hierarchy | std::views::filter([&provider](auto const& path) {
+                                  return path.ends_with(provider->layer());
+                                }) |
+                                std::ranges::to<std::vector>();
+        if (candidates.empty()) {
+          throw std::runtime_error(
+            std::format("Provider '{}' declares layer '{}', which matches no layer path in the "
+                        "data-layer hierarchy.",
+                        name,
+                        provider->layer().to_string()));
+        }
+        if (candidates.size() > 1uz) {
+          throw std::runtime_error(
+            std::format("Provider '{}' declares layer '{}', which matches more than one layer "
+                        "path in the data-layer hierarchy. Use a complete layer path to choose "
+                        "one:\n{}",
+                        name,
+                        provider->layer().to_string(),
+                        bulleted_list(candidates)));
+        }
+        provider->set_layer(candidates.front());
+      }
+    }
+
     // Keep each unfold's inputs together: only their most-derived cell parents the children
     // and receives the unfold flush. Finalization resolves that parent on each applicable branch.
     index_router::unfold_data unfold_layers(declared_unfolds const& unfolds)
@@ -264,13 +297,17 @@ namespace phlex::detail {
     make_filter_edges();
     make_bookkeeping_edges();
 
+    auto const unfolds = unfold_layers(nodes_.unfolds);
+    resolve_provider_layers(nodes_.providers,
+                            index_router::hierarchy_paths(fixed_hierarchy_.layer_paths(), unfolds));
+
     auto [provider_input_ports, multilayer_join_index_ports] =
       make_computational_edges(nodes_, filters_, graph_, stage_);
 
     // Index-router finalization makes edges between the index-set nodes and the provider nodes.
     index_router_.finalize(graph_,
                            fixed_hierarchy_.layer_paths(),
-                           unfold_layers(nodes_.unfolds),
+                           unfolds,
                            std::move(provider_input_ports),
                            fold_partition_ports(nodes_.folds),
                            multilayer_join_index_ports);

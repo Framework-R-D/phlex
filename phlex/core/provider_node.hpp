@@ -57,6 +57,7 @@ namespace phlex::detail {
     phlex::experimental::algorithm_name const& name() const noexcept;
     phlex::experimental::product_specification const& output_product() const noexcept;
     phlex::experimental::layer_path const& layer() const noexcept;
+    void set_layer(phlex::experimental::layer_path layer) noexcept;
     phlex::experimental::identifier const& stage() const noexcept;
 
     tbb::flow::receiver<index_message>* input_port() { return &provider_; }

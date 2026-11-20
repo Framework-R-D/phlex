@@ -70,6 +70,11 @@ namespace phlex::detail {
 
   phlex::experimental::layer_path const& provider_node::layer() const noexcept { return layer_; }
 
+  void provider_node::set_layer(phlex::experimental::layer_path layer) noexcept
+  {
+    layer_ = std::move(layer);
+  }
+
   phlex::experimental::identifier const& provider_node::stage() const noexcept { return stage_; }
 
 }

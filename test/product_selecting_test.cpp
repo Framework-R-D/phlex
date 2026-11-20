@@ -534,3 +534,46 @@ TEST_CASE("Selecting one of two branches that share a leaf layer name", "[graph]
   // The graph is destroyed, so any entries left in repeaters have been reported.
   CHECK_FALSE(output.str().contains("Cached"));
 }
+
+TEST_CASE("Incomplete provider layers resolve against the hierarchy", "[graph]")
+{
+  constexpr unsigned run_events = 3;
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {.parent_layer = "job", .count = 1});
+  gen->add_layer("event", {.parent_layer = "run", .count = run_events});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+
+  auto const* const provider_layer = GENERATE("event", "run/event");
+  auto const* const selector_layer = GENERATE("event", "run/event", "/job/run/event");
+  CAPTURE(provider_layer, selector_layer);
+  g.provide("provide_idx", provide_idx, concurrency::unlimited)
+    .output_product("input", "number", provider_layer);
+  g.observe(
+     "observer", [](int const) {}, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "input", .layer = selector_layer, .suffix = "number"});
+  g.execute();
+  CHECK(g.execution_count("observer") == run_events);
+}
+
+TEST_CASE("Provider layers that can't be resolved are rejected", "[graph]")
+{
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1});
+  gen->add_layer("event", {.parent_layer = "spill", .count = 1});
+  gen->add_layer("run", {.parent_layer = "job", .count = 1});
+  gen->add_layer("event", {.parent_layer = "run", .count = 1});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+
+  auto const [layer, message] = GENERATE(table<std::string, std::string>(
+    {{"event", "matches more than one layer path"}, {"calibration", "matches no layer path"}}));
+  CAPTURE(layer);
+  g.provide("provide_idx", provide_idx, concurrency::unlimited)
+    .output_product("input", "number", layer);
+  g.observe(
+     "observer", [](int const) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "input", .layer = "/job/run/event"});
+  CHECK_THROWS_WITH(g.execute(), Catch::Matchers::ContainsSubstring(message));
+}
