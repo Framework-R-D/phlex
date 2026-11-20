@@ -29,6 +29,7 @@ endif()
 set(
   scripts_test_modules
   test_check_codeql_alerts
+  test_check_gating_block
   test_clang_tidy_check_summary
   test_clang_tidy_diff_issues
   test_clang_tidy_fixes_to_problems
@@ -36,6 +37,7 @@ set(
   test_coverage_scripts
   test_devcontainer_host
   test_fix_header_guards
+  test_prepare_formatting_commit
   test_promote_phlex_dependencies
   test_sarif_alerts
   test_upgrade_repos
