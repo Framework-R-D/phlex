@@ -11,22 +11,26 @@
 
 // NOLINTBEGIN(readability-identifier-naming)
 // Forward declarations of ROOT classes
+class TClass;
 class TFile;
 // NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
 
-  /// Holds a ROOT file's layout descriptor as a std::map<std::string, std::string> stored under
-  /// the reserved object name. ROOT ships a compiled collection proxy for that instantiation,
-  /// so the bootstrap record needs no generated dictionary.
+  /// Throws unless `cls` is a usable TClass for the descriptor's on-disk type.
+  TClass const& require_descriptor_class(TClass const* cls);
+
+  /// Throws unless `cls` carries a compiled dictionary. Writing an STL collection needs one;
+  /// reading does not, since ROOT rebuilds the type from the StreamerInfo in the file.
+  void require_descriptor_dictionary(TClass const& cls);
+
   class root_descriptor : public descriptor {
   public:
     root_descriptor(std::shared_ptr<TFile> file, std::string file_name);
 
-    std::optional<descriptor_entries> read() override;
-
   protected:
     void store(descriptor_entries const& entries) override;
+    std::optional<descriptor_entries> load() override;
 
   private:
     std::shared_ptr<TFile> file_;

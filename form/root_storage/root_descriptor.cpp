@@ -9,7 +9,6 @@
 #include <TFile.h>
 #include <TKey.h>
 
-#include <map>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -19,19 +18,30 @@
 
 namespace form::detail::experimental {
 
-  namespace {
-    // ROOT provides a compiled collection proxy for this map type, so no generated dictionary is
-    // needed for the descriptor.
-    using descriptor_map = std::map<std::string, std::string>;
+  TClass const& require_descriptor_class(TClass const* cls)
+  {
+    if (cls == nullptr) {
+      error("ROOT cannot resolve the descriptor type "
+            "std::vector<std::pair<std::string, std::string>>");
+    }
+    return *cls;
+  }
 
+  // HasDictionary() is what separates a compiled dictionary from an interpreted one.
+  // GetCollectionProxy() cannot: it is non-null for both, including for the instantiation
+  // TFile::WriteObject refuses to write, so it would never catch the case this guards against.
+  void require_descriptor_dictionary(TClass const& cls)
+  {
+    if (!cls.HasDictionary()) {
+      error("no compiled ROOT dictionary for "
+            "std::vector<std::pair<std::string, std::string>>");
+    }
+  }
+
+  namespace {
     TClass const& descriptor_class()
     {
-      TClass const* const cls = TClass::GetClass<descriptor_map>();
-      if (cls == nullptr || cls->GetCollectionProxy() == nullptr) {
-        error("ROOT has no dictionary for the descriptor type "
-              "std::map<std::string, std::string>");
-      }
-      return *cls;
+      return require_descriptor_class(TClass::GetClass<descriptor_entries>());
     }
   }
 
@@ -46,14 +56,14 @@ namespace form::detail::experimental {
       error("no file attached for " + file_name());
     }
 
-    descriptor_map const stored_descriptor{entries.begin(), entries.end()};
+    require_descriptor_dictionary(descriptor_class());
 
-    if (file_->WriteObject(&stored_descriptor, std::string{descriptor_object_name}.c_str()) <= 0) {
+    if (file_->WriteObject(&entries, std::string{descriptor_object_name}.c_str()) <= 0) {
       error("failed to write the descriptor to " + file_name());
     }
   }
 
-  std::optional<descriptor_entries> root_descriptor::read()
+  std::optional<descriptor_entries> root_descriptor::load()
   {
     if (file_ == nullptr) {
       error("no file attached for " + file_name());
@@ -73,19 +83,13 @@ namespace form::detail::experimental {
     }
 
     // Get() transfers ownership of the returned non-TObject to the caller.
-    std::unique_ptr<descriptor_map const> const stored{
-      file_->Get<descriptor_map>(object_name.c_str())};
+    std::unique_ptr<descriptor_entries> const stored{
+      file_->Get<descriptor_entries>(object_name.c_str())};
     if (!stored) {
       error("failed to read object '" + object_name + "' from " + file_name());
     }
 
-    // Entries are returned in map key order; callers must look them up by key.
-    descriptor_entries entries;
-    entries.reserve(stored->size());
-    for (auto const& [key_text, value] : *stored) {
-      entries.emplace_back(key_text, value);
-    }
-    return entries;
+    return std::move(*stored);
   }
 
 } // namespace form::detail::experimental

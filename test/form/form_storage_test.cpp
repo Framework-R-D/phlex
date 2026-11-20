@@ -10,6 +10,7 @@
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
 #include "persistence/persistence_reader.hpp"
+#include "root_storage/root_descriptor.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
 #include "storage/descriptor.hpp"
@@ -24,6 +25,7 @@
 #include "test/form/test_utils.hpp"
 
 #include <TBranch.h>
+#include <TClass.h>
 #include <TFile.h>
 #include <TKey.h>
 #include <TNamed.h>
@@ -37,7 +39,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <numbers>
 #include <numeric>
@@ -586,19 +587,13 @@ TEST_CASE("root_tfile: descriptor write failures are reported, not swallowed", "
 
     TKey const* const key = reopened->GetKey(object_name.c_str());
     REQUIRE(key != nullptr);
-    CHECK(std::string{key->GetClassName()} == "map<string,string>");
+    CHECK(std::string{key->GetClassName()} == "vector<pair<string,string> >");
 
     // Read without any FORM machinery, as an outside tool would.
-    std::unique_ptr<std::map<std::string, std::string> const> const descriptor{
-      reopened->Get<std::map<std::string, std::string>>(object_name.c_str())};
+    std::unique_ptr<std::vector<std::pair<std::string, std::string>> const> const descriptor{
+      reopened->Get<std::vector<std::pair<std::string, std::string>>>(object_name.c_str())};
     REQUIRE(descriptor != nullptr);
-    CHECK(descriptor->size() == entries.size());
-
-    for (auto const& [key_text, value] : entries) {
-      auto const found = descriptor->find(key_text);
-      REQUIRE(found != descriptor->end());
-      CHECK(found->second == value);
-    }
+    CHECK(*descriptor == entries);
   }
 
   SECTION("a repeated key is rejected rather than silently dropped")
@@ -642,12 +637,12 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     CHECK_FALSE(file.read_descriptor().has_value());
   }
 
-  SECTION("the entries are recovered by key, not in the order they were written")
+  SECTION("the entries come back in the order they were written")
   {
     std::string const file_name = "form_descriptor_read_" + suffix + ".root";
 
-    // Deliberately use unsorted input to verify that the ROOT backend's std::map representation
-    // returns entries in key order.
+    // Deliberately not in key order: a backend that sorted or otherwise reordered the entries
+    // would be visible here, where input already in key order would hide it.
     std::vector<std::pair<std::string, std::string>> const unsorted{
       {"zeta", "written first"},
       {std::string{descriptor_technologies_key}, "root_ttree,root_rntuple"},
@@ -663,16 +658,11 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     auto const read_entries =
       read_back.value_or(std::vector<std::pair<std::string, std::string>>{});
 
+    // Same entries, same values, same order.
+    CHECK(read_entries == unsorted);
+
     auto const key_of = [](auto const& entry) { return std::string_view{entry.first}; };
-
-    CHECK(read_entries.size() == unsorted.size());
-    for (auto const& [key_text, value] : unsorted) {
-      auto const found = std::ranges::find(read_entries, std::string_view{key_text}, key_of);
-      REQUIRE(found != read_entries.end());
-      CHECK(found->second == value);
-    }
-
-    CHECK(std::ranges::is_sorted(read_entries, {}, key_of));
+    CHECK_FALSE(std::ranges::is_sorted(read_entries, {}, key_of));
   }
 
   SECTION("an empty descriptor is still a descriptor")
@@ -686,6 +676,25 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     CHECK(file.read_descriptor() == std::vector<std::pair<std::string, std::string>>{});
   }
 
+  SECTION("a stored descriptor whose keys repeat is rejected on read")
+  {
+    std::string const file_name = "form_descriptor_repeated_key_" + suffix + ".root";
+    {
+      std::unique_ptr<TFile> const raw{TFile::Open(file_name.c_str(), "RECREATE")};
+      REQUIRE(raw != nullptr);
+      // Written straight to the file, past write()'s check, as a hand-made or damaged file
+      // could be. The vector representation can hold a repeated key; a map could not.
+      std::vector<std::pair<std::string, std::string>> const repeated{
+        {std::string{descriptor_layout_version_key}, std::string{form_layout_version}},
+        {std::string{descriptor_technologies_key}, "root_ttree"},
+        {std::string{descriptor_technologies_key}, "root_rntuple"}};
+      REQUIRE(raw->WriteObject(&repeated, object_name.c_str()) > 0);
+    }
+    root_tfile_imp file{file_name, 'i'};
+    CHECK_THROWS_WITH(file.read_descriptor(),
+                      Catch::Matchers::ContainsSubstring("appears more than once"));
+  }
+
   SECTION("an object of the wrong type under the descriptor name is rejected")
   {
     std::string const file_name = "form_descriptor_wrong_type_" + suffix + ".root";
@@ -697,8 +706,29 @@ TEST_CASE("root_tfile: read_descriptor returns what write_descriptor stored", "[
     }
     root_tfile_imp file{file_name, 'i'};
     CHECK_THROWS_WITH(file.read_descriptor(),
-                      Catch::Matchers::ContainsSubstring("map<string,string>"));
+                      Catch::Matchers::ContainsSubstring("vector<pair<string,string> >"));
   }
+}
+
+TEST_CASE("root_descriptor: the dictionary guards report a build that cannot write", "[form]")
+{
+  // Neither failure can be produced from inside a working test binary, so the guards are
+  // exercised directly rather than through a descriptor.
+  CHECK_THROWS_WITH(require_descriptor_class(nullptr),
+                    Catch::Matchers::ContainsSubstring("cannot resolve"));
+
+  TClass const* const descriptor_type =
+    TClass::GetClass<std::vector<std::pair<std::string, std::string>>>();
+  REQUIRE(descriptor_type != nullptr);
+  CHECK_NOTHROW(require_descriptor_class(descriptor_type));
+  CHECK_NOTHROW(require_descriptor_dictionary(*descriptor_type));
+
+  TClass const* const interpreted_only = TClass::GetClass("vector<pair<int,string> >");
+  REQUIRE(interpreted_only != nullptr);
+  CHECK(interpreted_only->GetCollectionProxy() != nullptr);
+  CHECK_FALSE(interpreted_only->HasDictionary());
+  CHECK_THROWS_WITH(require_descriptor_dictionary(*interpreted_only),
+                    Catch::Matchers::ContainsSubstring("no compiled ROOT dictionary"));
 }
 
 TEST_CASE("storage_reader read_descriptor: a written file identifies its layout and technology",

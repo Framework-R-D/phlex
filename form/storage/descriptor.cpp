@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <optional>
 #include <set>
+#include <source_location>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -68,18 +69,41 @@ namespace form::detail::experimental {
 
   std::string const& descriptor::file_name() const { return file_name_; }
 
-  void descriptor::write(descriptor_entries const& entries)
-  {
-    std::set<std::string_view> keys;
-    for (auto const& [key, value] : entries) {
-      if (!keys.insert(key).second) {
-        error("descriptor key '" + key + "' appears more than once for " + file_name_);
+  namespace {
+    // Shared by write() and read() so a descriptor is held to the same rule
+    void require_unique_keys(descriptor_entries const& entries,
+                             std::string const& file_name,
+                             std::source_location const where = std::source_location::current())
+    {
+      std::set<std::string_view> keys;
+      for (auto const& [key, value] : entries) {
+        if (!keys.insert(key).second) {
+          std::string message = "descriptor key '";
+          message += key;
+          message += "' appears more than once for ";
+          message += file_name;
+          error(message, where);
+        }
       }
     }
+  }
+
+  void descriptor::write(descriptor_entries const& entries)
+  {
+    require_unique_keys(entries, file_name_);
     store(entries);
   }
 
-  std::optional<descriptor_entries> memory_descriptor::read() { return entries_; }
+  std::optional<descriptor_entries> descriptor::read()
+  {
+    auto entries = load();
+    if (entries) {
+      require_unique_keys(*entries, file_name_);
+    }
+    return entries;
+  }
+
+  std::optional<descriptor_entries> memory_descriptor::load() { return entries_; }
 
   void memory_descriptor::store(descriptor_entries const& entries) { entries_ = entries; }
 
