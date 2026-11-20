@@ -107,7 +107,7 @@ namespace {
 
         // Read and provide products at the configured stage.
         // FIXME: This layer is always going to match
-        identifier const selector_layer = selector.layer->leaf();
+        layer_path const selector_layer = selector.layer;
         identifier const product_stage{stage_};
 
         if (!selector.match(spec, selector_layer, product_stage)) {
@@ -122,12 +122,11 @@ namespace {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
 
-        bundles.push_back(
-          phlex::provider_bundle{.provider_function = provider_func,
-                                 .max_concurrency = phlex::concurrency::serial,
-                                 .spec = std::move(spec),
-                                 .layer = std::string(selector_layer.trans_get_string()),
-                                 .stage = stage_});
+        bundles.push_back(phlex::provider_bundle{.provider_function = provider_func,
+                                                 .max_concurrency = phlex::concurrency::serial,
+                                                 .spec = std::move(spec),
+                                                 .layer = selector_layer.to_string(),
+                                                 .stage = stage_});
       }
 
       return bundles;

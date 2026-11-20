@@ -88,3 +88,56 @@ TEST_CASE("Selectors do not move from lvalue arguments", "[data model]")
   CHECK(layer_string == "event");
   CHECK(from_string.layer == second.layer);
 }
+
+TEST_CASE("Selecting by a multi-segment layer path", "[data model]")
+{
+  experimental::product_specification const spec{
+    "creator", "prod"_id, experimental::make_type_id<int>()};
+  experimental::identifier const stage{"stage"};
+  experimental::layer_path const full{"/job/run/subrun/event"};
+
+  SECTION("Selector with the leaf layer only")
+  {
+    CHECK(product_selector{.layer = "event"}.match(spec, full, stage));
+  }
+  SECTION("Selector with a trailing segment sequence")
+  {
+    CHECK(product_selector{.layer = "subrun/event"}.match(spec, full, stage));
+    CHECK(product_selector{.layer = "run/subrun/event"}.match(spec, full, stage));
+  }
+  SECTION("Selector with the complete path")
+  {
+    CHECK(product_selector{.layer = "/job/run/subrun/event"}.match(spec, full, stage));
+  }
+  SECTION("Selector whose leaf matches but parent segment differs")
+  {
+    CHECK(!product_selector{.layer = "spill/event"}.match(spec, full, stage));
+    CHECK(!product_selector{.layer = "run/event"}.match(spec, full, stage));
+  }
+  SECTION("Selector with a non-trailing segment only")
+  {
+    CHECK(!product_selector{.layer = "run/subrun"}.match(spec, full, stage));
+  }
+  SECTION("Selector longer than the layer path")
+  {
+    CHECK(!product_selector{.layer = "/job/extra/run/subrun/event"}.match(spec, full, stage));
+  }
+  SECTION("Complete selector path that differs from the layer path")
+  {
+    CHECK(!product_selector{.layer = "/job/subrun/event"}.match(spec, full, stage));
+  }
+  SECTION("Distinct layers sharing a leaf name")
+  {
+    experimental::layer_path const other{"/job/mc_sample/event"};
+    product_selector const by_run{.layer = "run/event"};
+    CHECK(!by_run.match(spec, other, stage));
+    CHECK(product_selector{.layer = "mc_sample/event"}.match(spec, other, stage));
+  }
+  SECTION("Selector-to-selector matching")
+  {
+    product_selector const other{.layer = "/job/run/subrun/event"};
+    CHECK(product_selector{.layer = "subrun/event"}.match(other));
+    CHECK(!product_selector{.layer = "spill/event"}.match(other));
+    CHECK(!product_selector{.layer = "run/subrun"}.match(other));
+  }
+}

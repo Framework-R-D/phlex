@@ -30,7 +30,7 @@ namespace phlex::detail {
                                tbb::flow::graph& g,
                                phlex::experimental::provider_function provider_func,
                                phlex::experimental::product_specification output_spec,
-                               phlex::experimental::identifier output_layer,
+                               phlex::experimental::layer_path output_layer,
                                phlex::experimental::identifier stage) :
     name_{std::move(algo_name)},
     output_{std::move(output_spec)},
@@ -68,7 +68,7 @@ namespace phlex::detail {
     return output_;
   }
 
-  phlex::experimental::identifier const& provider_node::layer() const noexcept { return layer_; }
+  phlex::experimental::layer_path const& provider_node::layer() const noexcept { return layer_; }
 
   phlex::experimental::identifier const& provider_node::stage() const noexcept { return stage_; }
 
