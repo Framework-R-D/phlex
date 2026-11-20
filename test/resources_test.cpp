@@ -28,8 +28,8 @@ using namespace phlex::detail;
 using namespace std::chrono_literals;
 
 namespace {
-  struct catch2_resource {
-    using token_type = catch2_resource;
+  struct stateless_resources {
+    using token_type = stateless_resources;
   };
 
   struct pointer_resource {
@@ -88,9 +88,9 @@ namespace {
     static auto tokens() { return std::array<int*, 1>{}; }
   };
 
-  using mixed_dependencies = resource_dependencies<catch2_resource, unlimited_resource_type>;
-  using reversed_dependencies = resource_dependencies<unlimited_resource_type, catch2_resource>;
-  using serialized_dependencies = resource_dependencies<catch2_resource, catch2_resource>;
+  using mixed_dependencies = resource_dependencies<stateless_resources, unlimited_resource_type>;
+  using reversed_dependencies = resource_dependencies<unlimited_resource_type, stateless_resources>;
+  using serialized_dependencies = resource_dependencies<stateless_resources, stateless_resources>;
 
   template <typename T>
   concept graph_accepts_unlimited =
@@ -155,13 +155,14 @@ namespace {
                              unlimited_resource_type const*>);
 
   // Pointer-token serialized resources.
-  static_assert(not unlimited_resource<catch2_resource>);
-  static_assert(serialized_resource<catch2_resource>);
-  static_assert(not pooled_resource<catch2_resource>);
-  static_assert(std::same_as<internal::resource_access_type_t<catch2_resource>, catch2_resource>);
+  static_assert(not unlimited_resource<stateless_resources>);
+  static_assert(serialized_resource<stateless_resources>);
+  static_assert(not pooled_resource<stateless_resources>);
   static_assert(
-    std::same_as<decltype(std::declval<resource_catalog const&>().limiter_for<catch2_resource>()),
-                 tbb::flow::resource_limiter<catch2_resource>&>);
+    std::same_as<internal::resource_access_type_t<stateless_resources>, stateless_resources>);
+  static_assert(std::same_as<decltype(std::declval<resource_catalog const&>()
+                                        .limiter_for<stateless_resources>()),
+                             tbb::flow::resource_limiter<stateless_resources>&>);
 
   // Value-token serialized resources.
   static_assert(serialized_resource<value_token_resource>);
@@ -189,8 +190,8 @@ namespace {
 
   // Resource dependency partitioning.
   static_assert(mixed_dependencies::has_serialized_resources);
-  static_assert(
-    std::same_as<mixed_dependencies::serialized_resources, boost::mp11::mp_list<catch2_resource>>);
+  static_assert(std::same_as<mixed_dependencies::serialized_resources,
+                             boost::mp11::mp_list<stateless_resources>>);
   static_assert(std::same_as<mixed_dependencies::unlimited_resources,
                              boost::mp11::mp_list<unlimited_resource_type>>);
   static_assert(
@@ -223,15 +224,10 @@ TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
     .output_product("number_maker", "", "job");
 
   auto counter = thread_counter::counter_type{};
-  // Catch2 assertions are not thread-safe, so each observer records its
-  // observation and the expectations are checked after the graph completes.
-  std::atomic<unsigned int> expected_numbers_seen{};
-  auto verify_number = [&counter, &expected_numbers_seen](int const num, pointer_resource const*) {
+  auto verify_number = [&counter](int const num, pointer_resource const*) {
     // Both observers share one resource token and must not run concurrently.
     thread_counter const throw_if_more_than_one_thread{counter};
-    if (num == 42) {
-      ++expected_numbers_seen;
-    }
+    CHECK(num == 42);
     spin_for(1ms);
   };
 
@@ -245,8 +241,6 @@ TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
 
   CHECK(g.execution_count("verify1") == 1);
   CHECK(g.execution_count("verify2") == 1);
-  // One observation per observer, each of the expected number.
-  CHECK(expected_numbers_seen == 2u);
 }
 
 TEST_CASE("resource catalog", "[resource]")
@@ -255,8 +249,8 @@ TEST_CASE("resource catalog", "[resource]")
 
   SECTION("registered resources can be looked up")
   {
-    catalog.add_serialized<catch2_resource>();
-    CHECK_NOTHROW(catalog.limiter_for<catch2_resource>());
+    catalog.add_serialized<stateless_resources>();
+    CHECK_NOTHROW(catalog.limiter_for<stateless_resources>());
   }
 
   SECTION("unlimited resources provide read-only access")
@@ -276,8 +270,8 @@ TEST_CASE("resource catalog", "[resource]")
 
   SECTION("duplicate serialized registrations throw")
   {
-    catalog.add_serialized<catch2_resource>();
-    CHECK_THROWS_WITH(catalog.add_serialized<catch2_resource>(),
+    catalog.add_serialized<stateless_resources>();
+    CHECK_THROWS_WITH(catalog.add_serialized<stateless_resources>(),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has already been registered"));
   }
@@ -292,7 +286,7 @@ TEST_CASE("resource catalog", "[resource]")
 
   SECTION("missing resources throw")
   {
-    CHECK_THROWS_WITH(catalog.limiter_for<catch2_resource>(),
+    CHECK_THROWS_WITH(catalog.limiter_for<stateless_resources>(),
                       Catch::Matchers::ContainsSubstring("Resource of type '") &&
                         Catch::Matchers::ContainsSubstring("' has not been registered"));
     CHECK_THROWS_WITH(catalog.access_for<unlimited_resource_type>(),

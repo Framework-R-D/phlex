@@ -48,9 +48,8 @@ namespace {
       std::invoke(operation, value, resources...);
     };
 
-  // Records how many node-body invocations ran and how many ever ran at once. Catch2
-  // assertions are not thread-safe, so the bodies only accumulate into these atomics and the
-  // test thread asserts once the graph has completed.
+  // Atomically records invocation counts and maximum overlap across node bodies.
+  // The test thread checks the final observations after the graph completes.
   class concurrency_observations {
   public:
     using value_type = unsigned int;
