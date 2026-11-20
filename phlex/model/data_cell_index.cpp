@@ -71,6 +71,7 @@ namespace phlex {
       layers.push_back(ptr->layer_name());
       ptr = ptr->parent_.get();
     }
+    assert(layers.size() == depth_ + 1);
     std::ranges::reverse(layers);
     return experimental::layer_path{std::move(layers)};
   }
