@@ -9,6 +9,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -23,9 +24,17 @@ namespace phlex {
       throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
     }
 
-    // Used later for product_selector
-    PHLEX_CONFIGURATION_INTERNAL_EXPORT std::optional<experimental::identifier> value_if_exists(
-      boost::json::object const& obj, std::string_view parameter);
+    // Returns the value stored under `parameter` in `obj` converted to T with
+    // boost::json::value_to, or std::nullopt when `obj` has no such key. Exceptions thrown by the
+    // conversion propagate unchanged.
+    template <typename T>
+    std::optional<T> value_if_exists(boost::json::object const& obj, std::string_view parameter)
+    {
+      if (!obj.contains(parameter)) {
+        return std::nullopt;
+      }
+      return boost::json::value_to<T>(obj.at(parameter));
+    }
 
     // helper for unpacking json array
     template <typename T, std::size_t... I>
