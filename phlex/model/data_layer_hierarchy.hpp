@@ -8,10 +8,11 @@
 
 #include <oneapi/tbb/concurrent_unordered_map.h>
 
-#include <map>
+#include <atomic>
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
-#include <vector>
 
 namespace phlex::detail {
 
@@ -28,17 +29,9 @@ namespace phlex::detail {
     std::size_t count_for(phlex::experimental::layer_path const& layer,
                           bool missing_ok = false) const;
 
-    void print() const;
+    std::string to_string() const;
 
   private:
-    std::string graph_layout() const;
-
-    using hash_name_pair = std::pair<std::string, std::size_t>;
-    using hash_name_pairs = std::vector<hash_name_pair>;
-    std::string pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
-                               std::string const& parent_name,
-                               std::string const& indent = {}) const;
-
     struct layer_entry {
       layer_entry(phlex::experimental::identifier n,
                   phlex::experimental::layer_path path,

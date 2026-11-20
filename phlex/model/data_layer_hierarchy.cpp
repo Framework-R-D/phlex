@@ -5,28 +5,49 @@
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 
 #include <cstddef>
-#include <iterator>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace {
+  struct display_node {
+    std::map<std::string, display_node> children;
+    std::optional<std::size_t> count;
+  };
+
   std::string const& maybe_name(std::string const& name)
   {
     static std::string const unnamed{"(unnamed)"};
     return empty(name) ? unnamed : name; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
+
+  std::string render(display_node const& node, std::string const& indent)
+  {
+    std::string chunk;
+    std::size_t i = 0;
+    for (auto const& [name, child] : node.children) {
+      bool const last = ++i == node.children.size();
+      auto const count = child.count ? fmt::to_string(*child.count) : "(incomplete)";
+      chunk += fmt::format("\n{indent} │\n{indent} {connector} {name}: {count}{children}",
+                           fmt::arg("indent", indent),
+                           fmt::arg("connector", last ? "└" : "├"),
+                           fmt::arg("name", maybe_name(name)),
+                           fmt::arg("count", count),
+                           fmt::arg("children", render(child, indent + (last ? "   " : " │ "))));
+    }
+    return chunk;
+  }
 }
 
 namespace phlex::detail {
 
-  data_layer_hierarchy::~data_layer_hierarchy() { print(); }
+  data_layer_hierarchy::~data_layer_hierarchy() = default;
 
   void data_layer_hierarchy::increment_count(data_cell_index_ptr const& id)
   {
@@ -79,52 +100,23 @@ namespace phlex::detail {
     return candidates[0]->count.load();
   }
 
-  void data_layer_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
-
-  std::string data_layer_hierarchy::pretty_recurse(
-    std::map<std::string, hash_name_pairs> const& tree,
-    std::string const& name,
-    std::string const& indent) const
-  {
-    auto it = tree.find(name);
-    if (it == cend(tree)) {
-      return {};
-    }
-
-    std::string result;
-    std::size_t const n = it->second.size();
-    for (std::size_t i = 0; auto const& [child_name, child_hash] : it->second) {
-      bool const at_end = ++i == n;
-      auto child_prefix = !at_end ? indent + " ├ " : indent + " └ ";
-      auto const& entry = *layers_.at(child_hash);
-      result += "\n" + indent + " │ ";
-      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count.load());
-
-      auto new_indent = indent;
-      new_indent += at_end ? "   " : " │ ";
-      result += pretty_recurse(tree, child_name, new_indent);
-    }
-    return result;
-  }
-
-  std::string data_layer_hierarchy::graph_layout() const
+  std::string data_layer_hierarchy::to_string() const
   {
     if (empty(layers_)) {
       return {};
     }
 
-    std::map<std::string, std::vector<hash_name_pair>> tree;
-    for (auto const& [layer_hash, layer_entry] : layers_) {
-      auto parent_hash = layer_entry->parent_hash;
-      if (parent_hash == -1ull) {
-        continue;
+    display_node root;
+    for (auto const& [_, entry] : layers_) {
+      auto* node = &root;
+      for (auto const& component : entry->layer_path.components().subspan(1)) {
+        node = &node->children[fmt::to_string(component)];
       }
-      auto const& parent_name = fmt::to_string(layers_.at(parent_hash)->name);
-      tree[parent_name].emplace_back(fmt::to_string(layer_entry->name), layer_hash);
+      node->count = entry->count.load();
     }
 
-    auto const* const initial_indent = "  ";
-    return fmt::format(
-      "\n\nSeen layers:\n\n{}job{}\n", initial_indent, pretty_recurse(tree, "job", initial_indent));
+    return fmt::format("\n\nSeen layers:\n\n  job{status}{children}\n",
+                       fmt::arg("status", root.count ? "" : ": (incomplete)"),
+                       fmt::arg("children", render(root, "  ")));
   }
 }
