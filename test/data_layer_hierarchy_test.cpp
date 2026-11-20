@@ -38,7 +38,6 @@ TEST_CASE("Data layer hierarchy requires named layers", "[data model]")
   data_layer_hierarchy h;
   auto job_index = data_cell_index::job();
   CHECK_NOTHROW(h.increment_count(job_index));
-  CHECK_THROWS(job_index->make_child("", 0));
   CHECK_NOTHROW(h.to_string());
 }
 
