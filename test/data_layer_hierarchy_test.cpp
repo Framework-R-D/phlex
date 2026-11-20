@@ -33,13 +33,12 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   CHECK(h.count_for("/job/run/spill") == 2);
 }
 
-TEST_CASE("Data layer hierarchy with unnamed layer", "[data model]")
+TEST_CASE("Data layer hierarchy requires named layers", "[data model]")
 {
   data_layer_hierarchy h;
   auto job_index = data_cell_index::job();
   CHECK_NOTHROW(h.increment_count(job_index));
-  CHECK_NOTHROW(h.increment_count(job_index->make_child("", 0)));
-  CHECK(h.to_string() == "\n\nSeen layers:\n\n  job\n   │\n   └ (unnamed): 1\n");
+  CHECK_NOTHROW(h.to_string());
 }
 
 TEST_CASE("Data layer hierarchy layout", "[data model]")

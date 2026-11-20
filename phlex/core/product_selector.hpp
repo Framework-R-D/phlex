@@ -11,6 +11,7 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -26,25 +27,19 @@ namespace phlex {
       creator_name() = default;
       creator_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
       {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify product with empty creator name.");
-        }
       }
       template <typename U>
         requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       creator_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify product with empty creator name.");
-        }
       }
 
       operator bool() const noexcept { return content_.has_value(); }
       experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
-      friend experimental::identifier format_as(creator_name const& me) noexcept
+      friend std::string_view format_as(creator_name const& me) noexcept
       {
-        return me.content_.value_or("[ANY]");
+        return me.content_ ? std::string_view(*me.content_) : "[ANY]";
       }
       auto operator<=>(creator_name const&) const noexcept = default;
 
@@ -57,18 +52,12 @@ namespace phlex {
       layer_name() = default;
       layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
       {
-        if (content_ && content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
       }
       template <typename U>
         requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       layer_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
-        if (content_.value().empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
@@ -109,7 +98,7 @@ namespace phlex {
     /// folds and unfolds; products from other layers are not delivered.
     detail::layer_name layer;
     /// Product suffix, as given to @c output_product_suffixes(...).
-    std::optional<experimental::identifier> suffix;
+    std::optional<experimental::suffix_t> suffix;
     /// Stage that created the product; @c "CURRENT" means the job's own stage.
     std::optional<experimental::identifier> stage;
     /// Product type; set by the framework from the algorithm's parameter type.

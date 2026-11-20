@@ -8,12 +8,33 @@
 
 #include <cassert>
 #include <ranges>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace phlex::experimental {
-  product_specification::product_specification() = default;
+  namespace {
+    // Parses the `creator/suffix` form. The specification's type is left unspecified.
+    product_specification parse(std::string_view s)
+    {
+      auto const forward_slash = s.find('/');
+      if (forward_slash == std::string_view::npos) {
+        throw std::runtime_error(
+          fmt::format("The specification '{}' is not a valid product specification: "
+                      "expected the form 'creator/suffix' (use 'creator/' for an empty suffix).",
+                      s));
+      }
+      if (forward_slash == 0) {
+        throw std::runtime_error(
+          fmt::format("The product specification '{}' does not name a creator.", s));
+      }
+      return {algorithm_name{s.substr(0, forward_slash)},
+              suffix_t(s.substr(forward_slash + 1)),
+              type_id{}};
+    }
+  }
 
   product_specification::product_specification(char const* name) :
     product_specification{std::string_view{name}}
@@ -23,10 +44,13 @@ namespace phlex::experimental {
     product_specification{std::string_view{name}}
   {
   }
-  product_specification::product_specification(std::string_view name) { *this = create(name); }
+  product_specification::product_specification(std::string_view name) :
+    product_specification{parse(name)}
+  {
+  }
 
   product_specification::product_specification(experimental::algorithm_name creator,
-                                               experimental::identifier suffix,
+                                               experimental::suffix_t suffix,
                                                type_id type) :
     creator_{std::move(creator)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
   {
@@ -34,28 +58,8 @@ namespace phlex::experimental {
 
   std::string product_specification::to_string() const
   {
-    if (creator_.plugin().empty() && creator_.algorithm().empty()) {
-      return fmt::format("{}", suffix_);
-    }
     return fmt::format("{}/{}", creator_.to_string(), suffix_);
   }
-
-  product_specification product_specification::create(char const* c)
-  {
-    return create(std::string_view{c});
-  }
-
-  product_specification product_specification::create(std::string_view s)
-  {
-    auto forward_slash = s.find('/');
-    if (forward_slash != std::string_view::npos) {
-      return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
-              experimental::identifier(s.substr(forward_slash + 1)),
-              type_id{}};
-    }
-    return {experimental::algorithm_name::create(""), experimental::identifier(s), type_id{}};
-  }
-
 }
 
 namespace phlex::detail {
@@ -81,7 +85,7 @@ namespace phlex::detail {
     return std::views::zip(output_suffixes, output_types) |
            std::views::transform([&algo_name](auto const& p) {
              return experimental::product_specification{
-               algo_name, experimental::identifier(std::get<0>(p)), std::get<1>(p)};
+               algo_name, experimental::suffix_t(std::get<0>(p)), std::get<1>(p)};
            }) |
            std::ranges::to<experimental::product_specifications>();
   }

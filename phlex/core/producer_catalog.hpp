@@ -17,7 +17,7 @@
 
 namespace phlex::detail {
   class producer;
-  using product_suffix_t = phlex::experimental::identifier;
+  using product_suffix_t = phlex::experimental::suffix_t;
 
   class PHLEX_CORE_EXPORT producer_catalog {
   public:

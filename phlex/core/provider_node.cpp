@@ -15,7 +15,7 @@
 
 namespace phlex::detail {
   provider_node::provider_node(tbb::flow::graph& g, provider_bundle bundle) :
-    provider_node{bundle.spec.creator(),
+    provider_node{bundle.spec.creator(), // copied before the spec is moved below
                   bundle.max_concurrency.value,
                   g,
                   std::move(bundle.provider_function),

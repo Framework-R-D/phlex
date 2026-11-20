@@ -32,13 +32,12 @@ namespace {
 
   auto make_run_with_product(int run_number, int value)
   {
-    static auto const dummy_creator_name =
-      phlex::experimental::algorithm_name::create("test_algorithm");
+    static auto const dummy_creator_name = phlex::experimental::algorithm_name{"test_algorithm"};
     static auto const dummy_stage_name = "test_stage"_id;
     auto index = make_run_index(run_number);
     auto store = std::make_shared<product_store>(
       index, gsl::not_null{&dummy_creator_name}, gsl::not_null{&dummy_stage_name});
-    store->add_product("value", value);
+    store->add_product("test_algorithm/value", value);
     return std::pair{index, store};
   }
 

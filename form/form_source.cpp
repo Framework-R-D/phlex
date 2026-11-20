@@ -77,7 +77,7 @@ namespace {
     form_input_source(form::experimental::config::item_config const& input_cfg,
                       form::experimental::config::tech_setting_config const& tech_cfg,
                       std::string actual_creator,
-                      std::string advertised_creator,
+                      phlex::experimental::algorithm_name advertised_creator,
                       std::string stage,
                       std::vector<std::string> const& products) :
       reader_(std::make_shared<form::experimental::form_reader_interface>(input_cfg, tech_cfg)),
@@ -102,8 +102,7 @@ namespace {
       }
 
       for (auto const& name : products_) {
-        product_specification spec{
-          algorithm_name::create(advertised_creator_), identifier{name}, selector.type};
+        product_specification spec{advertised_creator_, suffix_t{name}, selector.type};
 
         // Read and provide products at the configured stage.
         identifier const selector_layer = selector.layer;
@@ -167,7 +166,7 @@ namespace {
   private:
     std::shared_ptr<form::experimental::form_reader_interface> reader_;
     std::string actual_creator_;
-    std::string advertised_creator_;
+    phlex::experimental::algorithm_name advertised_creator_;
     std::string stage_;
     std::vector<std::string> products_;
   };
@@ -178,12 +177,20 @@ PHLEX_REGISTER_SOURCE(s, config)
   std::cout << "Registering FORM input source...\n";
 
   auto const input_file = config.get<std::string>("input_file");
-  auto const advertised_creator = config.get<std::string>("creator");
+  auto const creator_text = config.get<std::string>("creator");
+  // Parse the creator once, here, where its parameter name is known.
+  auto const advertised_creator = [&creator_text] {
+    try {
+      return phlex::experimental::algorithm_name{creator_text};
+    } catch (std::invalid_argument const& e) {
+      throw std::invalid_argument{std::string{"Invalid parameter 'creator': "} + e.what()};
+    }
+  }();
   auto const module_label = config.get<std::string>("module_label", "form_source");
   auto const products = config.get<std::vector<std::string>>("products");
   auto const stage = config.get<std::string>("stage");
 
-  std::string actual_creator = advertised_creator;
+  std::string actual_creator = creator_text;
   auto const algorithm = config.get_if_present<std::string>("algorithm");
   auto const plugin = config.get_if_present<std::string>("plugin");
   if (algorithm && plugin && !algorithm->empty() && !plugin->empty()) {

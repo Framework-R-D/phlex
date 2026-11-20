@@ -4,6 +4,7 @@ cet_make_library(
   SHARED
   SOURCE
   algorithm_name.cpp
+  detail/excerpt.cpp
   data_cell_counts.cpp
   data_cell_tracker.cpp
   flush_gate.cpp

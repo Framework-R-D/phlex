@@ -7,7 +7,7 @@
 
 #include <gsl/pointers>
 
-#include <optional>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -90,9 +90,12 @@ namespace phlex {
     // Product specification information
     algorithm_name_view creator() const noexcept
     {
-      return {std::string_view(spec_->plugin()), std::string_view(spec_->algorithm())};
+      auto const& creator = spec_->creator();
+      auto const& plugin = creator.plugin();
+      return {plugin ? std::string_view(*plugin) : std::string_view{},
+              std::string_view(creator.algorithm())};
     }
-    std::string_view suffix() const noexcept { return std::string_view(spec_->suffix()); }
+    std::string_view suffix() const noexcept { return spec_->suffix().text(); }
     std::string_view layer() const noexcept { return std::string_view(index_->layer_name()); }
     std::string_view stage() const noexcept { return std::string_view(*stage_); }
     std::string layer_path() const { return index_->layer_path().to_string(); }

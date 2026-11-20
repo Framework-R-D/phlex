@@ -35,6 +35,19 @@ namespace {
   };
 }
 
+TEST_CASE("producer_catalog returns no producers for an unknown suffix", "[producer_catalog]")
+{
+  tbb::flow::graph graph;
+  test_producer node{graph};
+  std::vector<producer*> producers{&node};
+  producer_catalog const catalog{producers};
+
+  phlex::product_selector const query{.suffix = identifier{"nonexistent"}};
+  auto const matches =
+    catalog.find_producers(query, algorithm_name{"consumer"}, identifier{"test_stage"});
+  CHECK(matches.empty());
+}
+
 TEST_CASE("producer_catalog registers all products from a producer", "[producer_catalog]")
 {
   tbb::flow::graph graph;

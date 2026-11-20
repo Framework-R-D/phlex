@@ -18,6 +18,36 @@
 
 using namespace phlex;
 
+TEST_CASE("Unresolved provider layers do not receive concrete indices", "[graph]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> first_unresolved{graph};
+  tbb::flow::queue_node<detail::index_message> second_unresolved{graph};
+  tbb::flow::queue_node<detail::index_message> resolved{graph};
+  detail::index_router router{graph};
+  router.finalize(graph,
+                  {experimental::layer_path{"/job/run"}},
+                  {},
+                  {{"first_unresolved", {.input_product = {}, .port = &first_unresolved}},
+                   {"second_unresolved", {.input_product = {}, .port = &second_unresolved}},
+                   {"resolved", {.input_product = {.layer = "run"}, .port = &resolved}}},
+                  {},
+                  {});
+
+  auto const job = data_cell_index::job();
+  auto const run = job->make_child("run", 0);
+  router.route(job, {});
+  router.route(run, {});
+  graph.wait_for_all();
+
+  detail::index_message message;
+  REQUIRE(resolved.try_get(message));
+  CHECK(message.index == run);
+  CHECK_FALSE(resolved.try_get(message));
+  CHECK_FALSE(first_unresolved.try_get(message));
+  CHECK_FALSE(second_unresolved.try_get(message));
+}
+
 TEST_CASE("Index routing requires an explicit driver hierarchy", "[graph]")
 {
   tbb::flow::graph graph;

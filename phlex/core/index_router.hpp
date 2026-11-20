@@ -179,6 +179,8 @@ namespace phlex::detail {
     // The first map is from layer name to the corresponding index-set node.
     tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::index_set_node_ptr>
       index_set_nodes_;
+    // Unresolved provider layers do not match a concrete layer path.
+    internal::index_set_node_ptr unresolved_index_set_node_;
     // The second map is a cache from a layer hash to an index-set node, to avoid
     // repeated lookups for the same layer.
     tbb::concurrent_unordered_map<std::size_t, internal::index_set_node_ptr> index_set_node_cache_;
@@ -186,8 +188,7 @@ namespace phlex::detail {
     // ==========================================================================================
     // Routing to multi-layer join nodes
     // Maps from join-node name to the multilayer slots for that node.
-    tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::join_node_slots>
-      multilayer_join_slots_;
+    tbb::concurrent_unordered_map<std::string, internal::join_node_slots> multilayer_join_slots_;
 
     // This struct lets multilayer_slots_for return message slots and end-token entries together,
     // instead of passing concurrent_hash_map accessors as output parameters. End-token entries

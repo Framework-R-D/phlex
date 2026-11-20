@@ -83,8 +83,7 @@ namespace phlex {
   {
     // Will generate <<suffix>::<concept> by <creator> (of <stage>) in <layer>>
     using experimental::identifier;
-    std::string_view suffix_str =
-      suffix.transform(&identifier::operator std::string_view).value_or("[ANY]");
+    std::string_view suffix_str = suffix ? suffix->text() : "[ANY]";
     std::string type_str = this->type.valid() ? fmt::format("<{}>", this->type)
                                               : "[UNSET TYPE]"; // will later be concept
     auto layer_str = std::string_view(layer);

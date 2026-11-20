@@ -9,6 +9,7 @@
 #include <boost/container_hash/hash.hpp>
 
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -19,33 +20,33 @@ namespace phlex::experimental {
   /// promoted to the stable phlex namespace.
   class PHLEX_MODEL_EXPORT product_specification {
   public:
-    product_specification();
+    // There is no default or creator-less construction: every specification names its creator.
+
+    // Text constructors parse the `creator/suffix` form, which must contain the slash. Structural
+    // errors throw `std::runtime_error`; an invalid creator or suffix throws
+    // `std::invalid_argument`.
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     product_specification(char const* name);
     product_specification(std::string const& name);
     product_specification(std::string_view name);
     // NOLINTEND(google-explicit-constructor)
-    product_specification(algorithm_name creator, identifier suffix, type_id type);
+    product_specification(algorithm_name creator, suffix_t suffix, type_id type);
 
     std::string to_string() const;
     algorithm_name const& creator() const noexcept { return creator_; }
-    identifier const& plugin() const noexcept { return creator_.plugin(); }
-    identifier const& algorithm() const noexcept { return creator_.algorithm(); }
-    identifier const& suffix() const noexcept { return suffix_; }
+    suffix_t const& suffix() const noexcept { return suffix_; }
     type_id type() const noexcept { return type_id_; }
 
+    /// Sets, replaces, or clears (with a default-constructed `type_id`) the type.
     void set_type(type_id&& type) { type_id_ = std::move(type); }
 
     auto operator<=>(product_specification const&) const = default;
-
-    static product_specification create(char const* c);
-    static product_specification create(std::string_view s);
 
     friend struct std::hash<product_specification>;
 
   private:
     experimental::algorithm_name creator_;
-    experimental::identifier suffix_; // Default suffix is empty string
+    experimental::suffix_t suffix_;
     type_id type_id_{};
   };
 
@@ -64,7 +65,12 @@ template <>
 struct std::hash<phlex::experimental::product_specification> {
   std::size_t operator()(phlex::experimental::product_specification const& spec) const noexcept
   {
-    std::size_t hash = spec.creator_.plugin().hash();
+    std::size_t hash = 0;
+    auto const& plugin = spec.creator_.plugin();
+    boost::hash_combine(hash, plugin.has_value());
+    if (plugin) {
+      boost::hash_combine(hash, plugin->hash());
+    }
     boost::hash_combine(hash, spec.creator_.algorithm().hash());
     boost::hash_combine(hash, spec.suffix_.hash());
     boost::hash_combine(hash, phlex::experimental::hash_value(spec.type_id_));

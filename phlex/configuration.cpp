@@ -6,7 +6,6 @@
 #include <boost/json/conversion.hpp>
 #include <boost/json/object.hpp>
 #include <boost/json/value.hpp>
-#include <boost/json/value_to.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -17,23 +16,37 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
-namespace phlex::detail {
-  std::optional<experimental::identifier> value_if_exists(
-    boost::json::object const& obj, // will be used later for new product_selector
-    std::string_view parameter)
-  {
-    if (!obj.contains(parameter)) {
-      return std::nullopt;
+namespace phlex::experimental {
+  // The unnamed namespace gives this helper internal linkage. It is inline so that its members
+  // are still found by argument-dependent lookup in phlex::experimental.
+  inline namespace {
+    // Boost.JSON conversion to suffix_t, used when reading a product selector's "suffix" field.
+    // boost::json::value_to finds tag_invoke overloads by argument-dependent lookup, which
+    // searches phlex::experimental, the namespace of suffix_t, and its inline namespaces.
+    suffix_t tag_invoke(boost::json::value_to_tag<suffix_t> const&, boost::json::value const& jv)
+    {
+      return suffix_t{std::string_view{jv.as_string()}};
     }
-    auto const& val = obj.at(parameter);
-    return boost::json::value_to<experimental::identifier>(val);
   }
 }
 
 namespace phlex {
+  namespace {
+    // Returns the product selector field named `field` converted to T, or std::nullopt when it is
+    // absent. A malformed value is reported together with the name of the field that held it.
+    template <typename T>
+    std::optional<T> in_selector_field(boost::json::object const& query_object,
+                                       std::string_view field)
+    try {
+      return detail::value_if_exists<T>(query_object, field);
+    } catch (std::invalid_argument const& e) {
+      throw std::invalid_argument{
+        fmt::format("Invalid product selector field \"{}\": {}", field, e.what())};
+    }
+  }
+
   std::vector<std::string> configuration::keys() const
   {
     std::vector<std::string> result;
@@ -52,11 +65,13 @@ namespace phlex {
   product_selector tag_invoke(boost::json::value_to_tag<product_selector> const&,
                               boost::json::value const& jv)
   {
-    using detail::value_if_exists;
+    using experimental::identifier;
+    using experimental::suffix_t;
     using namespace std::string_view_literals;
     static std::set<std::string_view> const valid_keys = {
       "creator"sv, "layer"sv, "suffix"sv, "stage"sv};
-    auto query_object = jv.as_object();
+    // A reference into `jv`: the selector is only read here, so no copy of the object is needed.
+    auto const& query_object = jv.as_object();
     std::set<std::string_view> unrecognized_keys = {};
     for (auto const& [key, _] : query_object) {
       if (!valid_keys.contains(key)) {
@@ -67,12 +82,14 @@ namespace phlex {
       throw std::runtime_error(
         fmt::format("Product selector contains unrecognized keys: {}", unrecognized_keys));
     }
-    auto creator = value_if_exists(query_object, "creator");
-    auto layer = value_if_exists(query_object, "layer");
-    auto suffix = value_if_exists(query_object, "suffix");
-    auto stage = value_if_exists(query_object, "stage");
-    return product_selector{
-      .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
+    // Each field is initialized directly from the value returned by in_selector_field, so no
+    // field value is copied or moved through a named local. The initializers of a braced list are
+    // evaluated in order, so fields are read in declaration order and the first malformed field
+    // in that order is the one reported.
+    return product_selector{.creator = in_selector_field<identifier>(query_object, "creator"),
+                            .layer = in_selector_field<identifier>(query_object, "layer"),
+                            .suffix = in_selector_field<suffix_t>(query_object, "suffix"),
+                            .stage = in_selector_field<identifier>(query_object, "stage")};
   }
 
   experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,

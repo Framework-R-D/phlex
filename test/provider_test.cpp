@@ -14,6 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
@@ -93,6 +94,22 @@ namespace {
   };
 
   unsigned pass_on(vertex_collection const& vertices) { return vertices.data; }
+}
+
+TEST_CASE("Provider nodes take their name from the advertised product creator")
+{
+  tbb::flow::graph graph;
+  experimental::product_specification const spec{
+    "reco:vertices_maker", "happy_vertices", experimental::make_type_id<vertex_collection>()};
+  provider_bundle const bundle{.provider_function = give_me_vertices_erased,
+                               .max_concurrency = concurrency::unlimited,
+                               .spec = spec,
+                               .layer = "spill",
+                               .stage = "previous_process"};
+
+  detail::provider_node const node{graph, bundle};
+  CHECK(node.name() == spec.creator());
+  CHECK(node.output_product() == spec);
 }
 
 TEST_CASE("Explicit providers")

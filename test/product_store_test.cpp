@@ -4,6 +4,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
 
@@ -14,16 +15,24 @@
 
 #include <memory>
 #include <stdexcept>
-#include <string>
 #include <tuple>
 #include <vector>
 
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
 
+TEST_CASE("Product store default source", "[data model]")
+{
+  auto const source = product_store::default_source();
+  CHECK(source.to_string() == "Source");
+  CHECK(source.algorithm() == "Source"_id);
+  CHECK_FALSE(source.plugin().has_value());
+  CHECK(product_store::default_source() == source);
+}
+
 TEST_CASE("Product store insertion", "[data model]")
 {
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto creator_ptr = gsl::make_not_null(&creator);
   auto stage_ptr = gsl::make_not_null(&stage);
@@ -34,11 +43,11 @@ TEST_CASE("Product store insertion", "[data model]")
 
   constexpr int number = 4;
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  store->add_product("number", number);
-  store->add_product("numbers", many_numbers);
-  product_specification const number_spec{"number"};
-  product_specification const numbers_spec{"numbers"};
-  product_specification const wrong_spec{"wrong_key"};
+  store->add_product("test_algorithm/number", number);
+  store->add_product("test_algorithm/numbers", many_numbers);
+  product_specification const number_spec{"test_algorithm/number"};
+  product_specification const numbers_spec{"test_algorithm/numbers"};
+  product_specification const wrong_spec{"test_algorithm/wrong_key"};
 
   // Check number of products
   CHECK(store->size() == 2ull);
@@ -46,10 +55,10 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK_THROWS_WITH(
     store->get_product<double>(gsl::make_not_null(&number_spec)),
     Catch::Matchers::ContainsSubstring(
-      "Cannot get product 'number' with type 'double' -- must specify type 'int'."));
+      "Cannot get product 'test_algorithm/number' with type 'double' -- must specify type 'int'."));
 
-  auto const matcher =
-    Catch::Matchers::ContainsSubstring("No product exists with the specification 'wrong_key'.");
+  auto const matcher = Catch::Matchers::ContainsSubstring(
+    "No product exists with the specification 'test_algorithm/wrong_key'.");
   CHECK_THROWS_WITH(store->get_handle<int>(gsl::make_not_null(&wrong_spec)), matcher);
 
   CHECK(store->get_product<int>(gsl::make_not_null(&number_spec)) == number);
@@ -65,7 +74,7 @@ TEST_CASE("Product retrieval requires exactly one match", "[data model]")
 {
   using Catch::Matchers::ContainsSubstring;
 
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
   phlex::detail::message const msg{.store = store};
@@ -117,7 +126,7 @@ TEST_CASE("Product store derivation", "[data model]")
 {
   using namespace phlex::experimental::detail;
 
-  auto const creator = algorithm_name::create("test_algorithm");
+  auto const creator = algorithm_name{"test_algorithm"};
   auto const stage = "test_stage"_id;
   auto creator_ptr = gsl::make_not_null(&creator);
   auto stage_ptr = gsl::make_not_null(&stage);

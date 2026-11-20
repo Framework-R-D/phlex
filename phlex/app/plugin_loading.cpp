@@ -5,6 +5,7 @@
 #include "phlex/core/graph_proxy.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/module.hpp"
 #include "phlex/resource.hpp"
 #include "phlex/source.hpp"
@@ -31,6 +32,19 @@ namespace phlex::detail {
 
   namespace {
     constexpr std::string_view pymodule_name{"pymodule"};
+
+    // The label of a module or source becomes the plugin label of every algorithm that it
+    // registers. Checking it where the user wrote it lets the message name the configuration
+    // section, which the algorithm-name error raised later could not.
+    void verify_label(std::string_view section, std::string const& label)
+    {
+      try {
+        experimental::identifier const checked{label};
+      } catch (std::invalid_argument const&) {
+        throw std::invalid_argument{fmt::format(
+          "Invalid label {:?} for an entry in \"{}\": it {}", label, section, identifier_rule)};
+      }
+    }
 
     // The shared_library member in each wrapper struct keeps the loaded .so
     // alive for the lifetime of the wrapper.  If it goes out of scope, the
@@ -143,6 +157,7 @@ namespace phlex::detail {
 
   void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
+    verify_label("modules", label);
     auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
@@ -173,6 +188,7 @@ namespace phlex::detail {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
+    verify_label("sources", label);
     auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));

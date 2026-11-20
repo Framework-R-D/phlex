@@ -58,8 +58,8 @@ TEST_CASE("Handle copies and moves", "[data model]")
 {
   int const two{2};
   int const four{4};
-  spec_t const two_spec{"two"};
-  spec_t const four_spec{"four"};
+  spec_t const two_spec{"creator/two"};
+  spec_t const four_spec{"creator/four"};
 
   auto job_data_cell = data_cell_index::job();
   auto subrun_6_data_cell = job_data_cell->make_child("subrun", 6);
@@ -88,8 +88,8 @@ TEST_CASE("Handle comparisons", "[data model]")
 {
   int const seventeen{17};
   int const eighteen{18};
-  spec_t const seventeen_spec{"seventeen"};
-  spec_t const eighteen_spec{"eighteen"};
+  spec_t const seventeen_spec{"creator/seventeen"};
+  spec_t const eighteen_spec{"creator/eighteen"};
   auto const h17 = make_handle(seventeen, *data_cell_index::job(), seventeen_spec);
   auto const h18 = make_handle(eighteen, *data_cell_index::job(), eighteen_spec);
   CHECK(h17 == h17);
@@ -105,7 +105,7 @@ TEST_CASE("Handle comparisons", "[data model]")
 TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 {
   int const number{3};
-  spec_t const spec{"number"};
+  spec_t const spec{"creator/number"};
   auto const h = make_handle(number, *data_cell_index::job(), spec);
   CHECK(h.data_cell_index() == *data_cell_index::job());
 
@@ -116,7 +116,7 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   CHECK(*num_ptr == number);
 
   composer const elgar{"Elgar"};
-  spec_t const composer_spec{"composer"};
+  spec_t const composer_spec{"creator/composer"};
   auto const h2 = make_handle(elgar, *data_cell_index::job(), composer_spec);
   CHECK(h2->name == "Elgar");
 }
@@ -131,6 +131,28 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   CHECK(h.suffix() == "three");
   CHECK(h.layer() == "job");
   CHECK(h.stage() == "test_stage");
+}
+
+TEST_CASE("Retrieve plugin-qualified creator from handle", "[data model]")
+{
+  int const number{3};
+  spec_t const spec{"plugin:creator/three"};
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
+
+  CHECK(h.creator().plugin == "plugin");
+  CHECK(h.creator().algorithm == "creator");
+  CHECK(h.suffix() == "three");
+}
+
+TEST_CASE("Retrieve unqualified creator and empty suffix from handle", "[data model]")
+{
+  int const number{3};
+  spec_t const spec{"creator/"};
+  auto const h = make_handle(number, *data_cell_index::job(), spec);
+
+  CHECK(h.creator().plugin.empty());
+  CHECK(h.creator().algorithm == "creator");
+  CHECK(h.suffix().empty());
 }
 
 TEST_CASE("Retrieve stage from handle", "[data model]")

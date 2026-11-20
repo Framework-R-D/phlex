@@ -28,9 +28,6 @@ namespace phlex {
 
 namespace phlex::detail {
   struct node_catalog;
-  namespace internal {
-    PHLEX_CORE_EXPORT void verify_name(std::string_view name, configuration const* config);
-  }
 
   // ==============================================================================
   // Registering user functions
@@ -73,7 +70,6 @@ namespace phlex::detail {
               std::string partition,
               InitArgs&&... init_args)
     {
-      internal::verify_name(name, config_);
       return fold_api{config_,
                       name,
                       stage_,
@@ -94,7 +90,6 @@ namespace phlex::detail {
                  FT f, // NOLINT(performance-unnecessary-value-param)
                  concurrency c)
     {
-      internal::verify_name(name, config_);
       return make_registration<observer_node, declared_observer_ptr>(
         config_,
         name,
@@ -114,7 +109,6 @@ namespace phlex::detail {
                  FT f, // NOLINT(performance-unnecessary-value-param)
                  concurrency c)
     {
-      internal::verify_name(name, config_);
       return provider_api{config_,
                           name,
                           stage_,
@@ -133,7 +127,6 @@ namespace phlex::detail {
                    FT f, // NOLINT(performance-unnecessary-value-param)
                    concurrency c)
     {
-      internal::verify_name(name, config_);
       return make_registration<transform_node, declared_transform_ptr>(
         config_,
         name,
@@ -153,7 +146,6 @@ namespace phlex::detail {
                    FT f, // NOLINT(performance-unnecessary-value-param)
                    concurrency c)
     {
-      internal::verify_name(name, config_);
       return make_registration<predicate_node, declared_predicate_ptr>(
         config_,
         name,
@@ -173,7 +165,6 @@ namespace phlex::detail {
                 std::string destination_data_layer)
     {
       assert(!bound_obj_);
-      internal::verify_name(name, config_);
       return unfold_api<T, decltype(predicate), decltype(unfold)>{
         config_,
         name,
