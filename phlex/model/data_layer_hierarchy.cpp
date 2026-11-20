@@ -27,16 +27,21 @@ namespace {
     return empty(name) ? unnamed : name; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
-  void render(display_node const& node, std::string const& indent, std::string& result)
+  std::string render(display_node const& node, std::string const& indent)
   {
+    std::string chunk;
     std::size_t i = 0;
     for (auto const& [name, child] : node.children) {
       bool const last = ++i == node.children.size();
       auto const count = child.count ? fmt::to_string(*child.count) : "(incomplete)";
-      result += fmt::format(
-        "\n{} │\n{} {} {}: {}", indent, indent, last ? "└" : "├", maybe_name(name), count);
-      render(child, indent + (last ? "   " : " │ "), result);
+      chunk += fmt::format("\n{indent} │\n{indent} {connector} {name}: {count}{children}",
+                           fmt::arg("indent", indent),
+                           fmt::arg("connector", last ? "└" : "├"),
+                           fmt::arg("name", maybe_name(name)),
+                           fmt::arg("count", count),
+                           fmt::arg("children", render(child, indent + (last ? "   " : " │ "))));
     }
+    return chunk;
   }
 }
 
@@ -110,9 +115,8 @@ namespace phlex::detail {
       node->count = entry->count.load();
     }
 
-    auto result = fmt::format("\n\nSeen layers:\n\n  job{}", root.count ? "" : ": (incomplete)");
-    render(root, "  ", result);
-    result += '\n';
-    return result;
+    return fmt::format("\n\nSeen layers:\n\n  job{status}{children}\n",
+                       fmt::arg("status", root.count ? "" : ": (incomplete)"),
+                       fmt::arg("children", render(root, "  ")));
   }
 }
