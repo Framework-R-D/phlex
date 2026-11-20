@@ -295,6 +295,7 @@ namespace phlex::detail {
       layer_path const node_deepest_layer = deepest_layer_name(slot_layers);
 
       internal::join_node_slots node_slots;
+      node_slots.input_layers = slot_layers;
       node_slots.slots.reserve(join_ports.size());
       node_slots.flush_specs.reserve(join_ports.size());
       for (auto const& [layer, counting_layer, flush_port, input_port] : join_ports) {
@@ -467,7 +468,8 @@ namespace phlex::detail {
       if (slot->matches_exactly(layer_path)) {
         has_exact_match = true;
         if (flush.counting_layer != slot->layer()) {
-          auto hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
+          auto hashes =
+            counting_layer_hashes_under(layer_path, flush.counting_layer, node_slots.input_layers);
           if (not hashes.empty()) {
             end_token_entries.push_back(
               {.counting_layer_hashes = std::move(hashes), .flush_port = flush.flush_port});
@@ -490,8 +492,13 @@ namespace phlex::detail {
   }
 
   std::vector<std::size_t> index_router::counting_layer_hashes_under(
-    layer_path const& partition_layer_path, layer_path const& counting_layer_name) const
+    layer_path const& partition_layer_path,
+    layer_path const& counting_layer_name,
+    std::vector<layer_path> const& input_layers) const
   {
+    // A fold can count at a layer that is not one of its inputs, so that layer joins the chain.
+    auto chain = input_layers;
+    chain.push_back(counting_layer_name);
     std::vector<std::size_t> result;
     for (auto const& candidate : sorted_layer_paths_) {
       // candidate must be a strict descendant of the partition layer path
@@ -499,6 +506,9 @@ namespace phlex::detail {
         continue;
       }
       if (not candidate.ends_with(counting_layer_name.leaf())) {
+        continue;
+      }
+      if (not matches_input_chain(candidate, chain)) {
         continue;
       }
       result.push_back(candidate.hash());

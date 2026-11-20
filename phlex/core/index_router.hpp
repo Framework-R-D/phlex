@@ -49,6 +49,8 @@ namespace phlex::detail {
     struct join_node_slots {
       multilayer_slots slots;
       std::vector<flush_spec> flush_specs;
+      // The layers of every input of the node. Counting is limited to paths on which they all lie.
+      std::vector<phlex::experimental::layer_path> input_layers;
     };
 
     // One completion token per slot combines all applicable descendant counting paths.
@@ -157,10 +159,12 @@ namespace phlex::detail {
     flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
-    // Resolve descendant paths ending in the counting layer beneath this partition.
+    // Resolve descendant paths ending in the counting layer beneath this partition, keeping only
+    // paths on which all of the node's input layers lie.
     std::vector<std::size_t> counting_layer_hashes_under(
       phlex::experimental::layer_path const& partition_layer_path,
-      phlex::experimental::layer_path const& counting_layer_name) const;
+      phlex::experimental::layer_path const& counting_layer_name,
+      std::vector<phlex::experimental::layer_path> const& input_layers) const;
 
     phlex::experimental::layer_path deepest_layer_name(
       std::vector<phlex::experimental::layer_path> const& layer_names) const;

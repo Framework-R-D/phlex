@@ -284,3 +284,56 @@ TEST_CASE("Duplicate counting paths deliver one combined end token", "[graph][is
   CHECK(std::cmp_equal(token.count, top_count + nested_count));
   CHECK_FALSE(tokens.try_get(token));
 }
+
+TEST_CASE("Counting layers outside the join's input chain are not counted", "[graph]")
+{
+  tbb::flow::graph graph;
+  tbb::flow::queue_node<detail::index_message> job_indices{graph};
+  tbb::flow::queue_node<detail::index_message> run_indices{graph};
+  tbb::flow::queue_node<detail::index_message> event_indices{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> job_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> run_tokens{graph};
+  tbb::flow::queue_node<detail::indexed_end_token> event_tokens{graph};
+  detail::index_router router{graph};
+  // The join takes job, run and event, so only /job/run/event lies on its input chain.
+  router.finalize(
+    graph,
+    {experimental::layer_path{"/job/run/event"}, experimental::layer_path{"/job/mc/event"}},
+    {},
+    {},
+    {},
+    {{"join",
+      {{.layer = experimental::layer_path{"job"},
+        .token_port = &job_tokens,
+        .index_port = &job_indices},
+       {.layer = experimental::layer_path{"run"},
+        .token_port = &run_tokens,
+        .index_port = &run_indices},
+       {.layer = experimental::layer_path{"event"},
+        .token_port = &event_tokens,
+        .index_port = &event_indices}}}});
+
+  auto const job = data_cell_index::job();
+  auto const run = job->make_child("run", 0);
+  auto const mc = job->make_child("mc", 0);
+  router.route(job, {});
+  router.route(run, {});
+  router.route(mc, {});
+
+  auto job_counts = std::make_shared<detail::data_cell_counts>();
+  job_counts->emplace(run->layer_hash(), 1);
+  job_counts->emplace(mc->layer_hash(), 1);
+  auto run_counts = std::make_shared<detail::data_cell_counts>();
+  run_counts->emplace(run->make_child("event", 0)->layer_hash(), 2);
+  auto mc_counts = std::make_shared<detail::data_cell_counts>();
+  mc_counts->emplace(mc->make_child("event", 0)->layer_hash(), 5);
+  router.drain({{.index = run, .counts = run_counts},
+                {.index = mc, .counts = mc_counts},
+                {.index = job, .counts = job_counts}});
+  graph.wait_for_all();
+
+  detail::indexed_end_token token;
+  REQUIRE(job_tokens.try_get(token));
+  CHECK(token.index == job);
+  CHECK(token.count == 2);
+}
