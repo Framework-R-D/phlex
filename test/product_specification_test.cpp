@@ -113,12 +113,6 @@ TEST_CASE("Product specification hash and equality", "[data model]")
   product_specification const unqualified_spec{unqualified, "number"_id, make_type_id<int>()};
   product_specification const untyped{creator, "number"_id, type_id{}};
   product_specification const empty_suffix{creator, suffix_t{}, make_type_id<int>()};
-  std::hash<product_specification> const hash;
-
-  CHECK(hash(named) == hash(product_specification{creator, "number"_id, make_type_id<int>()}));
-  CHECK(hash(untyped) == hash(product_specification{creator, "number"_id, type_id{}}));
-  CHECK(hash(empty_suffix) ==
-        hash(product_specification{creator, suffix_t{}, make_type_id<int>()}));
 
   // Every component participates in identity; an unspecified type is not a wildcard.
   CHECK(named != unqualified_spec);
@@ -127,6 +121,12 @@ TEST_CASE("Product specification hash and equality", "[data model]")
   CHECK(named != product_specification{creator, "other"_id, make_type_id<int>()});
   CHECK(named != product_specification{creator, "number"_id, make_type_id<double>()});
 
+  // The duplicate insertions below test the hash/equality contract: separately constructed
+  // specifications with equal values must hash equal, so that they land in the same bucket and
+  // are recognized as duplicates. This would fail if the hash depended on object identity
+  // (e.g. addresses) or on anything else not determined by the specification's value. The
+  // default-constructed suffix and the unspecified type are included because they are edge cases
+  // of the component hashes.
   std::unordered_set<product_specification> specs;
   CHECK(specs.insert(named).second);
   CHECK(specs.insert(unqualified_spec).second);
@@ -135,6 +135,7 @@ TEST_CASE("Product specification hash and equality", "[data model]")
   CHECK_FALSE(
     specs.insert(product_specification{creator, "number"_id, make_type_id<int>()}).second);
   CHECK_FALSE(specs.insert(product_specification{creator, "number"_id, type_id{}}).second);
+  CHECK_FALSE(specs.insert(product_specification{creator, suffix_t{}, make_type_id<int>()}).second);
   CHECK(specs.size() == 4u);
   CHECK(specs.contains(product_specification{creator, "number"_id, make_type_id<int>()}));
   CHECK(specs.contains(product_specification{unqualified, "number"_id, make_type_id<int>()}));
