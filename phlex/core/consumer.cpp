@@ -55,6 +55,10 @@ namespace {
     }
   }
 
+  // Selectors on one algorithm whose layers are suffixes of one another name the same layer, so each
+  // is lengthened to the longest of them. The hierarchy isn't known when an algorithm is registered,
+  // so a short selector such as "event" is lengthened even when a deeper layer such as
+  // "/job/run/event/event" also exists. Select the deeper layer with its own longer path to keep it.
   void normalize_layer_selectors(phlex::product_selectors& selectors)
   {
     if (selectors.size() <= 1) {

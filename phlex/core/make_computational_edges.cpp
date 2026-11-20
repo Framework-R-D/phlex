@@ -137,9 +137,21 @@ namespace phlex::detail {
       index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
+          // A provider that serves a layer can supply any selector whose layer ends with it.
+          // The consumer filters out the cells that it does not select.
           auto existing_provider_it = std::ranges::find_if(
             provider_input_ports, [&input_product](auto const& provider_entry) {
-              return input_product.match(provider_entry.second.input_product);
+              auto const& provider_selector = provider_entry.second.input_product;
+              if (input_product.layer and
+                  (not provider_selector.layer or
+                   not input_product.layer->ends_with(provider_selector.layer))) {
+                return false;
+              }
+              auto selector = input_product;
+              selector.layer = {};
+              auto provided = provider_selector;
+              provided.layer = {};
+              return selector.match(provided);
             });
 
           if (existing_provider_it != provider_input_ports.end()) {

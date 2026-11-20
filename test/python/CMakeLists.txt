@@ -312,6 +312,13 @@ add_test(
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badlayer)
 
+add_test(
+  NAME py:samelayer
+  COMMAND
+    ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pysamelayer.jsonnet --stage test
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:samelayer)
+
 # "failing" tests for checking error paths
 add_test(
   NAME py:failure

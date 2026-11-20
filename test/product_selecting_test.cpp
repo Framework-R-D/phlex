@@ -312,6 +312,34 @@ TEST_CASE("Selecting by layer path segments beyond the leaf", "[graph]")
   CHECK(g.execution_count("observer") == num_events);
 }
 
+// An implicit provider made for a leaf layer selector serves a later selector that goes beyond the
+// leaf, as long as that selector ends with the provider's layer.
+TEST_CASE("Sharing an implicit provider between selectors of different lengths", "[graph]")
+{
+  constexpr unsigned runs = 2;
+  constexpr unsigned events_per_run = 3;
+  constexpr unsigned num_events = runs * events_per_run;
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {.parent_layer = "job", .count = runs});
+  gen->add_layer("event", {.parent_layer = "run", .count = events_per_run});
+  auto g = phlex::detail::framework_graph::without_driver("test");
+  g.add_driver(gen);
+  g.add_source<archived_count_source>("archived_count_source");
+
+  // Observers are connected in name order, so the leaf selector creates the provider.
+  g.observe(
+     "a_leaf", [](int const&) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "archived_input", .layer = "event"});
+  auto const* const layer = GENERATE("run/event", "/job/run/event");
+  CAPTURE(layer);
+  g.observe(
+     "b_longer", [](int const&) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "archived_input", .layer = layer});
+  g.execute();
+  CHECK(g.execution_count("a_leaf") == num_events);
+  CHECK(g.execution_count("b_longer") == num_events);
+}
+
 namespace {
   void add_ints(std::atomic<int>& total, int const value) { total += value; }
 }
