@@ -232,16 +232,16 @@ set_tests_properties(
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
 add_test(
-  NAME py:badname
-  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadname.jsonnet --stage test
+  NAME py:invalid_transform_name
+  COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyinvalid_transform_name.jsonnet --stage test
 )
 set_tests_properties(
-  py:badname
+  py:invalid_transform_name
   PROPERTIES
     PASS_REGULAR_EXPRESSION
       "ValueError: Invalid identifier \"bad name\": an identifier must not be empty and must start with an ASCII letter"
 )
-list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badname)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:invalid_transform_name)
 
 add_test(
   NAME py:mismatch_variant

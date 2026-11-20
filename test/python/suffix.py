@@ -81,7 +81,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     # malformed text in an input selector is a ValueError that names the offending field
     for input_query, field in (
         ({"creator": "bad creator", "layer": "event", "suffix": "i"}, "creator"),
-        ({"creator": "input", "layer": "event layer", "suffix": "i"}, "layer"),
+        ({"creator": "input", "layer": "bad layer", "suffix": "i"}, "layer"),
         ({"creator": "input", "layer": "event", "suffix": "bad suffix"}, "suffix"),
     ):
         try:

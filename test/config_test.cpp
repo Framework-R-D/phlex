@@ -62,7 +62,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
 
   boost::json::object malformed_input5;
   malformed_input5["creator"] = "hits";
-  malformed_input5["suffix"] = "bad name";
+  malformed_input5["suffix"] = "bad suffix";
 
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
@@ -99,6 +99,6 @@ TEST_CASE("Retrieve product_selector", "[config]")
   CHECK_THROWS_WITH(config.get<product_selector>("malformed5"),
                     ContainsSubstring("Error retrieving parameter 'malformed5'") &&
                       ContainsSubstring("Invalid product selector field \"suffix\": "
-                                        "Invalid identifier \"bad name\": an identifier " +
+                                        "Invalid identifier \"bad suffix\": an identifier " +
                                         std::string{phlex::detail::identifier_rule}));
 }

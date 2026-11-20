@@ -136,10 +136,10 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
 
     # malformed text in a provider output is a ValueError that names the offending field
     for selector, field in [
-        ({"creator": "a b", "layer": "b", "suffix": "c"}, "creator"),
-        ({"creator": "a:b:c", "layer": "b", "suffix": "c"}, "creator"),
-        ({"creator": "a", "layer": "1b", "suffix": "c"}, "layer"),
-        ({"creator": "a", "layer": "b", "suffix": "c d"}, "suffix"),
+        ({"creator": "bad creator", "layer": "b", "suffix": "c"}, "creator"),
+        ({"creator": "bad:creator:name", "layer": "b", "suffix": "c"}, "creator"),
+        ({"creator": "a", "layer": "1bad_layer", "suffix": "c"}, "layer"),
+        ({"creator": "a", "layer": "b", "suffix": "bad suffix"}, "suffix"),
     ]:
         try:
             s.provide(freq, selector)

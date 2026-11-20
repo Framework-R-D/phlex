@@ -11,8 +11,8 @@
     },
   },
   modules: {
-    badname: {
-      py: 'badname',
+    invalid_transform_name: {
+      py: 'invalid_transform_name',
     },
   },
 }
