@@ -24,7 +24,7 @@ namespace phlex::detail {
                   std::vector<std::string> predicates,
                   product_selectors input_products,
                   tbb::flow::graph& graph,
-                  std::string partition_layer);
+                  phlex::experimental::layer_path partition_layer);
     ~declared_fold() override;
 
     phlex::experimental::algorithm_name const& name() const noexcept override

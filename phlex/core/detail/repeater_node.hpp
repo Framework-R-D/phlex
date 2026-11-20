@@ -23,7 +23,7 @@ namespace phlex::detail::internal {
   public:
     repeater_node(tbb::flow::graph& g,
                   phlex::experimental::algorithm_name node_name,
-                  phlex::experimental::identifier layer_name);
+                  phlex::experimental::layer_path layer_name);
 
     tbb::flow::receiver<message>& data_port();
     tbb::flow::receiver<indexed_end_token>& flush_port();
@@ -69,7 +69,7 @@ namespace phlex::detail::internal {
     cache_t cached_products_;
     std::atomic<cache_mode> index_cache_mode_{cache_mode::unset};
     phlex::experimental::algorithm_name node_name_;
-    phlex::experimental::identifier layer_;
+    phlex::experimental::layer_path layer_;
   };
 }
 

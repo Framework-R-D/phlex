@@ -85,7 +85,7 @@ namespace phlex::detail {
               InitTuple initializer,
               product_selectors input_products,
               std::vector<std::string> output,
-              std::string partition_layer,
+              phlex::experimental::layer_path partition_layer,
               resource_catalog& resources) :
       declared_fold{std::move(algo_name),
                     std::move(predicates),

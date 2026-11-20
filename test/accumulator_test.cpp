@@ -86,7 +86,7 @@ namespace {
       accumulator_{g_,
                    node_name,
                    "test_stage"_id,
-                   "run"_id,
+                   "run",
                    product_specifications(1),
                    [](phlex::data_cell_index const&) { return std::make_unique<int>(0); }},
       fold_op_{g_, tbb::flow::unlimited, count_fold},
@@ -233,7 +233,7 @@ TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithr
     g,
     "test_accumulator_warning",
     "test_stage"_id,
-    "run"_id,
+    "run",
     product_specifications(1),
     [](phlex::data_cell_index const&) { return std::make_unique<int>(0); });
 

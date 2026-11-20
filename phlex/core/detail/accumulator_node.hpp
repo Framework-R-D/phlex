@@ -102,7 +102,7 @@ namespace phlex::detail::internal {
     accumulator_node(tbb::flow::graph& g,
                      phlex::experimental::algorithm_name node_name,
                      phlex::experimental::identifier stage,
-                     phlex::experimental::identifier partition_layer_name,
+                     phlex::experimental::layer_path partition_layer_name,
                      phlex::experimental::product_specifications output,
                      result_initializer_t initializer);
 
@@ -156,7 +156,7 @@ namespace phlex::detail::internal {
     cache_t cached_results_;
     phlex::experimental::algorithm_name node_name_;
     phlex::experimental::identifier stage_;
-    phlex::experimental::identifier partition_layer_;
+    phlex::experimental::layer_path partition_layer_;
     result_initializer_t initializer_;
     phlex::experimental::product_specifications output_;
     std::atomic<std::size_t> emitted_result_count_{0};
@@ -169,7 +169,7 @@ namespace phlex::detail::internal {
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
                                              phlex::experimental::algorithm_name node_name,
                                              phlex::experimental::identifier stage,
-                                             phlex::experimental::identifier partition_layer_name,
+                                             phlex::experimental::layer_path partition_layer_name,
                                              phlex::experimental::product_specifications output,
                                              result_initializer_t initializer) :
     base_t{g},
