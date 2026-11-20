@@ -8,6 +8,8 @@
 
 #include <concepts>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 
 using namespace phlex;
@@ -153,6 +155,98 @@ TEST_CASE("Retrieve unqualified creator and empty suffix from handle", "[data mo
   CHECK(h.creator().plugin.empty());
   CHECK(h.creator().algorithm == "creator");
   CHECK(h.suffix().empty());
+}
+
+TEST_CASE("Handle metadata accessors return textual views", "[data model]")
+{
+  using handle_t = handle<int>;
+  STATIC_CHECK(std::is_same_v<decltype(std::declval<handle_t>().suffix()), std::string_view>);
+  STATIC_CHECK(std::is_same_v<decltype(std::declval<handle_t>().layer()), std::string_view>);
+  STATIC_CHECK(std::is_same_v<decltype(std::declval<handle_t>().stage()), std::string_view>);
+  STATIC_CHECK(
+    std::is_same_v<decltype(std::declval<handle_t>().creator().plugin), std::string_view>);
+  STATIC_CHECK(
+    std::is_same_v<decltype(std::declval<handle_t>().creator().algorithm), std::string_view>);
+}
+
+TEST_CASE("Handle suffix views distinguish empty and named suffixes", "[data model]")
+{
+  int const number{3};
+  auto const job = data_cell_index::job();
+
+  SECTION("Explicit empty suffix")
+  {
+    spec_t const spec{"creator/"};
+    auto const h = make_handle(number, *job, spec);
+    CHECK(h.suffix().empty());
+    CHECK(h.suffix() == "");
+    CHECK(h.creator().algorithm == "creator");
+  }
+
+  SECTION("Named suffix")
+  {
+    spec_t const spec{"creator/hits"};
+    auto const h = make_handle(number, *job, spec);
+    CHECK_FALSE(h.suffix().empty());
+    CHECK(h.suffix() == "hits");
+  }
+}
+
+TEST_CASE("Handle creator views for unqualified and qualified creators", "[data model]")
+{
+  int const number{3};
+  auto const job = data_cell_index::job();
+
+  SECTION("Unqualified creator has an empty plugin view")
+  {
+    spec_t const spec{"find_hits/hits"};
+    auto const h = make_handle(number, *job, spec);
+    CHECK(h.creator().plugin.empty());
+    CHECK(h.creator().algorithm == "find_hits");
+    CHECK(h.suffix() == "hits");
+  }
+
+  SECTION("Unqualified creator with an empty suffix")
+  {
+    spec_t const spec{"find_hits/"};
+    auto const h = make_handle(number, *job, spec);
+    CHECK(h.creator().plugin.empty());
+    CHECK(h.creator().algorithm == "find_hits");
+    CHECK(h.suffix().empty());
+  }
+
+  SECTION("Qualified creator exposes both components")
+  {
+    spec_t const spec{"reco:find_hits/hits"};
+    auto const h = make_handle(number, *job, spec);
+    CHECK(h.creator().plugin == "reco");
+    CHECK(h.creator().algorithm == "find_hits");
+    CHECK(h.suffix() == "hits");
+  }
+}
+
+TEST_CASE("Handle views are borrowed from the owning specification", "[data model]")
+{
+  int const number{3};
+  auto const job = data_cell_index::job();
+  spec_t const spec{"reco:find_hits/hits"};
+  auto const h = make_handle(number, *job, spec);
+
+  // The views alias the text stored in the specification's values, rather than copies.
+  auto const creator = h.creator();
+  REQUIRE(spec.creator().plugin().has_value());
+  CHECK(creator.plugin.data() == std::string_view(*spec.creator().plugin()).data());
+  CHECK(creator.algorithm.data() == std::string_view(spec.creator().algorithm()).data());
+  CHECK(h.suffix().data() == spec.suffix().text().data());
+
+  // Repeated calls refer to the same borrowed storage.
+  CHECK(h.suffix().data() == h.suffix().data());
+  CHECK(h.creator().plugin.data() == creator.plugin.data());
+
+  // A copy of the handle borrows from the same specification.
+  auto const copy = h;
+  CHECK(copy.suffix().data() == spec.suffix().text().data());
+  CHECK(copy.creator().algorithm.data() == creator.algorithm.data());
 }
 
 TEST_CASE("Retrieve stage from handle", "[data model]")

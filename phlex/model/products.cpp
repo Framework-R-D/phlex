@@ -27,6 +27,8 @@ namespace phlex::detail {
 
   gsl::not_null<product_base const*> products::find_product(product_specification const& spec) const
   {
+    // Lookup is exact: product_specification equality covers the creator, suffix, and type, so a
+    // specification matches only a product stored under all three.
     auto it =
       std::ranges::find(products_, spec, [](auto const& p) -> auto const& { return p.first; });
     if (it == products_.end()) {

@@ -28,7 +28,7 @@ namespace {
   using named_output_port = producer_catalog::named_output_port;
 
   bool providers_only(product_selector const& query,
-                      std::multimap<product_suffix_t, named_output_port> const& producers,
+                      std::multimap<suffix_t, named_output_port> const& producers,
                       identifier const& stage)
   {
     if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq &&

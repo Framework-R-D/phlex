@@ -10,9 +10,25 @@
 #include <string_view>
 
 namespace phlex::experimental {
+  /// The creator of a product or the name of an algorithm.
+  ///
+  /// An algorithm name always has a non-empty algorithm component. Its plugin component is
+  /// optional: either a non-empty plugin name or absent (for an unqualified name). A
+  /// default-constructed algorithm name is not valid, so one must always be constructed from a
+  /// name.
   class PHLEX_MODEL_EXPORT algorithm_name {
   public:
-    /// Parse text that is either `algorithm` or `plugin_label:algorithm`.
+    algorithm_name() = delete;
+
+    /// Parses a creator name, which is either `algorithm` or `plugin_label:algorithm`.
+    ///
+    /// Accepted forms:
+    /// - `algorithm`: the plugin component is absent.
+    /// - `plugin_label:algorithm`: both components are non-empty identifiers.
+    ///
+    /// Each component must satisfy the character rules of `identifier`. Rejected inputs include
+    /// the empty string, a leading colon (`:algorithm`), a trailing colon (`plugin_label:`), and
+    /// any empty component.
     ///
     /// Throws `std::invalid_argument` if `spec` is malformed. The message quotes the offending
     /// text and says which part of the name is invalid and why. Only the first problem found is
