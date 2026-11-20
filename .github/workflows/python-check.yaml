@@ -63,7 +63,11 @@ jobs:
             scripts/**
             ci/**
             .devcontainer/**
+            .github/actionlint.yaml
+            .github/workflows/**
             .github/format-tools/**
+            .github/dependabot.yml
+            .pre-commit-config.yaml
             pyproject.toml
           head-ref: ${{ inputs.pr-head-sha }}
           ref: ${{ inputs.ref }}
@@ -84,6 +88,20 @@ jobs:
       contents: read
 
     steps:
+      - name: Check out trusted Python tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: |
+            .github/format-tools
+            pyproject.toml
+          persist-credentials: false
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,27 +113,17 @@ jobs:
             needs.setup.outputs.repo }}
           persist-credentials: false
 
-      - name: Check out trusted Python tooling
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
-          path: workflow-tools
-          sparse-checkout: |
-            .github/format-tools
-            pyproject.toml
-          persist-credentials: false
-
       - name: Install uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          working-directory: ${{ runner.temp }}
           python-version: "3.12"
           version-file: workflow-tools/.github/format-tools/pyproject.toml
 
       - name: Install Python dependencies
         run: |
-          uv sync --project workflow-tools/.github/format-tools --locked --no-build --group lint
-          echo "$GITHUB_WORKSPACE/workflow-tools/.github/format-tools/.venv/bin" >> "$GITHUB_PATH"
+          uv sync --project "$RUNNER_TEMP/workflow-tools/.github/format-tools" --locked --no-build --group lint
+          echo "$RUNNER_TEMP/workflow-tools/.github/format-tools/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Run ruff check
         id: ruff
@@ -124,7 +132,7 @@ jobs:
           FORCE_COLOR: 1
         run: |
           echo "➡️ Checking Python code with ruff..."
-          ruff check --config "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" .
+          ruff check --config "$RUNNER_TEMP/workflow-tools/pyproject.toml" .
         continue-on-error: true
 
       - name: Run MyPy check
@@ -132,7 +140,7 @@ jobs:
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "➡️ Checking Python code with MyPy..."
-          mypy --config-file "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" --color-output .
+          mypy --config-file "$RUNNER_TEMP/workflow-tools/pyproject.toml" --color-output .
         continue-on-error: true
 
       - name: Evaluate Python checks result
@@ -176,6 +184,18 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
+      - name: Check out trusted Python tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/format-tools
+          persist-credentials: false
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -187,18 +207,10 @@ jobs:
             needs.setup.outputs.repo }}
           persist-credentials: false
 
-      - name: Check out trusted Python tooling
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
-          path: workflow-tools
-          sparse-checkout: .github/format-tools
-          persist-credentials: false
-
       - name: Install uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          working-directory: ${{ runner.temp }}
           python-version: "3.12"
           version-file: workflow-tools/.github/format-tools/pyproject.toml
 
@@ -206,7 +218,7 @@ jobs:
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "➡️ Running scripts/ unit tests with coverage..."
-          uv run --project "$GITHUB_WORKSPACE/workflow-tools/.github/format-tools" \
+          uv run --project "$RUNNER_TEMP/workflow-tools/.github/format-tools" \
             --locked --no-build --group test \
             pytest scripts/test/ -v \
             --cov=scripts \
