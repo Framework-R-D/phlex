@@ -6,10 +6,10 @@
 
 #include <fmt/format.h>
 
-#include <atomic>
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -18,7 +18,7 @@
 namespace {
   struct display_node {
     std::map<std::string, display_node> children;
-    std::atomic<std::size_t> const* count = nullptr;
+    std::optional<std::size_t> count;
   };
 
   std::string const& maybe_name(std::string const& name)
@@ -32,7 +32,7 @@ namespace {
     std::size_t i = 0;
     for (auto const& [name, child] : node.children) {
       bool const last = ++i == node.children.size();
-      auto const count = child.count ? fmt::to_string(child.count->load()) : "(incomplete)";
+      auto const count = child.count ? fmt::to_string(*child.count) : "(incomplete)";
       result += fmt::format(
         "\n{} │\n{} {} {}: {}", indent, indent, last ? "└" : "├", maybe_name(name), count);
       render(child, indent + (last ? "   " : " │ "), result);
@@ -107,7 +107,7 @@ namespace phlex::detail {
       for (auto const& component : entry->layer_path.components().subspan(1)) {
         node = &node->children[fmt::to_string(component)];
       }
-      node->count = &entry->count;
+      node->count = entry->count.load();
     }
 
     auto result = fmt::format("\n\nSeen layers:\n\n  job{}", root.count ? "" : ": (incomplete)");
