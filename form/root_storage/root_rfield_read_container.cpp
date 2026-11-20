@@ -7,6 +7,7 @@
 #include "root_tfile.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_read_container.hpp"
+#include "util/error.hpp"
 
 #include <ROOT/RError.hxx>
 #include <ROOT/RNTupleReader.hxx>
@@ -50,14 +51,12 @@ namespace form::detail::experimental {
     if (form_root_file) {
       tfile_ = form_root_file->get_tfile();
     } else {
-      throw std::runtime_error("root_rfield_read_container_imp::set_file failed to convert an "
-                               "i_storage_file to a root_tfile_imp.  "
-                               "root_rfield_read_container_imp only works with TFiles.");
+      error("failed to convert an i_storage_file to a root_tfile_imp.  "
+            "root_rfield_read_container_imp only works with TFiles.");
     }
 
     if (!tfile_) {
-      throw std::runtime_error(
-        "root_rfield_read_container_imp::set_file failed to get a TFile from a root_tfile_imp");
+      error("failed to get a TFile from a root_tfile_imp");
     }
   }
 
@@ -66,7 +65,7 @@ namespace form::detail::experimental {
     std::scoped_lock const guard(root_rfield_read_mutex());
 
     if (!tfile_) {
-      throw std::runtime_error("root_rfield_read_container_imp::prime No file loaded");
+      error("No file loaded");
     }
 
     if (!reader_) {
@@ -84,7 +83,7 @@ namespace form::detail::experimental {
     }
 
     if (!TDictionary::GetDictionary(type)) {
-      throw std::runtime_error("root_rfield_read_container_imp::prime unsupported type");
+      error("unsupported type");
     }
   }
 
@@ -126,7 +125,7 @@ namespace form::detail::experimental {
 
     if (!reader_) {
       if (!tfile_) {
-        throw std::runtime_error("root_rfield_read_container_imp::entries No file loaded");
+        error("No file loaded");
       }
       try {
         reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
@@ -139,8 +138,7 @@ namespace form::detail::experimental {
 
     if (!view_ &&
         (reader_->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
-      throw std::runtime_error("root_rfield_read_container_imp::entries field " + col_name() +
-                               " does not exist");
+      error("field " + col_name() + " does not exist");
     }
 
     return static_cast<std::uint64_t>(reader_->GetNEntries());
@@ -150,9 +148,7 @@ namespace form::detail::experimental {
   {
     if (!reader_) { //First time this RNTuple is read this job
       if (!tfile_) {
-        throw std::runtime_error(
-          "root_rfield_read_container_imp::create_view No file loaded to read "
-          "from on first read() call!");
+        error("No file loaded to read from on first read() call!");
       }
 
       try {

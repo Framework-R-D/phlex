@@ -1,6 +1,8 @@
 #ifndef FORM_CORE_TECHNOLOGY_HPP
 #define FORM_CORE_TECHNOLOGY_HPP
 
+#include "util/error.hpp"
+
 #include <algorithm>
 #include <array>
 #include <compare>
@@ -166,14 +168,14 @@ namespace form::technology {
     auto const* const found = detail::lookup_by_configuration_name(name);
     if (found == nullptr) {
       if (detail::lookup_by_on_disk_token(name) != nullptr) {
-        throw std::runtime_error("Unknown technology: " + std::string{name} +
-                                 " (that is an on-disk token, not a configuration name)");
+        form::detail::experimental::error("Unknown technology: " + std::string{name} +
+                                          " (that is an on-disk token, not a configuration name)");
       }
-      throw std::runtime_error("Unknown technology: " + std::string{name});
+      form::detail::experimental::error("Unknown technology: " + std::string{name});
     }
     if (!found->is_implemented) {
-      throw std::runtime_error("Technology '" + std::string{name} +
-                               "' is recognized but not yet implemented");
+      form::detail::experimental::error("Technology '" + std::string{name} +
+                                        "' is recognized but not yet implemented");
     }
     return found->technology;
   }
@@ -184,8 +186,8 @@ namespace form::technology {
   {
     auto const* const found = detail::lookup_by_id(tech);
     if (found == nullptr) {
-      throw std::runtime_error("FORM: an unregistered technology has no on-disk token and "
-                               "cannot be named in a file");
+      form::detail::experimental::error("an unregistered technology has no on-disk token and "
+                                        "cannot be named in a file");
     }
     return found->on_disk_token;
   }
@@ -201,12 +203,12 @@ namespace form::technology {
   {
     auto const* const found = detail::lookup_by_on_disk_token(token);
     if (found == nullptr) {
-      throw std::runtime_error("Unknown FORM on-disk technology token: '" + std::string{token} +
-                               "'");
+      form::detail::experimental::error("Unknown FORM on-disk technology token: '" +
+                                        std::string{token} + "'");
     }
     if (!found->is_implemented) {
-      throw std::runtime_error("FORM technology '" + std::string{token} +
-                               "' is recorded in the file but is not implemented");
+      form::detail::experimental::error("FORM technology '" + std::string{token} +
+                                        "' is recorded in the file but is not implemented");
     }
     return found->technology;
   }

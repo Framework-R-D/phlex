@@ -1,5 +1,7 @@
 #include "demangle_name.hpp"
 
+#include "util/error.hpp"
+
 #include <TClassEdit.h>
 
 #include <cstdlib>
@@ -30,7 +32,7 @@ namespace form::detail::experimental {
       char_string_holder{TClassEdit::DemangleTypeIdName(type, error_code)};
     if (error_code != 0) {
       // NOTE: Instead of throwing, we could return the mangled name as a fallback.
-      throw std::runtime_error("Failed to demangle type name");
+      error("Failed to demangle type name");
     }
     std::string result(demangled_name);
     return result;

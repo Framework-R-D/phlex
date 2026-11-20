@@ -39,7 +39,11 @@ if(FORM_USE_RNTUPLE_STORAGE)
   list(APPEND FORM_ROOT_STORAGE_DEPS ROOT::ROOTNTuple)
 endif()
 
-target_link_libraries(root_storage PUBLIC ${FORM_ROOT_STORAGE_DEPS} PRIVATE Microsoft.GSL::GSL)
+target_link_libraries(
+  root_storage
+  PUBLIC ${FORM_ROOT_STORAGE_DEPS}
+  PRIVATE Microsoft.GSL::GSL form_util
+)
 
 target_include_directories(root_storage PRIVATE ${ROOT_INCLUDE_DIRS})
 reflex_generate_dictionary(root_storage descriptor_dict.h SELECTION classes_def.xml)

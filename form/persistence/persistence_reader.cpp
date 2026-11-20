@@ -9,6 +9,7 @@
 #include "persistence_utils.hpp"
 #include "storage/descriptor.hpp"
 #include "storage/istorage.hpp"
+#include "util/error.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -65,8 +66,7 @@ void persistence_reader::prime(std::string const& creator,
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
-                             " from creator: " + creator);
+    error("No configuration found for product: " + label + " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
 
@@ -83,8 +83,7 @@ std::vector<std::string> persistence_reader::list_indices(std::string const& cre
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
-                             " from creator: " + creator);
+    error("No configuration found for product: " + label + " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
 
@@ -102,8 +101,7 @@ std::unique_ptr<token> persistence_reader::get_token(std::string const& creator,
   auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
-                             " from creator: " + creator);
+    error("No configuration found for product: " + label + " from creator: " + creator);
   }
   auto const file_technology = technology_for_product(config_item->file_name, label);
 
@@ -125,22 +123,20 @@ std::vector<form::technology::id> const& persistence_reader::technologies_of(
 
   auto const entries = store_reader_->read_descriptor(file_name, bootstrap_file_format);
   if (!entries) {
-    throw std::runtime_error("FORM: file '" + file_name +
-                             "' carries no layout descriptor, so FORM cannot tell which layout "
-                             "or which storage technologies it holds");
+    error("file '" + file_name +
+          "' carries no layout descriptor, so FORM cannot tell which layout "
+          "or which storage technologies it holds");
   }
 
   auto const version = descriptor_entry(*entries, descriptor_layout_version_key);
   if (!version) {
-    throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                             "' does not name a layout version");
+    error("the layout descriptor in file '" + file_name + "' does not name a layout version");
   }
   check_layout_version(*version, file_name);
 
   auto const technologies_text = descriptor_entry(*entries, descriptor_technologies_key);
   if (!technologies_text) {
-    throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                             "' does not name a storage technology");
+    error("the layout descriptor in file '" + file_name + "' does not name a storage technology");
   }
 
   return file_technologies_.emplace(file_name, parse_technologies(*technologies_text, file_name))
@@ -165,7 +161,6 @@ form::technology::id persistence_reader::technology_for_product(std::string cons
   }
 
   // TODO: Resolve the product's storage technology through read-aware navigation.
-  throw std::runtime_error(
-    "FORM: file '" + file_name + "' contains multiple storage technologies (" + names +
-    "); cannot determine the storage technology for product '" + label + "'");
+  error("FORM: file '" + file_name + "' contains multiple storage technologies (" + names +
+        "); cannot determine the storage technology for product '" + label + "'");
 }

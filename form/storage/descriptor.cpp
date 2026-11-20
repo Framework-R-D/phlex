@@ -3,10 +3,12 @@
 #include "descriptor.hpp"
 
 #include "core/technology.hpp"
+#include "util/error.hpp"
 
 #include <cstddef>
 #include <optional>
 #include <set>
+#include <source_location>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -18,11 +20,10 @@ namespace form::detail::experimental {
   void check_layout_version(std::string_view version, std::string const& file_name)
   {
     if (version != form_layout_version) {
-      throw std::runtime_error("FORM: file '" + file_name + "' declares layout version '" +
-                               std::string{version} +
-                               "', which this build cannot read; it "
-                               "reads layout version " +
-                               std::string{form_layout_version});
+      error("file '" + file_name + "' declares layout version '" + std::string{version} +
+            "', which this build cannot read; it "
+            "reads layout version " +
+            std::string{form_layout_version});
     }
   }
 
@@ -30,8 +31,7 @@ namespace form::detail::experimental {
                                                        std::string const& file_name)
   {
     if (text.empty()) {
-      throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                               "' names no storage technology");
+      error("the layout descriptor in file '" + file_name + "' names no storage technology");
     }
 
     std::vector<form::technology::id> technologies;
@@ -42,9 +42,8 @@ namespace form::detail::experimental {
         start, comma == std::string_view::npos ? std::string_view::npos : comma - start);
       auto const technology = form::technology::find_on_disk_token(token);
       if (!technology) {
-        throw std::runtime_error("FORM: the layout descriptor in file '" + file_name +
-                                 "' names an unknown storage technology '" + std::string{token} +
-                                 "'");
+        error("the layout descriptor in file '" + file_name +
+              "' names an unknown storage technology '" + std::string{token} + "'");
       }
       technologies.push_back(*technology);
       if (comma == std::string_view::npos) {
@@ -74,13 +73,16 @@ namespace form::detail::experimental {
     // Shared by write() and read() so a descriptor is held to the same rule
     void require_unique_keys(descriptor_entries const& entries,
                              std::string const& file_name,
-                             std::string_view operation)
+                             std::source_location const where = std::source_location::current())
     {
       std::set<std::string_view> keys;
       for (auto const& [key, value] : entries) {
         if (!keys.insert(key).second) {
-          throw std::runtime_error("descriptor::" + std::string{operation} + " descriptor key '" +
-                                   key + "' appears more than once for " + file_name);
+          std::string message = "descriptor key '";
+          message += key;
+          message += "' appears more than once for ";
+          message += file_name;
+          error(message, where);
         }
       }
     }
@@ -88,7 +90,7 @@ namespace form::detail::experimental {
 
   void descriptor::write(descriptor_entries const& entries)
   {
-    require_unique_keys(entries, file_name_, "write");
+    require_unique_keys(entries, file_name_);
     store(entries);
   }
 
@@ -96,7 +98,7 @@ namespace form::detail::experimental {
   {
     auto entries = load();
     if (entries) {
-      require_unique_keys(*entries, file_name_, "read");
+      require_unique_keys(*entries, file_name_);
     }
     return entries;
   }

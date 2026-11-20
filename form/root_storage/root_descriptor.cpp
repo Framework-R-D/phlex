@@ -3,6 +3,7 @@
 #include "root_descriptor.hpp"
 
 #include "storage/descriptor.hpp"
+#include "util/error.hpp"
 
 #include <TClass.h>
 #include <TFile.h>
@@ -26,8 +27,8 @@ namespace form::detail::experimental {
   TClass const& require_descriptor_class(TClass const* cls)
   {
     if (cls == nullptr) {
-      throw std::runtime_error("root_descriptor: ROOT cannot resolve the descriptor type "
-                               "std::vector<std::pair<std::string, std::string>>");
+      error("ROOT cannot resolve the descriptor type "
+            "std::vector<std::pair<std::string, std::string>>");
     }
     return *cls;
   }
@@ -38,8 +39,8 @@ namespace form::detail::experimental {
   void require_descriptor_dictionary(TClass const& cls)
   {
     if (!cls.HasDictionary()) {
-      throw std::runtime_error("root_descriptor: no compiled ROOT dictionary for "
-                               "std::vector<std::pair<std::string, std::string>>");
+      error("no compiled ROOT dictionary for "
+            "std::vector<std::pair<std::string, std::string>>");
     }
   }
 
@@ -61,21 +62,20 @@ namespace form::detail::experimental {
   void root_descriptor::store(descriptor_entries const& entries)
   {
     if (file_ == nullptr) {
-      throw std::runtime_error("root_descriptor::store no file attached for " + file_name());
+      error("no file attached for " + file_name());
     }
 
     require_descriptor_dictionary(descriptor_class());
 
     if (file_->WriteObject(&entries, std::string{descriptor_object_name}.c_str()) <= 0) {
-      throw std::runtime_error("root_descriptor::store failed to write the descriptor to " +
-                               file_name());
+      error("failed to write the descriptor to " + file_name());
     }
   }
 
   std::optional<descriptor_entries> root_descriptor::load()
   {
     if (file_ == nullptr) {
-      throw std::runtime_error("root_descriptor::load no file attached for " + file_name());
+      error("no file attached for " + file_name());
     }
 
     std::string const object_name{descriptor_object_name};
@@ -87,17 +87,15 @@ namespace form::detail::experimental {
     std::string_view const stored_class{key->GetClassName()};
     std::string_view const expected_class{descriptor_class().GetName()};
     if (stored_class != expected_class) {
-      throw std::runtime_error("root_descriptor::load object '" + object_name + "' in " +
-                               file_name() + " is a '" + std::string{stored_class} + "', not a '" +
-                               std::string{expected_class} + "'");
+      error("object '" + object_name + "' in " + file_name() + " is a '" +
+            std::string{stored_class} + "', not a '" + std::string{expected_class} + "'");
     }
 
     // Get() transfers ownership of the returned non-TObject to the caller.
     std::unique_ptr<descriptor_entries> const stored{
       file_->Get<descriptor_entries>(object_name.c_str())};
     if (!stored) {
-      throw std::runtime_error("root_descriptor::load failed to read object '" + object_name +
-                               "' from " + file_name());
+      error("failed to read object '" + object_name + "' from " + file_name());
     }
 
     return std::move(*stored);
