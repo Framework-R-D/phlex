@@ -305,6 +305,13 @@ set_tests_properties(
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
 
+add_test(
+  NAME py:badlayer
+  COMMAND
+    ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadlayer.jsonnet --stage test
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badlayer)
+
 # "failing" tests for checking error paths
 add_test(
   NAME py:failure

@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -317,8 +318,15 @@ namespace {
     //   "layer" is an internal type that takes an optional string_view
     //   "suffix" is an optional itself, so can pass directly
     auto const layer = l.transform(&identifier::operator std::string_view);
-    return std::optional<product_selector>{
-      product_selector{.creator = std::move(c), .layer = layer, .suffix = s}};
+    // Building the layer path throws for a malformed layer such as "/run/event". The exception
+    // must not unwind through the Python C API, so it becomes a Python ValueError.
+    try {
+      return std::optional<product_selector>{
+        product_selector{.creator = std::move(c), .layer = layer, .suffix = s}};
+    } catch (std::exception const& e) {
+      PyErr_SetString(PyExc_ValueError, e.what());
+      return std::nullopt;
+    }
   }
 
   template <typename T, typename F>
