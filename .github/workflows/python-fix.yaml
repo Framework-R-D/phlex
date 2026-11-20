@@ -142,6 +142,7 @@ jobs:
         with:
           python-version: "3.12"
           version-file: workflow-tools/.github/format-tools/pyproject.toml
+          enable-cache: false
 
       - name: Install Python dependencies
         run: |

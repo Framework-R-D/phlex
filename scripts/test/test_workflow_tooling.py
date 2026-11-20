@@ -85,6 +85,20 @@ class WorkflowToolingTest(unittest.TestCase):
             content = (ROOT / f".github/workflows/{name}.yaml").read_text()
             self.assertIn("$GITHUB_WORKSPACE/workflow-tools/pyproject.toml", content)
 
+    def test_untrusted_formatter_workflows_disable_uv_cache(self):
+        """Prevent source-processing jobs from writing reusable uv caches."""
+        for name in ("python-fix", "cmake-format-fix"):
+            workflow = yaml.safe_load((ROOT / f".github/workflows/{name}.yaml").read_text())
+            uv_steps = [
+                step
+                for job in workflow["jobs"].values()
+                for step in job.get("steps", [])
+                if step.get("uses", "").startswith("astral-sh/setup-uv@")
+            ]
+            with self.subTest(workflow=name):
+                self.assertEqual(len(uv_steps), 1)
+                self.assertIs(uv_steps[0].get("with", {}).get("enable-cache"), False)
+
     def test_updater_owns_consumed_lock(self):
         """Verify that exact direct dependencies agree with the maintained lock."""
         updates = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text())["updates"]
