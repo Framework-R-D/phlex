@@ -7,6 +7,7 @@ import argparse
 import collections.abc
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -80,6 +81,15 @@ LEVEL_ICONS = {
 }
 
 
+def _escape_markdown_text(value: str) -> str:
+    """Escape SARIF-controlled text before including it in a PR comment."""
+    single_line = " ".join(value.splitlines())
+    single_line = single_line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    single_line = single_line.replace("@", "@\u200b")
+    markdown_chars = "\\`*_{}[]()#+!|~"
+    return single_line.translate({ord(char): f"\\{char}" for char in markdown_chars})
+
+
 @dataclass
 class Alert:
     """Represents a CodeQL alert extracted from SARIF."""
@@ -102,18 +112,23 @@ class Alert:
 
     def level_title(self) -> str:
         """Returns a title-cased version of the alert's level."""
-        return self.level.capitalize()
+        return _escape_markdown_text(self.level.capitalize())
 
     def rule_display(self) -> str:
         """Returns a formatted string for the rule ID, including a link if available."""
-        if self.help_uri:
-            return f"[{self.rule_id}]({self.help_uri})"
-        return f"`{self.rule_id}`"
+        safe_help_uri = re.fullmatch(
+            r"https://codeql\.github\.com/codeql-query-help/[A-Za-z0-9._/-]+/?",
+            self.help_uri or "",
+        )
+        rule_id = _escape_markdown_text(self.rule_id)
+        if safe_help_uri:
+            return f"[{rule_id}]({self.help_uri})"
+        return rule_id
 
     def severity_suffix(self) -> str:
         """Returns a string indicating the security severity, if available."""
         if self.security_severity:
-            return f" ({self.security_severity})"
+            return f" ({_escape_markdown_text(self.security_severity)})"
         return ""
 
 
@@ -688,19 +703,29 @@ def _format_section(
     for alert in display:
         severity_note = alert.severity_suffix()
         # Prefer to show an alert number link when available
-        if alert.number and alert.html_url:
+        if (
+            alert.number
+            and alert.html_url
+            and alert.html_url.startswith(
+                "https://github.com/Framework-R-D/phlex/security/code-scanning/"
+            )
+        ):
             prefix = f"[# {alert.number}]({alert.html_url}) "
         elif alert.number:
             prefix = f"# {alert.number} "
         else:
             prefix = ""
         dismissed_note = (
-            f" (dismissed: {alert.dismissed_reason})" if alert.dismissed_reason else ""
+            f" (dismissed: {_escape_markdown_text(alert.dismissed_reason)})"
+            if alert.dismissed_reason
+            else ""
         )
 
         lines.append(
             f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}"
-            f"{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
+            f"{alert.rule_display()}{dismissed_note} at "
+            f"{_escape_markdown_text(alert.location)} — "
+            f"{_escape_markdown_text(alert.message)}"
         )
     if remaining:
         lines.append(

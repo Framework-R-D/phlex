@@ -28,6 +28,8 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "pip"
-    directory: "/ci"
+    directories:
+      - "/ci"
+      - "/.github/codecov"
     schedule:
       interval: "weekly"

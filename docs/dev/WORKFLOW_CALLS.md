@@ -4,7 +4,7 @@ This document consolidates all information about reusable GitHub Actions workflo
 
 * `workflow_call` from another workflow (the primary reuse model)
 * `workflow_dispatch` for manual runs via the **Actions** tab
-* Bot commands in PR comments (e.g. `@phlexbot clang-fix`)
+* Patch-only formatter bot commands in PR comments (e.g. `@phlexbot clang-fix`)
 
 The same workflows are also automatically triggered by CI events such as `pull_request` and `push` where appropriate.
 
@@ -36,18 +36,16 @@ jobs:
     uses: Framework-R-D/phlex/.github/workflows/<workflow_file>.yaml@<commit_sha>
     with:
       # workflow-specific inputs
-    secrets:
-      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
 
    *Prefer pinning to a specific commit SHA* rather than `@main` to avoid unintentionally pulling breaking changes.
 
 1. **Trigger types**
    * **Check workflows** – `pull_request`, `push`, `workflow_dispatch`, `workflow_call`. They only analyze code.
-   * **Fix workflows** – `issue_comment` (gated to OWNER/COLLABORATOR/MEMBER), `workflow_dispatch`, `workflow_call`. They modify code and push commits.
+   * **Fix workflows** – `issue_comment` (gated to OWNER/COLLABORATOR/MEMBER), `workflow_dispatch`, `workflow_call`. They format an immutable source snapshot and publish patch-only artifacts; they never push.
 
-2. **Why `WORKFLOW_PAT` is required**
-   Commits pushed using the default `GITHUB_TOKEN` do not trigger further workflows (GitHub suppresses them to prevent recursion). A personal access token with write permissions (`WORKFLOW_PAT`) is required for fix workflows to push changes and re-trigger CI.
+2. **Source approval**
+   Authorized PR-comment commands resolve the current PR head once at workflow start, then pin and record that immutable SHA. Formatter commands publish artifacts only and never push; review and apply them only if the PR still points to the recorded SHA. Build, coverage, and clang-tidy commands execute the pinned snapshot and skip or reject stale results. Manual dispatches continue to require an explicit full SHA.
 
 ---
 
@@ -57,8 +55,8 @@ Most workflows expose a `workflow_dispatch` trigger. To run one manually:
 
 1. Open the **Actions** tab of the repository (or your fork).
 2. Select the desired workflow on the left.
-3. Click **Run workflow** and choose a branch/tag/commit.
-4. Fill any additional inputs (e.g. `build-combinations` for `cmake-build`).
+3. Choose the workflow branch to execute.
+4. Fill any workflow-specific inputs (e.g. `build-combinations` for `cmake-build`) and provide `source-sha` where required.
 5. Click **Run workflow**.
 
 ### Example (cmake-build)
@@ -67,7 +65,8 @@ Most workflows expose a `workflow_dispatch` trigger. To run one manually:
 uses: ./.github/workflows/cmake-build.yaml
 with:
   build-combinations: "gcc/asan clang/tsan"
-  ref: refs/heads/main
+  ref: main
+  source-sha: <full-40-character-SHA-at-main-head>
 ```
 
 ---
@@ -77,18 +76,12 @@ with:
 If you develop on a fork of `Framework-R-D/phlex`:
 
 * **Enable Actions** on the fork (click the *I understand my workflows…* button on the **Actions** tab).
-* **Create a Personal Access Token** with `repo` scope (both `Contents` and `Pull requests` write permissions) and add it as a secret named `WORKFLOW_PAT` in the fork’s repository settings.
-* Bot commands use the fork-derived bot name (e.g. `@my-phlexbot clang-fix`).
-
-### Creating a PAT
-
-1. Follow GitHub’s guide to create a fine-grained PAT.
-2. Grant **Contents: Read & write** and **Pull requests: Read & write**.
-3. Add the token as a repository secret `WORKFLOW_PAT` (`Settings → Secrets and variables → Actions`).
+* Bot commands in the base repository use the base-repository bot name (e.g. `@phlexbot clang-fix`).
+* Fix workflows need no write token: they resolve the PR head once and return a patch artifact, which must be reviewed and applied manually to that exact SHA.
 
 ### Authorization Model
 
-Comment-triggered workflows (e.g. `@phlexbot clang-fix`) perform an explicit authorization check. Only comment authors with one of the following association types are allowed to trigger the workflow:
+Comment-triggered workflows perform an explicit authorization check, resolve the current PR head once at workflow start, and record that immutable snapshot. Only comment authors with one of the following association types are allowed to trigger them:
 
 * `OWNER`
 * `COLLABORATOR`
@@ -121,12 +114,13 @@ All check and fix workflows share these common inputs, provided by the `Framewor
 | `repo` | string | No | Repository to check out from |
 | `pr-base-sha` | string | No | Base SHA of the PR for relevance check |
 | `pr-head-sha` | string | No | Head SHA of the PR for relevance check |
+| `source-sha` | string | Workflow-specific | Optional immutable source commit; otherwise resolve the event snapshot |
 
 ---
 
 ## Common Invocation Template
 
-Below is a minimal reusable-workflow job snippet that can be copied into any consumer workflow. It supplies the shared inputs and the required `WORKFLOW_PAT` secret for fix workflows. Adjust the `uses:` line and any workflow-specific inputs as needed.
+Below is a minimal reusable-workflow job snippet. Fix workflows derive the PR head from the caller event if `source-sha` is omitted. Adjust the `uses:` line and workflow-specific inputs as needed.
 
 ```yaml
 jobs:
@@ -136,9 +130,8 @@ jobs:
       checkout-path: .
       # Optional: set skip-relevance-check to true for unconditional runs
       # skip-relevance-check: true
+      # Optional source-sha can pin a previously resolved snapshot.
       # Add workflow-specific inputs here (e.g. build-combinations, language-matrix)
-    secrets:
-      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
 
 *Replace `<job_name>`, `<workflow_file>`, and `<commit_sha>` with the appropriate values for the workflow you are invoking.*
@@ -153,6 +146,7 @@ All check and fix workflows share these common inputs, provided by the `Framewor
 | `repo` | string | No | Repository to check out from |
 | `pr-base-sha` | string | No | Base SHA of the PR for relevance check |
 | `pr-head-sha` | string | No | Head SHA of the PR for relevance check |
+| `source-sha` | string | Workflow-specific | Optional immutable source commit; otherwise resolve the event snapshot |
 
 ---
 
@@ -227,10 +221,11 @@ Check workflows analyze code without making changes. They are triggered by `pull
 | `build-path` | string | No | N/A | Path for build artifacts |
 | `skip-relevance-check` | boolean | No | `false` | Bypass relevance detection |
 | `build-combinations` | string | No | N/A | Space- or comma-separated list of `<compiler>/<sanitizer>` combos (e.g. `gcc/asan clang/tsan`). `all` runs every matrix entry; `+<combo>` adds extra combos. |
-| `ref` | string | No | N/A | Branch, ref, or SHA to checkout |
+| `ref` | string | No | N/A | Target branch; the workflow checks out an immutable SHA |
 | `repo` | string | No | N/A | Repository to checkout from |
 | `pr-base-sha` | string | No | N/A | Base SHA for relevance check |
 | `pr-head-sha` | string | No | N/A | Head SHA for relevance check |
+| `source-sha` | string | Manual: Yes | N/A | Full SHA that must match the selected workflow branch head |
 
 ### Example Invocation (cmake-build)
 
@@ -240,56 +235,55 @@ jobs:
     uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@<commit_sha>
     with:
       build-combinations: "gcc/asan clang/tsan"
-      ref: ${{ github.sha }}
 ```
 
 ---
 
 ## Fix Workflows
 
-Fix workflows modify code and push commits. They require `WORKFLOW_PAT`.
+Fix workflows resolve the PR head once, format that immutable SHA, publish patch artifacts, and never push changes.
 
 ### Clang-Format Fix
 
 *File:* `.github/workflows/clang-format-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### CMake Format Fix
 
 *File:* `.github/workflows/cmake-format-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### Header-Guards Fix
 
 *File:* `.github/workflows/header-guards-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### Jsonnet Format Fix
 
 *File:* `.github/workflows/jsonnet-format-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### Markdown Fix
 
 *File:* `.github/workflows/markdown-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### Python Fix
 
 *File:* `.github/workflows/python-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### YAML Fix
 
 *File:* `.github/workflows/yaml-fix.yaml`
-*Required inputs:* `ref`, `repo`
-*Optional:* `checkout-path`, `skip-comment`
+*Required reusable-workflow inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`, `source-sha` (required for non-PR callers)
 
 ### Clang-Tidy Fix
 
@@ -305,10 +299,10 @@ All `*-fix` workflows emit a standard set of outputs that can be used by downstr
 | Output | Description |
 | -------- | ------------- |
 | `changes` | `true` if any files were modified by the formatter/fixer, otherwise `false` |
-| `pushed` | `true` if the changes were successfully pushed back to the repository, otherwise `false` |
-| `commit_sha` | Full SHA of the commit created (if any) |
-| `commit_sha_short` | Short (7-char) SHA of the commit |
-| `patch_name` | Filename of an attached patch when the workflow could not push automatically |
+| `pushed` | Always `false`; formatter workflows never push |
+| `commit_sha` | Always empty; no commit is created |
+| `commit_sha_short` | Always empty |
+| `patch_name` | Filename of the patch artifact when formatting changed files |
 
 These outputs are available via `${{ steps.<step_id>.outputs.<output> }}` in a consuming workflow.
 
@@ -319,7 +313,7 @@ These outputs are available via `${{ steps.<step_id>.outputs.<output> }}` in a c
 ### Format-All
 
 *File:* `.github/workflows/format-all.yaml`
-Calls all individual formatter fix workflows in parallel and posts a single combined PR comment. Triggered only by `issue_comment` (`@phlexbot format`).
+Calls all individual formatter fix workflows in parallel against one automatically resolved PR-head SHA and posts a combined patch-artifact comment. Triggered by `@phlexbot format`.
 
 ---
 
@@ -351,7 +345,7 @@ The repository also contains several workflows that are **not** intended for `wo
 | Command | Description |
 | --------- | ------------- |
 | `@phlexbot clang-fix` | Run the Clang-Format fix workflow on the PR head branch. |
-| `@phlexbot clang-tidy-fix` | Run the Clang-Tidy fix workflow. |
+| `@phlexbot tidy-fix [checks]` | Generate Clang-Tidy fixes, optionally scoped to checks. |
 | `@phlexbot cmake-fix` | Run the CMake-Format fix workflow. |
 | `@phlexbot header-guards-fix` | Run the Header-Guards fix workflow. |
 | `@phlexbot jsonnet-fix` | Run the Jsonnet-Format fix workflow. |
@@ -360,6 +354,7 @@ The repository also contains several workflows that are **not** intended for `wo
 | `@phlexbot yaml-fix` | Run the YAML-Fix workflow. |
 | `@phlexbot format` | Run **all** formatter fix workflows (calls `format-all.yaml`). |
 | `@phlexbot tidy-check` | Run the Clang-Tidy **check** workflow. |
+| `@phlexbot build [combinations]` | Run CMake build and tests for the current PR head. |
 | `@phlexbot codeql-check` | Run the CodeQL analysis workflow. |
 | `@phlexbot coverage` | Generate coverage reports. |
 

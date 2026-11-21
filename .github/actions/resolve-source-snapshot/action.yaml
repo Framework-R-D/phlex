@@ -1,0 +1,169 @@
+name: Resolve immutable source snapshot
+description: Bind workflow execution to the approved repository commit.
+
+inputs:
+  command:
+    description: Bot command for issue-comment requests; leave empty otherwise.
+    required: false
+  ref:
+    description: Target ref from workflow setup.
+    required: true
+  repo:
+    description: Target repository from workflow setup.
+    required: true
+  source-sha:
+    description: Explicit source SHA for manual or reusable workflow requests.
+    required: false
+  allow-arguments:
+    description: Allow a constrained argument list and optional SHA in issue comments.
+    required: false
+    default: "false"
+
+outputs:
+  source_sha:
+    description: Validated immutable source SHA.
+    value: ${{ steps.resolve.outputs.source_sha }}
+  source_repo:
+    description: Repository containing the validated source SHA.
+    value: ${{ steps.resolve.outputs.source_repo }}
+  source_ref:
+    description: Source branch or event ref associated with the snapshot.
+    value: ${{ steps.resolve.outputs.source_ref }}
+  command_args:
+    description: Constrained arguments preceding an optional SHA in a bot command.
+    value: ${{ steps.resolve.outputs.command_args }}
+
+runs:
+  using: composite
+  steps:
+    - name: Authorize the immutable source
+      id: resolve
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        COMMAND: ${{ inputs.command }}
+        TARGET_REF: ${{ inputs.ref }}
+        TARGET_REPO: ${{ inputs.repo }}
+        REQUESTED_SHA: ${{ inputs.source-sha }}
+        ALLOW_ARGUMENTS: ${{ inputs.allow-arguments }}
+        COMMENT_BODY: ${{ github.event.comment.body }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const currentRepo = `${owner}/${repo}`;
+          const shaPattern = /^[0-9a-f]{40}$/i;
+          const targetRepo = process.env.TARGET_REPO;
+          const targetRef = process.env.TARGET_REF;
+          let sourceSha = process.env.REQUESTED_SHA;
+          let sourceRepo = targetRepo;
+          let sourceRef = targetRef;
+          if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(targetRepo || '') ||
+              !targetRef || targetRef.startsWith('-')) {
+            throw new Error('Workflow setup returned an invalid target repository or ref.');
+          }
+
+          if (context.eventName === 'pull_request' ||
+              (context.eventName === 'workflow_call' && context.payload.pull_request)) {
+            const pull = context.payload.pull_request;
+            if (!pull.head.repo) throw new Error('The PR source repository is unavailable.');
+            if (sourceSha && sourceSha.toLowerCase() !== pull.head.sha.toLowerCase()) {
+              throw new Error('The requested SHA does not match the PR head.');
+            }
+            const { data: currentPull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pull.number
+            });
+            if (currentPull.state !== 'open' || currentPull.head.sha !== pull.head.sha ||
+                currentPull.head.repo?.full_name !== pull.head.repo.full_name ||
+                currentPull.head.ref !== pull.head.ref) {
+              throw new Error('The PR head moved while resolving the source snapshot.');
+            }
+            sourceSha = currentPull.head.sha;
+            sourceRepo = currentPull.head.repo.full_name;
+            sourceRef = currentPull.head.ref;
+          } else if (context.eventName === 'issue_comment') {
+            if (!context.payload.issue?.pull_request) {
+              throw new Error('This workflow command is supported only on pull requests.');
+            }
+            const command = process.env.COMMAND;
+            const prefix = `^@${repo}bot ${command}`;
+            const expected = process.env.ALLOW_ARGUMENTS === 'true'
+              ? new RegExp(`${prefix}(?:[ \\t]+([A-Za-z0-9+/, -]*?))?(?:[ \\t]+--sha=([0-9a-f]{40}))?$`)
+              : new RegExp(`${prefix}(?:[ \\t]+--sha=([0-9a-f]{40}))?$`);
+            const match = process.env.COMMENT_BODY.match(expected);
+            if (!match) throw new Error(`Invalid @${repo}bot ${command} command.`);
+            const approvedSha = process.env.ALLOW_ARGUMENTS === 'true' ? match[2] : match[1];
+            if (sourceSha && !shaPattern.test(sourceSha)) {
+              throw new Error('The requested source SHA is invalid.');
+            }
+            if (approvedSha && !shaPattern.test(approvedSha)) {
+              throw new Error('The optional command SHA is invalid.');
+            }
+            if (approvedSha && sourceSha && sourceSha.toLowerCase() !== approvedSha.toLowerCase()) {
+              throw new Error('The requested SHA does not match the optional command SHA.');
+            }
+            if (process.env.ALLOW_ARGUMENTS === 'true') {
+              core.setOutput('command_args', (match[1] || '').trim());
+            }
+            const { data: pull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: context.payload.issue.number
+            });
+            const expectedSha = approvedSha || sourceSha;
+            if (pull.state !== 'open' || (expectedSha && pull.head.sha.toLowerCase() !== expectedSha.toLowerCase()) ||
+                pull.head.repo?.full_name !== targetRepo ||
+                pull.head.ref !== targetRef.replace(/^refs\/heads\//, '')) {
+              throw new Error('The PR head does not match the command target or optional SHA.');
+            }
+            sourceSha = pull.head.sha;
+            sourceRepo = pull.head.repo.full_name;
+            sourceRef = pull.head.ref;
+          } else if (context.eventName === 'workflow_dispatch') {
+            const { data: repository } = await github.rest.repos.get({ owner, repo });
+            const branchName = context.ref.replace(/^refs\/heads\//, '');
+            const targetBranch = targetRef.replace(/^refs\/heads\//, '');
+            if (!context.ref.startsWith('refs/heads/') || targetRepo !== currentRepo ||
+                targetBranch !== branchName || process.env.WORKFLOW_REF.split('@').pop() !== context.ref ||
+                !shaPattern.test(sourceSha || '') || sourceSha.toLowerCase() !== context.sha.toLowerCase()) {
+              throw new Error('Manual runs require an exact SHA for the selected workflow branch.');
+            }
+            const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+            if (branch.commit.sha.toLowerCase() !== sourceSha.toLowerCase()) {
+              throw new Error('The selected branch head does not match the supplied source SHA.');
+            }
+            if (branchName === repository.default_branch && branch.commit.sha !== context.sha) {
+              throw new Error('The default branch moved after this workflow was selected.');
+            }
+            sourceSha = branch.commit.sha;
+            sourceRepo = currentRepo;
+            sourceRef = context.ref;
+          } else if (context.eventName === 'push' || context.eventName === 'schedule') {
+            if (targetRepo !== currentRepo || (sourceSha && sourceSha !== context.sha)) {
+              throw new Error('Push and schedule runs must use this repository event SHA.');
+            }
+            sourceSha = context.sha;
+            sourceRepo = currentRepo;
+            sourceRef = context.ref;
+          } else if (context.eventName === 'workflow_call') {
+            if (targetRepo !== currentRepo || !shaPattern.test(sourceSha || '')) {
+              throw new Error('Reusable non-PR runs require this repository and a full source SHA.');
+            }
+            const branchName = targetRef.replace(/^refs\/heads\//, '');
+            const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+            if (branch.commit.sha.toLowerCase() !== sourceSha.toLowerCase()) {
+              throw new Error('Reusable workflow target branch does not match its source SHA.');
+            }
+            sourceSha = branch.commit.sha;
+            sourceRepo = currentRepo;
+            sourceRef = branchName;
+          } else {
+            throw new Error(`Unsupported source event: ${context.eventName}`);
+          }
+
+          if (!shaPattern.test(sourceSha || '')) throw new Error('Resolved source SHA is invalid.');
+          core.setOutput('source_sha', sourceSha);
+          core.setOutput('source_repo', sourceRepo);
+          core.setOutput('source_ref', sourceRef);
+          if (process.env.ALLOW_ARGUMENTS !== 'true') core.setOutput('command_args', '');

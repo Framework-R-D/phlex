@@ -10,8 +10,12 @@ name: "CodeQL Analysis"
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "Branch whose current head must match source-sha. Defaults to the repository's default branch."
         required: false
+        type: string
+      source-sha:
+        description: "Exact 40-character commit SHA to analyze; required for workflow_dispatch."
+        required: true
         type: string
   workflow_call:
     inputs:
@@ -55,11 +59,14 @@ name: "CodeQL Analysis"
         description: "The repository to checkout from"
         required: false
         type: string
+      source-sha:
+        description: "Immutable source commit SHA for the workflow run"
+        required: false
+        type: string
 
 permissions:
   actions: read
   contents: read
-  security-events: write
 
 env:
   BUILD_TYPE: RelWithDebInfo
@@ -77,9 +84,11 @@ jobs:
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       build_path: ${{ steps.setup.outputs.build_path }}
       skip_detection: ${{ steps.should_skip.outputs.skip }}
-      has_changes_cpp: ${{ steps.detect_cpp.outputs.has_changes }}
-      has_changes_python: ${{ steps.detect_python.outputs.has_changes }}
-      has_changes_actions: ${{ steps.detect_actions.outputs.has_changes }}
+      has_changes_cpp: ${{ steps.source_changes.outputs.cpp }}
+      has_changes_python: ${{ steps.source_changes.outputs.python }}
+      has_changes_actions: ${{ steps.source_changes.outputs.actions }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
     steps:
       - name: Workflow setup
         id: setup
@@ -90,6 +99,77 @@ jobs:
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
           build-path: ${{ inputs.build-path }}
+
+      - name: Resolve immutable analysis source
+        id: source_snapshot
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          REQUESTED_SHA: ${{ inputs.source-sha }}
+          CALL_SOURCE_SHA: ${{ inputs.pr-head-sha }}
+          TARGET_REF: ${{ steps.setup.outputs.ref }}
+          TARGET_REPO: ${{ steps.setup.outputs.repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const shaPattern = /^[0-9a-f]{40}$/i;
+            let sourceSha;
+            let sourceRepo;
+            if (context.eventName === 'pull_request') {
+              const head = context.payload.pull_request.head;
+              if (!head.repo) throw new Error('The PR source repository is unavailable.');
+              sourceSha = head.sha;
+              sourceRepo = head.repo.full_name;
+            } else if (context.eventName === 'push' || context.eventName === 'schedule') {
+              sourceSha = context.sha;
+              sourceRepo = `${owner}/${repo}`;
+            } else if (context.eventName === 'workflow_dispatch') {
+              const targetRef = process.env.TARGET_REF.replace(/^refs\/heads\//, '');
+              const selectedRef = context.ref.replace(/^refs\/heads\//, '');
+              const requestedSha = process.env.REQUESTED_SHA;
+              if (!context.ref.startsWith('refs/heads/') || targetRef !== selectedRef ||
+                  process.env.WORKFLOW_REF.split('@').pop() !== context.ref ||
+                  !shaPattern.test(requestedSha) || process.env.TARGET_REPO !== `${owner}/${repo}` ||
+                  requestedSha.toLowerCase() !== context.sha.toLowerCase()) {
+                throw new Error('Manual runs require this branch, repository, workflow ref, and full source SHA.');
+              }
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: targetRef });
+              if (branch.commit.sha.toLowerCase() !== requestedSha.toLowerCase()) {
+                throw new Error('The selected branch head does not match source-sha.');
+              }
+              sourceSha = branch.commit.sha;
+              sourceRepo = `${owner}/${repo}`;
+            } else if (context.eventName === 'workflow_call') {
+              sourceRepo = process.env.TARGET_REPO || `${owner}/${repo}`;
+              const requestedSha = process.env.CALL_SOURCE_SHA || process.env.REQUESTED_SHA;
+              if (context.payload.pull_request) {
+                const head = context.payload.pull_request.head;
+                if (!head.repo) throw new Error('The PR source repository is unavailable.');
+                sourceSha = head.sha;
+                sourceRepo = head.repo.full_name;
+                if (requestedSha && requestedSha.toLowerCase() !== sourceSha.toLowerCase()) {
+                  throw new Error('Reusable workflow source SHA does not match the PR head.');
+                }
+              } else if (requestedSha) {
+                if (sourceRepo !== `${owner}/${repo}`) {
+                  throw new Error('Reusable non-PR analysis must target the caller repository.');
+                }
+                if (!shaPattern.test(requestedSha)) throw new Error('The reusable workflow source SHA is invalid.');
+                sourceSha = requestedSha;
+              } else {
+                const [targetOwner, targetRepo] = sourceRepo.split('/');
+                const { data: branch } = await github.rest.repos.getBranch({
+                  owner: targetOwner,
+                  repo: targetRepo,
+                  branch: process.env.TARGET_REF
+                });
+                sourceSha = branch.commit.sha;
+              }
+            } else {
+              throw new Error(`Unsupported CodeQL source event: ${context.eventName}`);
+            }
+            core.setOutput('source_sha', sourceSha);
+            core.setOutput('source_repo', sourceRepo);
 
       - name: Determine if detection should be skipped
         id: should_skip
@@ -107,45 +187,96 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Detect C++ changes
-        id: detect_cpp
-        if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
+      - name: Detect language changes in the immutable snapshot
+        id: source_changes
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ steps.source_snapshot.outputs.source_sha }}
+          SOURCE_REPO: ${{ steps.source_snapshot.outputs.source_repo }}
+          BASE_SHA: ${{ steps.setup.outputs.base_sha }}
+          PR_NUMBER: ${{ steps.setup.outputs.pr_number }}
+          SKIP_DETECTION: ${{ steps.should_skip.outputs.skip }}
         with:
-          checkout-path: ${{ steps.setup.outputs.checkout_path }}
-          ref: ${{ steps.setup.outputs.ref }}
-          repo: ${{ steps.setup.outputs.repo }}
-          base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
-          file-type: |
-            cpp
-            cmake
-
-      - name: Detect Python changes
-        id: detect_python
-        if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
-        with:
-          checkout-path: ${{ steps.setup.outputs.checkout_path }}
-          ref: ${{ steps.setup.outputs.ref }}
-          repo: ${{ steps.setup.outputs.repo }}
-          base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
-          file-type: python
-
-      - name: Detect Actions changes
-        id: detect_actions
-        if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
-        with:
-          checkout-path: ${{ steps.setup.outputs.checkout_path }}
-          ref: ${{ steps.setup.outputs.ref }}
-          repo: ${{ steps.setup.outputs.repo }}
-          base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
-          include-globs: |
-            .github/workflows/*.yaml
-            .github/workflows/*.yml
+          script: |
+            const changes = { cpp: false, python: false, actions: false };
+            const classify = filename => {
+              const basename = filename.split('/').pop();
+              if (/\.(cpp|hpp)(\.in)?$/.test(basename) ||
+                  /^(CMakeLists\.txt|.*\.cmake)(\.in)?$/.test(basename)) changes.cpp = true;
+              if (/\.py$/.test(basename)) changes.python = true;
+              if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(filename) ||
+                  /^\.github\/actions\/.*\.(ya?ml|[cm]?js|ts)$/.test(filename)) changes.actions = true;
+            };
+            const allLanguages = () => {
+              changes.cpp = true;
+              changes.python = true;
+              changes.actions = true;
+            };
+            if (process.env.SKIP_DETECTION !== 'true') {
+              if (context.eventName === 'pull_request' || context.eventName === 'issue_comment') {
+                try {
+                  const pullNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number ||
+                    context.payload.issue?.number);
+                  const { data: before } = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pullNumber
+                  });
+                  if (before.head.sha !== process.env.SOURCE_SHA ||
+                      before.head.repo?.full_name !== process.env.SOURCE_REPO) {
+                    allLanguages();
+                  } else {
+                    const paths = [];
+                    for (let page = 1; ; page++) {
+                      const { data: files } = await github.rest.pulls.listFiles({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pullNumber,
+                        per_page: 100,
+                        page
+                      });
+                      paths.push(...files.map(file => file.filename));
+                      if (files.length < 100 || page === 30) break;
+                    }
+                    const { data: after } = await github.rest.pulls.get({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pullNumber
+                    });
+                    if (after.head.sha !== process.env.SOURCE_SHA ||
+                        after.head.repo?.full_name !== process.env.SOURCE_REPO || paths.length >= 3000) {
+                      allLanguages();
+                    } else {
+                      paths.forEach(classify);
+                    }
+                  }
+                } catch (error) {
+                  core.warning(`Could not verify PR relevance; analyzing all languages: ${error.message}`);
+                  allLanguages();
+                }
+              } else if ((context.eventName === 'push' && context.payload.before &&
+                          !/^0+$/.test(context.payload.before)) ||
+                         (context.eventName === 'workflow_call' && process.env.BASE_SHA)) {
+                try {
+                  const { data: comparison } = await github.rest.repos.compareCommits({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    base: context.eventName === 'push' ? context.payload.before : process.env.BASE_SHA,
+                    head: process.env.SOURCE_SHA
+                  });
+                  if (comparison.files?.length >= 300) allLanguages();
+                  else (comparison.files || []).forEach(file => classify(file.filename));
+                } catch (error) {
+                  core.warning(`Could not verify source relevance; analyzing all languages: ${error.message}`);
+                  allLanguages();
+                }
+              } else {
+                allLanguages();
+              }
+            }
+            for (const [language, changed] of Object.entries(changes)) {
+              core.setOutput(language, String(changed));
+            }
 
   determine-languages:
     needs: setup
@@ -166,12 +297,16 @@ jobs:
           # If detection was skipped, use all languages or the provided language-matrix
           if [ "${SKIP_DETECTION}" = "true" ]; then
             if [ "${GITHUB_EVENT_NAME}" = "workflow_call" ] && [ -n "${LANGUAGE_MATRIX}" ]; then
-              # Validate that language-matrix is valid JSON
-              if ! echo "${LANGUAGE_MATRIX}" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
-                echo "::error::Invalid language-matrix input: must be valid JSON array"
+              if ! LANGUAGES=$(jq -ce '
+                if type == "array" and
+                   all(.[]; . == "cpp" or . == "python" or . == "actions") and
+                   length == (unique | length)
+                then . else error("invalid language-matrix") end
+              ' <<< "$LANGUAGE_MATRIX"); then
+                echo "::error::Invalid language-matrix input; allowed values are cpp, python, and actions."
                 exit 1
               fi
-              echo "languages=${LANGUAGE_MATRIX}" >> "$GITHUB_OUTPUT"
+              echo "languages=${LANGUAGES}" >> "$GITHUB_OUTPUT"
             else
               echo 'languages=["cpp", "python", "actions"]' >> "$GITHUB_OUTPUT"
             fi
@@ -211,8 +346,13 @@ jobs:
       needs.determine-languages.result == 'success' && needs.determine-languages.outputs.languages != '[]'
     name: Analyze ${{ matrix.language }} with CodeQL
     runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      packages: read
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:latest
+      image: >-
+        ghcr.io/framework-r-d/phlex-ci:latest@sha256:d62317baa9f8b886da6db6250bdcc1d97d15bf85fb18b13d9842abafbfd82ce0
     env:
       local_checkout_path: .
       local_build_path: ${{ needs.setup.outputs.build_path }}
@@ -232,11 +372,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
-          repository:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
-            needs.setup.outputs.repo }}
+          ref: ${{ needs.setup.outputs.source_sha }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           path: ${{ env.local_checkout_path }}
           fetch-depth: 0
           persist-credentials: false
@@ -271,27 +408,340 @@ jobs:
             exit 1
           fi
 
-      # Run CodeQL analysis (uploads results to code scanning)
+      # Save SARIF results for a separate uploader job.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           checkout_path: ${{ env.local_checkout_path }}
           output: results
           category: ${{ matrix.language }}
+          upload: never
+          upload-database: false
+
+      - name: Write CodeQL SARIF provenance manifest
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          LANGUAGE: ${{ matrix.language }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("results")
+          sarif = root / f"{os.environ['LANGUAGE']}.sarif"
+          if root.is_symlink() or sarif.is_symlink() or not sarif.is_file():
+              raise SystemExit("Expected one regular CodeQL SARIF file")
+          metadata = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+              "run_attempt": os.environ["RUN_ATTEMPT"],
+              "language": os.environ["LANGUAGE"],
+          }
+          (root / f"provenance-{os.environ['LANGUAGE']}.json").write_text(
+              json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
 
       - name: Upload SARIF results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: codeql-sarif-${{ matrix.language }}
+          name: codeql-sarif-${{ matrix.language }}-${{ github.run_attempt }}
           path: results
           retention-days: 7
 
+  codeql-upload:
+    name: Upload validated CodeQL SARIF
+    needs: [setup, determine-languages, codeql]
+    if: needs.codeql.result == 'success' && needs.determine-languages.outputs.languages != '[]'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+      security-events: write
+    outputs:
+      source_current: ${{ steps.current_source.outputs.is_current }}
+      cpp_attempt: ${{ steps.artifact_attempts.outputs.cpp_attempt }}
+      python_attempt: ${{ steps.artifact_attempts.outputs.python_attempt }}
+      actions_attempt: ${{ steps.artifact_attempts.outputs.actions_attempt }}
+    steps:
+      - name: Check out exact source for SARIF mapping
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.setup.outputs.source_repo }}
+          ref: ${{ needs.setup.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Select successful SARIF producer attempts
+        id: artifact_attempts
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          LANGUAGES: ${{ needs.determine-languages.outputs.languages }}
+          RUN_ID: ${{ github.run_id }}
+          CURRENT_RUN_ATTEMPT: ${{ github.run_attempt }}
+        with:
+          script: |
+            const languages = JSON.parse(process.env.LANGUAGES);
+            const allowed = new Set(['cpp', 'python', 'actions']);
+            if (!Array.isArray(languages) || languages.some(language => !allowed.has(language))) {
+              throw new Error('Unexpected CodeQL language list.');
+            }
+            const { owner, repo } = context.repo;
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              owner,
+              repo,
+              run_id: Number(process.env.RUN_ID),
+              per_page: 100
+            });
+            const attempts = { cpp: '', python: '', actions: '' };
+            const currentAttempt = Number(process.env.CURRENT_RUN_ATTEMPT);
+            for (const language of languages) {
+              const prefix = `codeql-sarif-${language}-`;
+              const candidates = artifacts.flatMap(artifact => {
+                const match = artifact.name.match(new RegExp(`^${prefix}([1-9][0-9]*)$`));
+                if (artifact.expired || !match) return [];
+                const attempt = Number(match[1]);
+                return Number.isSafeInteger(attempt) && attempt <= currentAttempt ? [attempt] : [];
+              });
+              if (candidates.length === 0) {
+                throw new Error(`No successful SARIF artifact found for ${language}.`);
+              }
+              attempts[language] = String(Math.max(...candidates));
+            }
+            for (const [language, attempt] of Object.entries(attempts)) {
+              core.setOutput(`${language}_attempt`, attempt);
+            }
+
+      - name: Download C++ SARIF artifact
+        if: always() && contains(needs.determine-languages.outputs.languages, '"cpp"')
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: codeql-sarif-cpp-${{ steps.artifact_attempts.outputs.cpp_attempt }}
+          path: sarif-input/cpp
+
+      - name: Download Python SARIF artifact
+        if: always() && contains(needs.determine-languages.outputs.languages, '"python"')
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: codeql-sarif-python-${{ steps.artifact_attempts.outputs.python_attempt }}
+          path: sarif-input/python
+
+      - name: Download Actions SARIF artifact
+        if: always() && contains(needs.determine-languages.outputs.languages, '"actions"')
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: codeql-sarif-actions-${{ steps.artifact_attempts.outputs.actions_attempt }}
+          path: sarif-input/actions
+
+      - name: Validate SARIF provenance and contents
+        id: validate_sarif
+        env:
+          LANGUAGES: ${{ needs.determine-languages.outputs.languages }}
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          CPP_ATTEMPT: ${{ steps.artifact_attempts.outputs.cpp_attempt }}
+          PYTHON_ATTEMPT: ${{ steps.artifact_attempts.outputs.python_attempt }}
+          ACTIONS_ATTEMPT: ${{ steps.artifact_attempts.outputs.actions_attempt }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          languages = json.loads(os.environ["LANGUAGES"])
+          if not isinstance(languages, list) or any(
+              language not in {"cpp", "python", "actions"} for language in languages
+          ):
+              raise SystemExit("Unexpected CodeQL language list")
+          root = Path("sarif-input")
+          if root.is_symlink():
+              raise SystemExit("SARIF artifact root must not be a symlink")
+          expected_base = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+          }
+          outputs = []
+          for language in ("cpp", "python", "actions"):
+              directory = root / language
+              if language not in languages:
+                  if directory.exists() or directory.is_symlink():
+                      raise SystemExit(f"Unexpected SARIF artifact for {language}")
+                  continue
+              if directory.is_symlink() or not directory.is_dir():
+                  raise SystemExit(f"Missing or invalid SARIF artifact directory: {language}")
+              report = directory / f"{language}.sarif"
+              manifest = directory / f"provenance-{language}.json"
+              if report.is_symlink() or manifest.is_symlink() or not report.is_file() or not manifest.is_file():
+                  raise SystemExit(f"Missing regular SARIF report or provenance for {language}")
+              if report.stat().st_size > 104857600:
+                  raise SystemExit(f"SARIF report exceeds the size limit for {language}")
+              expected_files = {f"{language}.sarif", f"provenance-{language}.json"}
+              if {entry.name for entry in directory.iterdir()} != expected_files:
+                  raise SystemExit(f"Unexpected files in SARIF artifact for {language}")
+              metadata = json.loads(manifest.read_text(encoding="utf-8"))
+              attempt = os.environ[f"{language.upper()}_ATTEMPT"]
+              if not attempt.isdecimal() or int(attempt) < 1:
+                  raise SystemExit(f"Invalid SARIF producer attempt for {language}")
+              if metadata != {**expected_base, "run_attempt": attempt, "language": language}:
+                  raise SystemExit(f"SARIF provenance mismatch for {language}")
+              document = json.loads(report.read_text(encoding="utf-8"))
+              if document.get("version") != "2.1.0" or not isinstance(document.get("runs"), list):
+                  raise SystemExit(f"Invalid SARIF document for {language}")
+              outputs.append(f"{language}_file={report}")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write("\n".join(outputs) + "\n")
+          PY
+
+      - name: Verify the source snapshot before upload
+        id: current_source
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          PR_NUMBER: ${{ needs.setup.outputs.pr_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sourceSha = process.env.SOURCE_SHA;
+            const sourceRepo = process.env.SOURCE_REPO;
+            const targetRef = process.env.TARGET_REF;
+            const prNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number);
+            let isCurrent = false;
+            if (prNumber) {
+              const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              const expectedRef = context.eventName === 'workflow_call' ? targetRef : pull.head.ref;
+              isCurrent = pull.state === 'open' && pull.head.sha === sourceSha &&
+                pull.head.ref === expectedRef && pull.head.repo?.full_name === sourceRepo;
+            } else {
+              const branchName = targetRef.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+              isCurrent = sourceRepo === `${owner}/${repo}` &&
+                branchName === context.ref.replace(/^refs\/heads\//, '') &&
+                branch.commit.sha === sourceSha &&
+                (context.eventName === 'workflow_call' ||
+                 (context.ref.startsWith('refs/heads/') && context.sha === sourceSha));
+            }
+            core.setOutput('is_current', String(isCurrent));
+            if (!isCurrent) console.log('Skipping stale CodeQL SARIF for a moved source branch.');
+
+      - name: Upload C++ CodeQL SARIF
+        if: >-
+          steps.current_source.outputs.is_current == 'true' && steps.validate_sarif.outputs.cpp_file != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: ${{ steps.validate_sarif.outputs.cpp_file }}
+          category: cpp
+
+      - name: Verify the source snapshot before Python upload
+        id: current_source_python
+        if: steps.validate_sarif.outputs.python_file != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          PR_NUMBER: ${{ needs.setup.outputs.pr_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sourceSha = process.env.SOURCE_SHA;
+            const sourceRepo = process.env.SOURCE_REPO;
+            const targetRef = process.env.TARGET_REF;
+            const prNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number);
+            let isCurrent = false;
+            if (prNumber) {
+              const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              const expectedRef = context.eventName === 'workflow_call' ? targetRef : pull.head.ref;
+              isCurrent = pull.state === 'open' && pull.head.sha === sourceSha &&
+                pull.head.ref === expectedRef && pull.head.repo?.full_name === sourceRepo;
+            } else {
+              const branchName = targetRef.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+              isCurrent = sourceRepo === `${owner}/${repo}` &&
+                branchName === context.ref.replace(/^refs\/heads\//, '') &&
+                branch.commit.sha === sourceSha &&
+                (context.eventName === 'workflow_call' ||
+                 (context.ref.startsWith('refs/heads/') && context.sha === sourceSha));
+            }
+            core.setOutput('is_current', String(isCurrent));
+            if (!isCurrent) console.log('Skipping stale CodeQL SARIF for a moved source branch.');
+
+      - name: Upload Python CodeQL SARIF
+        if: >-
+          steps.current_source_python.outputs.is_current == 'true' && steps.validate_sarif.outputs.python_file != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: ${{ steps.validate_sarif.outputs.python_file }}
+          category: python
+
+      - name: Verify the source snapshot before Actions upload
+        id: current_source_actions
+        if: steps.validate_sarif.outputs.actions_file != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          PR_NUMBER: ${{ needs.setup.outputs.pr_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sourceSha = process.env.SOURCE_SHA;
+            const sourceRepo = process.env.SOURCE_REPO;
+            const targetRef = process.env.TARGET_REF;
+            const prNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number);
+            let isCurrent = false;
+            if (prNumber) {
+              const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              const expectedRef = context.eventName === 'workflow_call' ? targetRef : pull.head.ref;
+              isCurrent = pull.state === 'open' && pull.head.sha === sourceSha &&
+                pull.head.ref === expectedRef && pull.head.repo?.full_name === sourceRepo;
+            } else {
+              const branchName = targetRef.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+              isCurrent = sourceRepo === `${owner}/${repo}` &&
+                branchName === context.ref.replace(/^refs\/heads\//, '') &&
+                branch.commit.sha === sourceSha &&
+                (context.eventName === 'workflow_call' ||
+                 (context.ref.startsWith('refs/heads/') && context.sha === sourceSha));
+            }
+            core.setOutput('is_current', String(isCurrent));
+            if (!isCurrent) console.log('Skipping stale CodeQL SARIF for a moved source branch.');
+
+      - name: Upload Actions CodeQL SARIF
+        if: >-
+          steps.current_source_actions.outputs.is_current == 'true' && steps.validate_sarif.outputs.actions_file != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: ${{ steps.validate_sarif.outputs.actions_file }}
+          category: actions
+
   codeql-report:
     name: Aggregate CodeQL alerts
-    needs: codeql
+    needs: [setup, determine-languages, codeql, codeql-upload]
     runs-on: ubuntu-24.04
-    if: needs.codeql.result == 'success'
+    if: >-
+      needs.codeql.result == 'success' && needs.codeql-upload.result == 'success' &&
+      needs.codeql-upload.outputs.source_current == 'true' && github.repository == 'Framework-R-D/phlex' &&
+      (github.event_name != 'workflow_dispatch' || github.ref == format('refs/heads/{0}',
+      github.event.repository.default_branch))
     permissions:
+      actions: read
       contents: read
       issues: write
       pull-requests: write
@@ -314,15 +764,66 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Download CodeQL SARIF artifacts
+      - name: Download C++ SARIF artifact for alert reporting
+        if: contains(needs.determine-languages.outputs.languages, '"cpp"')
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: codeql-sarif-*
+          name: codeql-sarif-cpp-${{ needs.codeql-upload.outputs.cpp_attempt }}
           path: sarif
           merge-multiple: true
 
+      - name: Download Python SARIF artifact for alert reporting
+        if: contains(needs.determine-languages.outputs.languages, '"python"')
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: codeql-sarif-python-${{ needs.codeql-upload.outputs.python_attempt }}
+          path: sarif
+          merge-multiple: true
+
+      - name: Download Actions SARIF artifact for alert reporting
+        if: contains(needs.determine-languages.outputs.languages, '"actions"')
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: codeql-sarif-actions-${{ needs.codeql-upload.outputs.actions_attempt }}
+          path: sarif
+          merge-multiple: true
+
+      - name: Verify the source snapshot before alert reporting
+        id: report_source
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          PR_NUMBER: ${{ needs.setup.outputs.pr_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sourceSha = process.env.SOURCE_SHA;
+            const sourceRepo = process.env.SOURCE_REPO;
+            const targetRef = process.env.TARGET_REF;
+            const prNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number);
+            let isCurrent = false;
+            if (prNumber) {
+              const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              const expectedRef = context.eventName === 'workflow_call' ? targetRef : pull.head.ref;
+              isCurrent = pull.state === 'open' && pull.head.sha === sourceSha &&
+                pull.head.ref === expectedRef && pull.head.repo?.full_name === sourceRepo;
+            } else {
+              const branchName = targetRef.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+              isCurrent = sourceRepo === `${owner}/${repo}` &&
+                branchName === context.ref.replace(/^refs\/heads\//, '') &&
+                branch.commit.sha === sourceSha &&
+                (context.eventName === 'workflow_call' ||
+                 (context.ref.startsWith('refs/heads/') && context.sha === sourceSha));
+            }
+            core.setOutput('is_current', String(isCurrent));
+            if (!isCurrent) console.log('Skipping stale CodeQL alert report for a moved source branch.');
+
       - name: Check CodeQL SARIF for new or resolved alerts
         id: check_codeql
+        if: steps.report_source.outputs.is_current == 'true'
         env:
           LOG_PATH: ${{ steps.set_log_path.outputs.path }}
           INPUT_PR_NUMBER: ${{ inputs.pr-number }}
@@ -360,10 +861,36 @@ jobs:
           steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         env:
           COMMENT_PATH: ${{ steps.check_codeql.outputs.comment_path }}
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          SOURCE_REF: ${{ github.event.pull_request.head.ref }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          set -euo pipefail
           mkdir -p pr_comment_data
           jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" > pr_comment_data/pr_number.txt
           cp "${COMMENT_PATH}" pr_comment_data/comment_body.md
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          metadata = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "source_ref": os.environ["SOURCE_REF"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+              "run_attempt": os.environ["RUN_ATTEMPT"],
+          }
+          if len(metadata["source_sha"]) != 40 or not metadata["source_repo"] or not metadata["source_ref"]:
+              raise SystemExit("Invalid PR CodeQL provenance")
+          Path("pr_comment_data/provenance.json").write_text(
+              json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
 
       - name: Upload PR comment data
         if: >-
@@ -371,7 +898,7 @@ jobs:
           steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: codeql-pr-data
+          name: codeql-pr-data-${{ github.run_attempt }}
           path: pr_comment_data/
           retention-days: 1
 

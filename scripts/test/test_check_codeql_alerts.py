@@ -463,14 +463,24 @@ class TestAlertHelpers:
         assert self._alert(level="error").level_title() == "Error"
 
     def test_rule_display_with_uri(self) -> None:
-        """Rule display with uri."""
+        """External SARIF help URIs are not emitted as clickable links."""
         display = self._alert().rule_display()
-        assert display == "[py/sql-injection](https://example.com)"
+        assert display == "py/sql-injection"
+
+    def test_rule_display_with_codeql_help_uri(self) -> None:
+        """Links only to the trusted CodeQL help host."""
+        display = self._alert(
+            help_uri="https://codeql.github.com/codeql-query-help/python/py/sql-injection/"
+        ).rule_display()
+        assert (
+            display
+            == "[py/sql-injection](https://codeql.github.com/codeql-query-help/python/py/sql-injection/)"
+        )
 
     def test_rule_display_without_uri(self) -> None:
         """Rule display without uri."""
         display = self._alert(help_uri=None).rule_display()
-        assert display == "`py/sql-injection`"
+        assert display == "py/sql-injection"
 
     def test_severity_suffix_present(self) -> None:
         """Severity suffix present."""
@@ -492,7 +502,7 @@ class TestFormatSection:
     def _alert(self, n: int, level: str = "error") -> M.Alert:
         return M.Alert(
             number=n,
-            html_url=f"https://example.com/{n}",
+            html_url=f"https://github.com/Framework-R-D/phlex/security/code-scanning/{n}",
             rule_id="py/r",
             level=level,
             message="msg",
@@ -516,7 +526,7 @@ class TestFormatSection:
         """Alert with number link."""
         lines = M._format_section([self._alert(7)], max_results=10, bullet_prefix=":x:")
         assert "[# 7]" in lines[0]
-        assert "https://example.com/7" in lines[0]
+        assert "https://github.com/Framework-R-D/phlex/security/code-scanning/7" in lines[0]
 
     def test_dismissed_note_included(self) -> None:
         """Dismissed note included."""
@@ -525,6 +535,20 @@ class TestFormatSection:
         lines = M._format_section([alert], max_results=10, bullet_prefix=":x:")
         assert "dismissed" in lines[0]
         assert "false positive" in lines[0]
+
+    def test_sarif_text_cannot_inject_markdown_or_mentions(self) -> None:
+        """Escapes untrusted SARIF strings before they reach a PR comment."""
+        alert = self._alert(1)
+        alert.rule_id = "bad`rule"
+        alert.help_uri = "https://attacker.invalid/"
+        alert.location = "src/a.cpp`\n</details>"
+        alert.message = "@everyone <script>alert(1)</script> [click](https://attacker.invalid)"
+        line = M._format_section([alert], max_results=10, bullet_prefix=":x:")[0]
+
+        assert "@everyone" not in line
+        assert "<script>" not in line
+        assert "</details>" not in line
+        assert "[click](https://attacker.invalid)" not in line
 
     def test_empty_list_returns_empty(self) -> None:
         """Empty list returns empty."""
