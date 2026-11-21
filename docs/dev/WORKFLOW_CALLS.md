@@ -235,8 +235,6 @@ jobs:
     uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@<commit_sha>
     with:
       build-combinations: "gcc/asan clang/tsan"
-      ref: ${{ github.ref_name }}
-      source-sha: ${{ github.sha }}
 ```
 
 ---

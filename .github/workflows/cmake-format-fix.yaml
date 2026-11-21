@@ -124,14 +124,17 @@ jobs:
       - name: Check out formatter dependencies
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: |
             .github/format-tools
             .gersemirc
             scripts/create_fix_patch.py
           persist-credentials: false
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
 
       - name: Check out immutable source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,20 +147,21 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
+          working-directory: ${{ runner.temp }}
           python-version: "3.12"
           version-file: workflow-tools/.github/format-tools/pyproject.toml
           enable-cache: false
 
       - name: Install gersemi
         run: |
-          uv sync --project workflow-tools/.github/format-tools --locked --no-build --group format
-          echo "$GITHUB_WORKSPACE/workflow-tools/.github/format-tools/.venv/bin" >> "$GITHUB_PATH"
+          uv sync --project "$RUNNER_TEMP/workflow-tools/.github/format-tools" --locked --no-build --group format
+          echo "$RUNNER_TEMP/workflow-tools/.github/format-tools/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Apply CMake formatting
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "Applying CMake formatting..."
-          gersemi --config "$GITHUB_WORKSPACE/workflow-tools/.gersemirc" -i .
+          gersemi --config "$RUNNER_TEMP/workflow-tools/.gersemirc" -i .
 
       - name: Prepare patch artifact
         id: prepare_patch
@@ -170,7 +174,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           TOOL: cmake-format
-        run: python3 "$GITHUB_WORKSPACE/workflow-tools/scripts/create_fix_patch.py"
+        run: python3 "$RUNNER_TEMP/workflow-tools/scripts/create_fix_patch.py"
 
       - name: Upload patch artifact
         if: steps.prepare_patch.outputs.changes == 'true'

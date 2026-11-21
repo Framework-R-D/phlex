@@ -129,8 +129,8 @@ jobs:
       - name: Check out trusted source resolver
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: .github/actions/resolve-source-snapshot
           persist-credentials: false
@@ -151,6 +151,7 @@ jobs:
         env:
           SOURCE_SHA: ${{ steps.source_snapshot.outputs.source_sha }}
           SOURCE_REPO: ${{ steps.source_snapshot.outputs.source_repo }}
+          SOURCE_BASE_SHA: ${{ steps.setup.outputs.base_sha }}
           PR_NUMBER: ${{ steps.setup.outputs.pr_number }}
           SKIP_RELEVANCE: ${{ inputs.skip-relevance-check }}
         with:
@@ -171,7 +172,8 @@ jobs:
                   repo: context.repo.repo,
                   pull_number: pullNumber
                 });
-                if (before.head.sha !== process.env.SOURCE_SHA ||
+                if (!process.env.SOURCE_BASE_SHA || before.base.sha !== process.env.SOURCE_BASE_SHA ||
+                    before.head.sha !== process.env.SOURCE_SHA ||
                     before.head.repo?.full_name !== process.env.SOURCE_REPO) {
                   relevant = true;
                 } else {
@@ -193,6 +195,7 @@ jobs:
                     pull_number: pullNumber
                   });
                   relevant = after.head.sha !== process.env.SOURCE_SHA ||
+                    after.base.sha !== process.env.SOURCE_BASE_SHA ||
                     after.head.repo?.full_name !== process.env.SOURCE_REPO ||
                     changedPaths.length >= 3000 || changedPaths.some(matches);
                 }

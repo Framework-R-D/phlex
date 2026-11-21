@@ -49,6 +49,12 @@ jobs:
   clang-format:
     needs: setup
     uses: ./.github/workflows/clang-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -58,6 +64,12 @@ jobs:
   cmake-format:
     needs: setup
     uses: ./.github/workflows/cmake-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -67,6 +79,12 @@ jobs:
   header-guards:
     needs: setup
     uses: ./.github/workflows/header-guards-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -76,6 +94,12 @@ jobs:
   jsonnet-format:
     needs: setup
     uses: ./.github/workflows/jsonnet-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -85,6 +109,12 @@ jobs:
   markdown:
     needs: setup
     uses: ./.github/workflows/markdown-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -94,6 +124,12 @@ jobs:
   python:
     needs: setup
     uses: ./.github/workflows/python-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -103,6 +139,12 @@ jobs:
   yaml:
     needs: setup
     uses: ./.github/workflows/yaml-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
