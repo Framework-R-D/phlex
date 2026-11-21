@@ -60,16 +60,16 @@ def _tracked_source_path(value: Any, source_root: Path) -> tuple[Path, int]:
             "-C",
             str(source_root),
             "ls-files",
+            "-z",
             "--error-unmatch",
             "--",
             relative_name,
         ],
         check=False,
         capture_output=True,
-        text=True,
         env=environment,
     )
-    if result.returncode != 0 or result.stdout.strip() != relative_name:
+    if result.returncode != 0 or result.stdout != os.fsencode(relative_name) + b"\0":
         raise FixValidationError(f"replacement target is not tracked: {value!r}")
     return resolved, resolved.stat().st_size
 
@@ -124,14 +124,34 @@ def validate_and_copy(fixes_file: Path, source_root: Path, output_dir: Path) -> 
     except (yaml.YAMLError, RecursionError) as exc:
         raise FixValidationError("fixes file is invalid or too deeply nested YAML") from exc
 
+    if len(documents) > 1:
+        raise FixValidationError("fixes file must contain at most one YAML document")
+
     replacements: list[dict[str, Any]] = []
     for document in documents:
         if not isinstance(document, dict):
             raise FixValidationError("each YAML document must be a mapping")
+        diagnostics = document.get("Diagnostics")
+        if not isinstance(diagnostics, list):
+            raise FixValidationError("Diagnostics must be a sequence")
+        for diagnostic in diagnostics:
+            if (
+                not isinstance(diagnostic, dict)
+                or not isinstance(diagnostic.get("DiagnosticName"), str)
+                or not isinstance(diagnostic.get("DiagnosticMessage"), dict)
+                or not isinstance(diagnostic["DiagnosticMessage"].get("Message"), str)
+            ):
+                raise FixValidationError(
+                    "each diagnostic requires DiagnosticName and DiagnosticMessage.Message"
+                )
+        replacements.extend(_replacement_entries(document))
+        if len(replacements) > MAX_REPLACEMENTS:
+            raise FixValidationError("fixes YAML contains too many replacements")
+
+    for document in documents:
         main_source = document.get("MainSourceFile")
         if main_source:
             _tracked_source_path(main_source, source_root)
-        replacements.extend(_replacement_entries(document))
 
     for replacement in replacements:
         target, size = _tracked_source_path(replacement.get("FilePath"), source_root)

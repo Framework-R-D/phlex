@@ -91,8 +91,8 @@ jobs:
       - name: Check out trusted snapshot action and patch tool
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: |
             .github/actions/resolve-fix-snapshot
@@ -123,13 +123,16 @@ jobs:
       - name: Check out trusted patch tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: |
             scripts/create_fix_patch.py
             scripts/fix_header_guards.py
           persist-credentials: false
+
+      - name: Move trusted patch tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
 
       - name: Check out immutable source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -150,7 +153,7 @@ jobs:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "Fixing header guards..."
-          python3 "$GITHUB_WORKSPACE/workflow-tools/scripts/fix_header_guards.py" \
+          python3 "$RUNNER_TEMP/workflow-tools/scripts/fix_header_guards.py" \
             --root "$GITHUB_WORKSPACE/$CHECKOUT_PATH" \
             "$GITHUB_WORKSPACE/$CHECKOUT_PATH/phlex" \
             "$GITHUB_WORKSPACE/$CHECKOUT_PATH/plugins" \
@@ -167,7 +170,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           TOOL: header-guards
-        run: python3 "$GITHUB_WORKSPACE/workflow-tools/scripts/create_fix_patch.py"
+        run: python3 "$RUNNER_TEMP/workflow-tools/scripts/create_fix_patch.py"
 
       - name: Upload patch artifact
         if: steps.prepare_patch.outputs.changes == 'true'
@@ -194,8 +197,8 @@ jobs:
       - name: Check out trusted report action
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: .github/actions/report-fix-patch
           persist-credentials: false

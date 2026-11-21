@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,7 @@ from typing import Any
 import pytest
 import yaml
 
-import validate_clang_tidy_fixes as M
+M = importlib.import_module("validate_clang_tidy_fixes")
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +46,17 @@ def _fixes(path: str, **overrides: Any) -> dict[str, Any]:
     replacement.update(overrides)
     return {
         "MainSourceFile": path,
-        "Diagnostics": [{"DiagnosticMessage": {"Replacements": [replacement]}}],
+        "Diagnostics": [
+            {
+                "DiagnosticName": "readability-test",
+                "DiagnosticMessage": {
+                    "Message": "replace test text",
+                    "FilePath": path,
+                    "FileOffset": 0,
+                    "Replacements": [replacement],
+                },
+            }
+        ],
     }
 
 
@@ -63,6 +75,98 @@ def test_accepts_tracked_source_and_copies_only_fixes(tmp_path: Path) -> None:
     assert M.validate_and_copy(fixes, root, output) == 1
     assert (output / "clang-tidy-fixes.yaml").read_bytes() == fixes.read_bytes()
     assert list(output.iterdir()) == [output / "clang-tidy-fixes.yaml"]
+
+
+def test_accepts_nul_safe_unicode_git_path(tmp_path: Path) -> None:
+    """Match Git's NUL-delimited output for filenames that require quoting."""
+    root, _ = _repository(tmp_path)
+    source = root / "src" / "café.cpp"
+    source.write_text("int main() {}\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", "src/café.cpp"], check=True)
+    fixes = _write_fixes(tmp_path, _fixes(str(source)))
+
+    assert M.validate_and_copy(fixes, root, tmp_path / "staging") == 1
+
+
+def test_accepts_empty_export_as_no_diagnostics(tmp_path: Path) -> None:
+    """Stage LLVM's empty export without interpreting it as malformed YAML."""
+    root, _ = _repository(tmp_path)
+    fixes = tmp_path / "fixes.yaml"
+    fixes.write_bytes(b"")
+    output = tmp_path / "staging"
+
+    assert M.validate_and_copy(fixes, root, output) == 0
+    assert (output / "clang-tidy-fixes.yaml").read_bytes() == b""
+
+
+@pytest.mark.parametrize("missing", ["DiagnosticName", "Message"])
+def test_rejects_diagnostic_missing_required_fields(tmp_path: Path, missing: str) -> None:
+    """Reject diagnostics that clang-apply-replacements would ignore."""
+    root, source = _repository(tmp_path)
+    document = _fixes(str(source))
+    diagnostic = document["Diagnostics"][0]
+    if missing == "DiagnosticName":
+        diagnostic.pop("DiagnosticName")
+    else:
+        diagnostic["DiagnosticMessage"].pop("Message")
+    fixes = _write_fixes(tmp_path, document)
+
+    with pytest.raises(M.FixValidationError, match="DiagnosticName and DiagnosticMessage.Message"):
+        M.validate_and_copy(fixes, root, tmp_path / "staging")
+
+
+def test_rejects_multiple_documents_before_git_lookups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reject noncanonical streams before resolving any replacement paths."""
+    root, source = _repository(tmp_path)
+    fixes = tmp_path / "fixes.yaml"
+    fixes.write_text(
+        yaml.safe_dump_all([_fixes(str(source)), _fixes(str(source))]), encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        M,
+        "_tracked_source_path",
+        lambda *_args: pytest.fail("Git path validation ran before document-count validation"),
+    )
+
+    with pytest.raises(M.FixValidationError, match="at most one YAML document"):
+        M.validate_and_copy(fixes, root, tmp_path / "staging")
+
+
+def test_enforces_replacement_limit_before_git_lookups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Apply the artifact-wide replacement limit before resolving target paths."""
+    root, source = _repository(tmp_path)
+    document = _fixes(str(source))
+    replacements = document["Diagnostics"][0]["DiagnosticMessage"]["Replacements"]
+    replacements.append(replacements[0].copy())
+    fixes = _write_fixes(tmp_path, document)
+    monkeypatch.setattr(M, "MAX_REPLACEMENTS", 1)
+    monkeypatch.setattr(
+        M,
+        "_tracked_source_path",
+        lambda *_args: pytest.fail("Git path validation ran before replacement-limit validation"),
+    )
+
+    with pytest.raises(M.FixValidationError, match="too many replacements"):
+        M.validate_and_copy(fixes, root, tmp_path / "staging")
+
+
+def test_well_formed_fixes_apply_to_source_bytes(tmp_path: Path) -> None:
+    """Apply a complete LLVM diagnostic fixture when its tool is installed."""
+    apply_replacements = shutil.which("clang-apply-replacements")
+    if apply_replacements is None:
+        pytest.skip("clang-apply-replacements is not installed")
+    assert apply_replacements is not None
+    root, source = _repository(tmp_path)
+    fixes = _write_fixes(tmp_path, _fixes(str(source)))
+    output = tmp_path / "staging"
+
+    assert M.validate_and_copy(fixes, root, output) == 1
+    subprocess.run([apply_replacements, str(output)], check=True)
+    assert source.read_bytes() == b"long main() {}\n"
 
 
 @pytest.mark.parametrize("target", ["../outside.cpp", "/tmp/outside.cpp", "C:\\runner\\state.cpp"])

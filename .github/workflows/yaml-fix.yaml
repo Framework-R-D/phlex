@@ -125,14 +125,17 @@ jobs:
       - name: Check out formatter dependencies
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: workflow-tools
           sparse-checkout: |
             .github/format-tools
             .prettierrc.yaml
             scripts/create_fix_patch.py
           persist-credentials: false
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
 
       - name: Check out immutable source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -149,7 +152,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install prettier
-        working-directory: workflow-tools/.github/format-tools
+        working-directory: ${{ runner.temp }}/workflow-tools/.github/format-tools
         run: |
           npm ci --ignore-scripts
           echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
@@ -157,7 +160,7 @@ jobs:
       - name: Apply YAML formatting
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
-          prettier --config "$GITHUB_WORKSPACE/workflow-tools/.prettierrc.yaml" \
+          prettier --config "$RUNNER_TEMP/workflow-tools/.prettierrc.yaml" \
             --write '**/*.{yaml,yml}'
 
       - name: Prepare patch artifact
@@ -171,7 +174,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           TOOL: yaml-format
-        run: python3 "$GITHUB_WORKSPACE/workflow-tools/scripts/create_fix_patch.py"
+        run: python3 "$RUNNER_TEMP/workflow-tools/scripts/create_fix_patch.py"
 
       - name: Upload patch artifact
         if: steps.prepare_patch.outputs.changes == 'true'
