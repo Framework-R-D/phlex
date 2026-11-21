@@ -83,7 +83,11 @@ def ensure_native_image(image: str) -> None:
 
 
 def host_service(system: str, home: Path) -> dict:
-    """Use VM paths on macOS, never Unix sockets on the macOS shared filesystem."""
+    """Use VM paths on macOS, never Unix sockets on the macOS shared filesystem.
+
+    Returns:
+        The Compose service configuration for the development container.
+    """
     service: dict = {"volumes": []}
     image = os.environ.get("PHLEX_DEV_IMAGE")
     if system == "Darwin":

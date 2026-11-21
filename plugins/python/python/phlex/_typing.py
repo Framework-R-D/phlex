@@ -10,8 +10,9 @@ import builtins
 import ctypes
 import inspect
 import typing
+from collections.abc import Callable
 from types import UnionType
-from typing import Any, Callable, Dict, Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -133,7 +134,7 @@ _C2C: dict[str, str] = {
 }
 
 
-def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None = None) -> str:
+def normalize_type(tp: Any, globalns: dict | None = None, localns: dict | None = None) -> str:
     """Recursively normalize any Python annotation to a canonical name.
 
     This normalization supports:

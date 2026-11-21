@@ -16,6 +16,9 @@ def _collect_sarif_paths(inputs: list[Path]) -> list[Path]:
     """Expand any directory entries to the .sarif files they contain.
 
     Files are returned in a stable, sorted order so output is reproducible.
+
+    Returns:
+        The input files and recursively discovered SARIF files.
     """
     paths: list[Path] = []
     for p in inputs:
@@ -98,7 +101,11 @@ def _process_sarif(
 
 
 def _positive_int(value: str) -> int:
-    """Argparse type for --max-message: reject values less than 1."""
+    """Argparse type for --max-message: reject values less than 1.
+
+    Returns:
+        The validated positive integer.
+    """
     n = int(value)
     if n < 1:
         raise argparse.ArgumentTypeError(f"N must be at least 1, got {n}")

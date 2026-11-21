@@ -5,8 +5,6 @@ product can be injected into the execution graph and used by subsequent
 algorithms.
 """
 
-from typing import Dict, List
-
 import numpy as np
 import numpy.typing as npt
 
@@ -106,7 +104,7 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
 
     # annotations with ambiguous (union) type fail annotation processing
     try:
-        funky = List[int] | Dict[int, int]
+        funky = list[int] | dict[int, int]
         f = Variant(lambda di: 42, {"di": "data_cell_index", "return": funky}, "f")
         s.provide(f, {"creator": "a", "layer": "b", "suffix": "c"})
         assert not "supposed to be here"

@@ -25,7 +25,7 @@ from unittest.mock import patch
 import pytest
 
 # sys.path is set up by scripts/test/conftest.py.
-import fix_header_guards as M  # noqa: E402
+import fix_header_guards as M
 
 # ---------------------------------------------------------------------------
 # Helpers

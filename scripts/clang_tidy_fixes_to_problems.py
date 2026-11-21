@@ -100,7 +100,7 @@ class Diagnostic:
     level: str = "warning"
     file_path: str | None = None
     file_offset: int | None = None
-    notes: list["DiagnosticNote"] | None = None
+    notes: list[DiagnosticNote] | None = None
 
 
 @dataclass
@@ -329,7 +329,11 @@ def choose_workspace_note(
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    """Build and return the argument parser for this script."""
+    """Build and return the argument parser for this script.
+
+    Returns:
+        The configured command-line argument parser.
+    """
     parser = argparse.ArgumentParser(
         prog="clang_tidy_fixes_to_problems.py",
         description=(

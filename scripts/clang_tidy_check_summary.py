@@ -165,7 +165,11 @@ def format_checklist(counts: dict[str, int], *, links: bool = False) -> str:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    """Build and return the argument parser for this script."""
+    """Build and return the argument parser for this script.
+
+    Returns:
+        The configured command-line argument parser.
+    """
     parser = argparse.ArgumentParser(
         prog="clang_tidy_check_summary.py",
         description=(

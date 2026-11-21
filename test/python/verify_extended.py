@@ -24,7 +24,7 @@ class VerifierUInt:
         """Initialize with expected sum."""
         self._sum_total = sum_total
 
-    def __call__(self, value: "unsigned int") -> None:  # type: ignore # noqa: F722
+    def __call__(self, value: "unsigned int") -> None:  # type: ignore  # noqa: F722
         """Check if value matches expected sum."""
         assert value == self._sum_total
 
@@ -38,7 +38,7 @@ class VerifierLong:
         """Initialize with expected sum."""
         self._sum_total = sum_total
 
-    def __call__(self, value: "long") -> None:  # type: ignore # noqa: F821
+    def __call__(self, value: "long") -> None:  # type: ignore  # noqa: F821
         """Check if value matches expected sum."""
         assert value == self._sum_total
 
@@ -52,7 +52,7 @@ class VerifierULong:
         """Initialize with expected sum."""
         self._sum_total = sum_total
 
-    def __call__(self, value: "unsigned long") -> None:  # type: ignore # noqa: F722
+    def __call__(self, value: "unsigned long") -> None:  # type: ignore  # noqa: F722
         """Check if value matches expected sum."""
         assert value == self._sum_total
 
@@ -80,7 +80,7 @@ class VerifierDouble:
         """Initialize with expected sum."""
         self._sum_total = sum_total
 
-    def __call__(self, value: "double") -> None:  # type: ignore # noqa: F821
+    def __call__(self, value: "double") -> None:  # type: ignore  # noqa: F821
         """Check if value matches expected sum."""
         assert abs(value - self._sum_total) < 1e-5
 

@@ -28,7 +28,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # sys.path is set up by scripts/test/conftest.py.
-import check_codeql_alerts as M  # noqa: E402
+import check_codeql_alerts as M
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
@@ -1025,7 +1025,7 @@ class TestCompareAlertsViaApi:
     def _mock_paginate(self, pages: dict[str | None, list[dict]]) -> MagicMock:
         """Return a side_effect callable that dispatches on the `ref` kwarg."""
 
-        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):  # noqa: ANN202
+        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):
             yield from pages.get(ref, [])
 
         return MagicMock(side_effect=_paginate)
@@ -1363,7 +1363,7 @@ class TestBuildMultiSectionComment:
         lines = body.splitlines()
         h2_indices = [i for i, ln in enumerate(lines) if ln.startswith("##")]
         assert len(h2_indices) >= 2
-        for a, b in zip(h2_indices, h2_indices[1:]):  # noqa: B905
+        for a, b in zip(h2_indices, h2_indices[1:], strict=False):
             assert b - a > 1, "H2 headings are directly adjacent (no blank line)"
 
     def test_code_scanning_link_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1867,7 +1867,7 @@ class TestMainApiModeWithPrRef:
         sarif_dir = self._empty_sarif_dir(tmp_path)
         pr_alert = _make_api_alert(number=1, severity="error", analysis_key="ak:1")
 
-        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):  # noqa: ANN202
+        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):
             if ref == "refs/pull/104/merge":
                 yield pr_alert
             # main, base, and prev-commit refs return nothing

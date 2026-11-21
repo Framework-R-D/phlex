@@ -29,7 +29,7 @@ class ConfigConsumer:
             None
         """
         # builtin types
-        assert config["a_bool"] == False  # noqa: E712  # we really want to check False
+        assert config["a_bool"] is False
         assert config["an_int"] == -37
         assert config["a_uint"] == 18446744073709551616
         assert config["a_float"] == 3.1415
@@ -60,7 +60,7 @@ class ConfigConsumer:
         assert config["empty"] == ()
 
         # verify caching: second access to the same keys returns the same values
-        assert config["a_bool"] == False  # noqa: E712  # cache hit
+        assert config["a_bool"] is False  # cache hit
         assert config["an_int"] == -37  # cache hit
         assert config["some_floats"] == (3.1415, 2.71828)  # cache hit (array)
         assert config["some_objects"][0] == {"a": "b", "c": "d", "e": "f"}  # cache hit (obj array)

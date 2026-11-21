@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 import pytest
 
 # sys.path is set up by scripts/test/conftest.py.
-import clang_tidy_check_summary as M  # noqa: E402
+import clang_tidy_check_summary as M
 
 # ---------------------------------------------------------------------------
 # Helpers

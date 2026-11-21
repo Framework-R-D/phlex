@@ -175,7 +175,11 @@ def filter_issues(
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    """Build and return the argument parser."""
+    """Build and return the argument parser.
+
+    Returns:
+        The configured command-line argument parser.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Report clang-tidy warnings and errors that fall on lines"
@@ -216,7 +220,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    """Parse arguments, filter issues, and report results."""
+    """Parse arguments, filter issues, and report results.
+
+    Returns:
+        Zero on success, or a nonzero command-line error status.
+    """
     args = build_arg_parser().parse_args()
 
     log_path = Path(args.log)
