@@ -43,6 +43,7 @@
                 ],
                 "kilocode.new.extraCaCerts": "",
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+                "python.analysis.diagnosticMode": "workspace",
                 "python.languageServer": "Pylance",
                 "python.terminal.activateEnvironment": false,
                 "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",

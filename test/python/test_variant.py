@@ -72,6 +72,7 @@ class TestVariant:
         c = Container()
         wrapper = Variant(c, {}, "deep_clone", clone="deep")
         assert id(wrapper.phlex_callable) != id(c)
+        assert isinstance(wrapper.phlex_callable, Container)
         assert id(wrapper.phlex_callable.data) != id(c.data)
 
     def test_missing_annotation_raises(self):
