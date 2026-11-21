@@ -1,13 +1,25 @@
 Stages
 ======
 
-A *stage name* identifies the processing stage that created a data product,
-for example ``simulation``, ``digitization`` or ``reconstruction``.
-Together with the creator, suffix and data layer it is part of a product's
-identity.
-It lets a job tell apart products that otherwise look the same but were
-created by different Phlex jobs, such as a ``hits`` product read from a
-simulation file and a ``hits`` product recomputed in the current job.
+A Phlex job is usually one step of a larger processing workflow.
+For example, a simulation job writes generated events to a file, a
+digitization job reads that file and writes the simulated detector response,
+and a reconstruction job reads the digitized data and writes reconstructed
+objects.
+Each of these steps is a *processing stage*, and each Phlex job runs one
+stage.
+A job can therefore see products from several stages: products read from
+its input files, created by earlier stages, alongside the products it
+creates itself.
+
+A *stage name* identifies the processing stage that created a data product.
+Examples of stage names include ``simulation``, ``digitization``, and
+``reconstruction``.
+Together with the creator, suffix, data layer and type, it is part of a
+product's identity.
+It allows Phlex to distinguish between products that otherwise look the same
+but were created by different Phlex jobs, such as a ``hits`` product read
+from a simulation file and a ``hits`` product recomputed in the current job.
 
 Choose a name that stays the same when an equivalent job is rerun.
 Timestamps, host names and batch-job IDs are poor stage names.
@@ -44,7 +56,7 @@ job's stage.
 Providers registered with ``PHLEX_REGISTER_PROVIDERS`` declare their
 product with ``output_product(creator, suffix, layer, stage)``.
 The ``stage`` argument defaults to ``"CURRENT"``, which Phlex replaces by the
-job's stage.
+job's stage name.
 A provider that reads products written by an earlier job can instead pass
 that job's stage name, so that its products keep their original identity.
 
@@ -56,13 +68,11 @@ implicit providers.
 
 .. note::
 
-   In Phlex v0.4 a ``phlex::source`` has no access to the job's stage.
-   A source that creates new products, such as an event generator, must take
-   the stage name from its own configuration block, and the workflow has to
-   keep that value consistent with the job's stage.
-   If the job's stage is then changed with ``--stage``, the source's products
-   keep the old name.
-   This is tracked in
+   In Phlex v0.4 a ``phlex::source`` has no access to the job's stage, so a
+   source that creates new products, such as an event generator, must take
+   the stage name from its own configuration.
+   Whether sources should support the ``"CURRENT"`` stage name is under
+   discussion in
    `issue #957 <https://github.com/Framework-R-D/phlex/issues/957>`_.
 
 Selecting products by stage
@@ -71,17 +81,17 @@ Selecting products by stage
 ``product_selector`` has an optional ``stage`` field; in a configuration
 file a selector object accepts a ``stage`` key.
 
-Not set
+Not specified
    Products of any stage match.
 
 ``"CURRENT"``
    Only products of the job's own stage match.
-   This substitution is not applied for sources: the selector reaches
+   Sources are the exception for now: the selector reaches
    ``create_providers()`` with the literal ``"CURRENT"``, which a source that
    checks candidates with ``selector.match(spec, layer, stage)`` will not
-   match.
-   To select such a product, leave ``stage`` unset or name the stage
-   explicitly.
+   match (see issue #957).
+   To select a product that a source supplies, leave ``stage`` unspecified
+   or name the stage explicitly.
 
 Any other name
    Only products of that stage match.
