@@ -99,7 +99,8 @@ jobs:
               run_id: String(run.id),
               run_attempt: String(run.run_attempt)
             };
-            if (Object.keys(metadata).some(key => !Object.hasOwn(expectedMetadata, key)) ||
+            const allowedMetadataKeys = new Set([...Object.keys(expectedMetadata), 'workflow_ref']);
+            if (Object.keys(metadata).some(key => !allowedMetadataKeys.has(key)) ||
                 Object.keys(expectedMetadata).some(key => metadata[key] !== expectedMetadata[key]) ||
                 typeof metadata.workflow_ref !== 'string' ||
                 !metadata.workflow_ref.includes('/.github/workflows/clang-tidy-check.yaml@')) {
@@ -121,7 +122,22 @@ jobs:
               throw new Error('The artifact contains an invalid PR number.');
             }
             const prNumber = Number(numberText);
-            const linkedPull = (run.pull_requests || []).find(pull => pull.number === prNumber);
+            const linkedPulls = run.pull_requests || [];
+            let linkedPull = linkedPulls.find(pull => pull.number === prNumber);
+            if (!linkedPull && linkedPulls.length === 0) {
+              const { data: associatedPulls } =
+                await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  commit_sha: run.head_sha
+                });
+              linkedPull = associatedPulls.find(pull =>
+                pull.number === prNumber &&
+                pull.base?.repo?.full_name === `${context.repo.owner}/${context.repo.repo}` &&
+                pull.head?.sha === run.head_sha &&
+                pull.head?.repo?.full_name === run.head_repository.full_name
+              );
+            }
             if (!linkedPull) {
               throw new Error('The artifact PR number is not linked to its producing workflow run.');
             }

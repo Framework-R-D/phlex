@@ -94,6 +94,12 @@ runs:
             const match = process.env.COMMENT_BODY.match(expected);
             if (!match) throw new Error(`Invalid @${repo}bot ${command} command.`);
             const approvedSha = process.env.ALLOW_ARGUMENTS === 'true' ? match[2] : match[1];
+            if (sourceSha && !shaPattern.test(sourceSha)) {
+              throw new Error('The requested source SHA is invalid.');
+            }
+            if (approvedSha && !shaPattern.test(approvedSha)) {
+              throw new Error('The optional command SHA is invalid.');
+            }
             if (approvedSha && sourceSha && sourceSha.toLowerCase() !== approvedSha.toLowerCase()) {
               throw new Error('The requested SHA does not match the optional command SHA.');
             }
@@ -105,7 +111,8 @@ runs:
               repo,
               pull_number: context.payload.issue.number
             });
-            if (pull.state !== 'open' || (approvedSha && pull.head.sha.toLowerCase() !== approvedSha.toLowerCase()) ||
+            const expectedSha = approvedSha || sourceSha;
+            if (pull.state !== 'open' || (expectedSha && pull.head.sha.toLowerCase() !== expectedSha.toLowerCase()) ||
                 pull.head.repo?.full_name !== targetRepo ||
                 pull.head.ref !== targetRef.replace(/^refs\/heads\//, '')) {
               throw new Error('The PR head does not match the command target or optional SHA.');

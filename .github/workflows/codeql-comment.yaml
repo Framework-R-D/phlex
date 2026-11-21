@@ -94,9 +94,16 @@ jobs:
               throw new Error('The artifact contains an invalid pull request number.');
             }
             const prNumber = Number(numberText);
-            const linkedPull = (run.pull_requests || []).find(pull => pull.number === prNumber);
+            let linkedPull = (run.pull_requests || []).find(pull => pull.number === prNumber);
+            if (!linkedPull && /^[0-9a-f]{40}$/i.test(run.head_sha || '')) {
+              const associatedPulls = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                { owner, repo, commit_sha: run.head_sha, per_page: 100 }
+              );
+              linkedPull = associatedPulls.find(pull => pull.number === prNumber);
+            }
             if (!linkedPull) {
-              console.log('The producing workflow run is not linked to the artifact PR; skipping comment.');
+              console.log('Could not link the producing workflow run to the artifact PR; skipping comment.');
               return;
             }
             if ((linkedPull.head?.sha && linkedPull.head.sha !== metadata.source_sha) ||
@@ -126,7 +133,9 @@ jobs:
               repo,
               issue_number: prNumber
             });
-            const existing = comments.find(c => c.body.includes(marker) || c.body.includes(legacyMarker));
+            const isReportComment = comment => comment.user?.login === 'github-actions[bot]' &&
+              comment.body && (comment.body.includes(marker) || comment.body.includes(legacyMarker));
+            const existing = comments.find(isReportComment);
             let commentId;
             if (existing) {
               await github.rest.issues.updateComment({
@@ -146,8 +155,7 @@ jobs:
               commentId = created.id;
             }
             for (const comment of comments) {
-              if (comment.id !== commentId && comment.body &&
-                  (comment.body.includes(marker) || comment.body.includes(legacyMarker))) {
+              if (comment.id !== commentId && isReportComment(comment)) {
                 await github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id });
               }
             }
