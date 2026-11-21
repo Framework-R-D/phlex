@@ -53,24 +53,8 @@ jobs:
       pr_number: ${{ steps.setup.outputs.pr_number }}
       tidy_checks:
         ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks ||
-        steps.parse_comment.outputs.tidy_checks }}
+        steps.source_snapshot.outputs.tidy_checks }}
     steps:
-      - id: parse_comment
-        name: Parse comment for tidy checks
-        if: github.event_name == 'issue_comment'
-        env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
-        run: |
-          REPO_NAME="${GITHUB_REPOSITORY##*/}"
-          bot_name="${REPO_NAME}bot"
-          checks_line=$(printf '%s\n' "$COMMENT_BODY" |
-            sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
-          checks_line=$(printf '%s\n' "$checks_line" |
-            sed -E 's/[[:space:]]+--sha=[[:xdigit:]]{40}$//')
-          if [ -n "$checks_line" ]; then
-            tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
-            echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"
-          fi
       - name: Workflow setup
         id: setup
         uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
@@ -108,6 +92,10 @@ jobs:
               if (requestedChecks && !/^[A-Za-z0-9_.*+/, -]+$/.test(requestedChecks)) {
                 throw new Error('The tidy-fix check list contains unsupported characters.');
               }
+              core.setOutput(
+                'tidy_checks',
+                requestedChecks.split(/[\s,]+/).filter(Boolean).join(',')
+              );
               const approvedSha = match[2];
               const { data: pull } = await github.rest.pulls.get({
                 owner,
@@ -147,6 +135,8 @@ jobs:
     name: Generate clang-tidy fixes
     needs: setup
     if: ${{ needs.setup.result == 'success' }}
+    outputs:
+      fix_artifact_id: ${{ steps.upload_input.outputs.artifact-id }}
     permissions:
       contents: read
 
@@ -218,6 +208,7 @@ jobs:
             TIDY_ARGS+=("-checks=$TIDY_CHECKS")
           fi
 
+          rm -f "$BUILD_DIR/clang-tidy-fixes.yaml"
           cd "$SOURCE_DIR"
           run-clang-tidy \
             -p "$BUILD_DIR" \
@@ -227,10 +218,14 @@ jobs:
             "$SOURCE_DIR/phlex" \
             "$SOURCE_DIR/form" \
             "$SOURCE_DIR/plugins" \
-            "$SOURCE_DIR/test" \
-            || true
+            "$SOURCE_DIR/test"
+          if [ ! -f "$BUILD_DIR/clang-tidy-fixes.yaml" ]; then
+            echo "::error::run-clang-tidy did not export clang-tidy-fixes.yaml"
+            exit 1
+          fi
 
       - name: Upload untrusted fixes for isolated validation
+        id: upload_input
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -238,7 +233,7 @@ jobs:
           path: |
             ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
           retention-days: 1
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
@@ -257,6 +252,21 @@ jobs:
         ghcr.io/framework-r-d/phlex-ci:latest@sha256:d62317baa9f8b886da6db6250bdcc1d97d15bf85fb18b13d9842abafbfd82ce0
 
     steps:
+      - name: Checkout trusted workflow tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: workflow-tools
+          ref: ${{ github.workflow_sha }}
+          repository: ${{ github.repository }}
+          sparse-checkout: scripts/validate_clang_tidy_fixes.py
+          persist-credentials: false
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
+
+      - name: Move trusted workflow tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
+
       - name: Checkout reviewed source snapshot
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -265,25 +275,14 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
           persist-credentials: false
 
-      - name: Checkout trusted workflow tools
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: workflow-tools
-          ref: ${{ github.workflow_sha }}
-          repository: ${{ github.repository }}
-          persist-credentials: false
-
       - name: Download current-run fixes
-        id: download_fixes
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: fix-input-${{ github.run_attempt }}
+          artifact-ids: ${{ needs.generate_tidy_fixes.outputs.fix_artifact_id }}
           path: fixes
-        continue-on-error: true
 
       - name: Validate and apply replacements
         id: apply_replacements
-        if: steps.download_fixes.outcome == 'success'
         env:
           SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
           BUILD_PATH: ${{ needs.setup.outputs.build_path }}
@@ -297,10 +296,12 @@ jobs:
           fi
 
           VALIDATED_DIR=$(mktemp -d "$RUNNER_TEMP/validated-clang-tidy-fixes.XXXXXXXX")
-          python3 -I "$GITHUB_WORKSPACE/workflow-tools/scripts/validate_clang_tidy_fixes.py" \
+          python3 -I "$RUNNER_TEMP/workflow-tools/scripts/validate_clang_tidy_fixes.py" \
             "$FIXES_FILE" --source-root "$SOURCE_DIR" --output-dir "$VALIDATED_DIR"
           . /entrypoint.sh
-          clang-apply-replacements "$VALIDATED_DIR"
+          if [ -s "$VALIDATED_DIR/clang-tidy-fixes.yaml" ]; then
+            clang-apply-replacements "$VALIDATED_DIR"
+          fi
 
           mkdir -p "$BUILD_DIR"
           cp "$VALIDATED_DIR/clang-tidy-fixes.yaml" "$BUILD_DIR/clang-tidy-fixes.yaml"
@@ -313,7 +314,7 @@ jobs:
 
       - name: Upload validated fixes and patch
         id: upload_fixes
-        if: success() && steps.download_fixes.outcome == 'success'
+        if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: clang-tidy-fix-${{ github.run_attempt }}
@@ -353,13 +354,6 @@ jobs:
               pull.head.repo?.full_name === process.env.TARGET_REPO;
             core.setOutput('is_current', String(isCurrent));
             if (!isCurrent) console.log('Skipping a report for a changed PR head.');
-
-      - name: Post Clang-Tidy results
-        if: needs.apply_tidy_fixes.result == 'success' && steps.current_head.outputs.is_current == 'true'
-        uses: Framework-R-D/action-post-clang-tidy-results@81c1a8f0b9125c701c8535fb63a05b8fdb6d968e # v2
-        with:
-          build-path: ${{ needs.setup.outputs.build_path }}
-          pr-number: ${{ needs.setup.outputs.pr_number }}
 
       - name: Report patch-only fix
         if: >-

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from run_markdownlint_sandbox import run_markdownlint_sandbox
+run_markdownlint_sandbox = importlib.import_module(
+    "run_markdownlint_sandbox"
+).run_markdownlint_sandbox
 
 
 @pytest.fixture
