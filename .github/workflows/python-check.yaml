@@ -279,7 +279,7 @@ jobs:
         env:
           FORCE_COLOR: 1
         run: |
-          ruff format --config "$GITHUB_WORKSPACE/workflow-tools/pyproject.toml" --check .
+          ruff format --config "$RUNNER_TEMP/workflow-tools/pyproject.toml" --check .
         continue-on-error: true
 
       - name: Run MyPy check
