@@ -240,6 +240,7 @@ class WorkflowToolingTest(unittest.TestCase):
         for name in ("python-check", "python-fix"):
             content = (ROOT / f".github/workflows/{name}.yaml").read_text()
             self.assertIn("$RUNNER_TEMP/workflow-tools/pyproject.toml", content)
+            self.assertNotIn("$GITHUB_WORKSPACE/workflow-tools/pyproject.toml", content)
 
     def test_untrusted_formatter_workflows_disable_uv_cache(self):
         """Prevent source-processing jobs from writing reusable uv caches."""
