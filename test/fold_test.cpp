@@ -51,10 +51,10 @@ namespace {
   /// Accumulates the sum and count of `number` values into the two elements of `result`.
   /// `result` must remain valid for the duration of the call, and updates to both atomic
   /// counters are safe under concurrent fold execution.
-  void add_and_count(std::tuple<std::atomic<unsigned int>, std::atomic<unsigned int>>& result,
+  void add_and_count(std::atomic<unsigned int>& sum,
+                     std::atomic<unsigned int>& count,
                      unsigned int number)
   {
-    auto& [sum, count] = result;
     sum += number;
     ++count;
   }
