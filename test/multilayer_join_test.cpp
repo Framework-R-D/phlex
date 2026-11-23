@@ -132,9 +132,9 @@ TEST_CASE("Same-layer join receiver lookup and input ordering", "[join]")
   multilayer_join_node<3> join{graph, "same_layer_join", {"event"_id, "event"_id, "event"_id}};
   CHECK(join.index_ports().empty());
 
-  auto const left_creator = algorithm_name::create("left");
-  auto const middle_creator = algorithm_name::create("middle");
-  auto const right_creator = algorithm_name::create("right");
+  auto const left_creator = algorithm_name{"left"};
+  auto const middle_creator = algorithm_name{"middle"};
+  auto const right_creator = algorithm_name{"right"};
 
   product_selectors const selectors{{.creator = left_creator.to_string()},
                                     {.creator = middle_creator.to_string()},
@@ -225,13 +225,13 @@ TEST_CASE("Same-layer joins match message IDs rather than arrival order", "[join
 TEST_CASE("Fold join receiver lookup and index metadata", "[join]")
 {
   tbb::flow::graph graph;
-  auto const name = algorithm_name::create("fold_join_test");
+  auto const name = algorithm_name{"fold_join_test"};
   fold_join_node<int, 2> join{graph,
                               name,
                               "test_stage"_id,
                               "job"_id,
                               {"event"_id, "run"_id},
-                              product_specifications(1),
+                              product_specifications{spec<int>(name)},
                               [](data_cell_index const&) { return std::make_unique<int>(0); }};
   SECTION("data receivers exclude the partition port and reject invalid indices")
   {
