@@ -1,11 +1,13 @@
 add_definitions("-UNDEBUG")
 
-find_package(Catch2 REQUIRED)
+find_package(Catch2 3.9 REQUIRED)
 
-# Suppress Catch2's use of __COUNTER__ (a compiler extension, not standard C++)
-# by propagating CATCH_CONFIG_NO_COUNTER to all consumers of Catch2::Catch2,
-# regardless of whether Catch2 was resolved via find_package or FetchContent.
-target_compile_definitions(Catch2::Catch2 INTERFACE CATCH_CONFIG_NO_COUNTER)
+# FetchContent's redirect package does not populate Catch2_VERSION, but
+# cetmodules needs it to select Catch2::Catch2WithMain.  If FetchContent built
+# Catch2, then the version is 3.13.0.
+if(NOT DEFINED Catch2_VERSION)
+  set(Catch2_VERSION 3.13.0)
+endif()
 
 include(CetTest)
 

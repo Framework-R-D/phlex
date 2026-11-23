@@ -8,7 +8,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
-#include <cassert>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -52,10 +51,9 @@ namespace {
 
   void verify_results(int number, double temperature, std::string const& name)
   {
-    // Switch to Catch2's CHECK macro once Catch2's thread-safety assertions are enabled.
-    assert(number == 3);
-    assert(temperature == 98.5);
-    assert(name == "John");
+    CHECK(number == 3);
+    CHECK(temperature == 98.5);
+    CHECK(name == "John");
   }
 
   auto make_product_selector(experimental::identifier suffix)

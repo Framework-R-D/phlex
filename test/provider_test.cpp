@@ -17,7 +17,6 @@
 #include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
-#include <cassert>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -84,7 +83,7 @@ namespace {
     {
       experimental::product_specification spec{
         "vertices_maker", "happy_vertices", experimental::make_type_id<vertex_collection>()};
-      assert(selector.match(spec, "job"_id, "CURRENT"_id));
+      CHECK(selector.match(spec, "job"_id, "CURRENT"_id));
       return {{.provider_function = give_me_vertices_erased,
                .max_concurrency = concurrency::unlimited,
                .spec = std::move(spec),
