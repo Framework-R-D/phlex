@@ -8,6 +8,7 @@
 
 #include <atomic>
 // Provides chrono literals used below but attributed to a transitive include by include-cleaner.
+#include <array>
 #include <chrono> // IWYU pragma: keep
 #include <string>
 #include <string_view>
@@ -200,7 +201,8 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
 
   database const db1{1};
   database const db13{13};
-  flow::resource_limiter<database const*> db_limiter{&db1, &db13};
+  std::array<database const*, 2> databases{&db1, &db13};
+  flow::resource_limiter<database const*> db_limiter{databases.begin(), databases.end()};
 
   auto fill_histo = [&root_counter](unsigned int const i, auto& outputs, root) {
     thread_counter const c{root_counter};

@@ -2,7 +2,9 @@
 #define PHLEX_CORE_RESOURCE_CONCEPTS_HPP
 
 #include <concepts>
+#include <ranges>
 #include <type_traits>
+#include <utility>
 
 namespace phlex::detail {
   namespace internal {
@@ -10,11 +12,26 @@ namespace phlex::detail {
     concept has_token_type = requires { typename T::token_type; };
 
     template <typename T>
-    concept has_tokens = requires(T const& resource) { resource.tokens(); };
+    concept has_tokens = requires(T& resource) { resource.tokens(); };
+
+    template <typename T>
+    using pooled_token_range_t = decltype(std::declval<T const&>().tokens());
+
+    template <typename T>
+    using pooled_token_type_t = std::ranges::range_value_t<pooled_token_range_t<T>>;
+
+    template <typename T>
+    concept has_valid_token_range = requires(T const& resource) {
+      { resource.tokens() } -> std::ranges::input_range;
+      requires std::copy_constructible<pooled_token_type_t<T>>;
+      requires std::is_move_assignable_v<pooled_token_type_t<T>>;
+      requires std::constructible_from<pooled_token_type_t<T>,
+                                       std::ranges::range_reference_t<pooled_token_range_t<T>>>;
+    };
   }
 
   template <typename T>
-  concept unlimited_resource = !internal::has_token_type<T>;
+  concept unlimited_resource = !internal::has_token_type<T> && !internal::has_tokens<T>;
 
   template <typename T>
   concept resource_token_constructible =
@@ -28,10 +45,10 @@ namespace phlex::detail {
   concept serialized_resource = resource_token_constructible<T> && !internal::has_tokens<T>;
 
   template <typename T>
-  concept pooled_resource = internal::has_token_type<T> && internal::has_tokens<T>;
+  concept pooled_resource = internal::has_valid_token_range<T>;
 
   template <typename T>
-  concept phase_1_supported_resource = unlimited_resource<T> || serialized_resource<T>;
+  concept limited_resource = serialized_resource<T> || pooled_resource<T>;
 
   template <typename T, typename... Args>
   concept unlimited_resource_registration =
@@ -40,6 +57,10 @@ namespace phlex::detail {
   template <typename T, typename... Args>
   concept serialized_resource_registration =
     serialized_resource<T> && !std::is_const_v<T> && std::constructible_from<T, Args...>;
+
+  template <typename T, typename... Args>
+  concept pooled_resource_registration =
+    pooled_resource<T> && !std::is_const_v<T> && std::constructible_from<T, Args...>;
 
   namespace internal {
     template <typename T>
@@ -55,6 +76,11 @@ namespace phlex::detail {
       using type = T::token_type;
     };
 
+    template <pooled_resource T>
+    struct resource_access_type<T> {
+      using type = pooled_token_type_t<T>;
+    };
+
     template <typename T>
     using resource_access_type_t = resource_access_type<T>::type;
 
@@ -62,7 +88,7 @@ namespace phlex::detail {
     using is_unlimited_resource = std::bool_constant<unlimited_resource<T>>;
 
     template <typename T>
-    using is_serialized_resource = std::bool_constant<serialized_resource<T>>;
+    using is_limited_resource = std::bool_constant<limited_resource<T>>;
   }
 }
 

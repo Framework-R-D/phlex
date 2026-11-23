@@ -44,6 +44,19 @@ namespace phlex::detail {
         type, std::make_unique<serialized_resource_entry<T>>(std::forward<Args>(args)...));
     }
 
+    template <typename T, typename... Args>
+      requires pooled_resource_registration<T, Args...>
+    void add_pooled(Args&&... args)
+    {
+      auto const type = std::type_index(typeid(T));
+      if (resources_.contains(type)) {
+        throw std::runtime_error(fmt::format("Resource of type '{}' has already been registered",
+                                             boost::core::demangle(typeid(T).name())));
+      }
+      resources_.emplace(type,
+                         std::make_unique<pooled_resource_entry<T>>(std::forward<Args>(args)...));
+    }
+
     template <unlimited_resource T>
     gsl::not_null<T const*> access_for() const
     {
@@ -55,6 +68,13 @@ namespace phlex::detail {
     auto& limiter_for() const
     {
       auto entry = entry_for<serialized_resource_entry<T>>();
+      return entry->limiter();
+    }
+
+    template <pooled_resource T>
+    auto& limiter_for() const
+    {
+      auto entry = entry_for<pooled_resource_entry<T>>();
       return entry->limiter();
     }
 
