@@ -1088,6 +1088,9 @@ TEST_CASE("storage_reader read columns: navigation table and product dictionary"
     CHECK(first_match.read_uint64_column(numbers, settings) == events);
     CHECK_THROWS(first_match.read_string_column(numbers, settings));
     CHECK(first_match.read_uint64_column(numbers, settings) == events);
+    CHECK(first_match.read_string_column(names, settings) == std::vector<std::string>{"prod"});
+    CHECK_THROWS(first_match.read_uint64_column(names, settings));
+    CHECK(first_match.read_string_column(names, settings) == std::vector<std::string>{"prod"});
 
     // A mismatched read first must not leave anything behind for a later read.
     storage_reader first_mismatch;
