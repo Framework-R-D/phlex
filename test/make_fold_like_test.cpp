@@ -179,7 +179,7 @@ TEST_CASE("Handle inputs do not copy the product", "[make_fold_like]")
   std::tuple<tracked, int> acc{};
   tracked const product{3};
   auto const index = data_cell_index::job();
-  experimental::product_specification const spec{"product"};
+  experimental::product_specification const spec{"test/product"};
   auto const stage = "test_stage"_id;
   handle const in{gsl::make_not_null(&product),
                   gsl::make_not_null(index.get()),
