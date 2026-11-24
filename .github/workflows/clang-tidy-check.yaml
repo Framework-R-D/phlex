@@ -20,8 +20,12 @@ permissions:
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "Branch matching this workflow run; source-sha must equal its current head."
         required: false
+        type: string
+      source-sha:
+        description: "Exact 40-character SHA at the selected branch head"
+        required: true
         type: string
 
 jobs:
@@ -43,15 +47,101 @@ jobs:
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       build_path: ${{ steps.setup.outputs.build_path }}
-      has_changes: ${{ steps.setup.outputs.has_changes }}
+      has_changes: ${{ steps.source_relevance.outputs.has_changes }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
     steps:
       - name: Workflow setup
         id: setup
         uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
+
+      - name: Check out trusted source resolver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          file-type: |
-            cpp
-            cmake
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/actions/resolve-source-snapshot
+          persist-credentials: false
+
+      - name: Resolve immutable source snapshot
+        id: source_snapshot
+        uses: ./workflow-tools/.github/actions/resolve-source-snapshot
+        with:
+          command: tidy-check
+          ref: ${{ steps.setup.outputs.ref }}
+          repo: ${{ steps.setup.outputs.repo }}
+          source-sha: ${{ inputs.source-sha }}
+
+      - name: Detect relevant changes in the immutable snapshot
+        id: source_relevance
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ steps.source_snapshot.outputs.source_sha }}
+          SOURCE_REPO: ${{ steps.source_snapshot.outputs.source_repo }}
+          PR_NUMBER: ${{ steps.setup.outputs.pr_number }}
+        with:
+          script: |
+            const matches = filename => {
+              if (filename.startsWith('scripts/')) return false;
+              const basename = filename.split('/').pop();
+              return /\.(cpp|hpp)(\.in)?$/.test(basename) ||
+                /^(CMakeLists\.txt|.*\.cmake)(\.in)?$/.test(basename);
+            };
+            let relevant = true;
+            if (context.eventName === 'pull_request' || context.eventName === 'issue_comment') {
+              try {
+                const pullNumber = Number(process.env.PR_NUMBER || context.payload.pull_request?.number ||
+                  context.payload.issue?.number);
+                const { data: before } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pullNumber
+                });
+                if (before.head.sha === process.env.SOURCE_SHA &&
+                    before.head.repo?.full_name === process.env.SOURCE_REPO) {
+                  const changedPaths = [];
+                  for (let page = 1; ; page++) {
+                    const { data: files } = await github.rest.pulls.listFiles({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pullNumber,
+                      per_page: 100,
+                      page
+                    });
+                    changedPaths.push(...files.map(file => file.filename));
+                    if (files.length < 100 || page === 30) break;
+                  }
+                  const { data: after } = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pullNumber
+                  });
+                  relevant = after.head.sha !== process.env.SOURCE_SHA ||
+                    after.head.repo?.full_name !== process.env.SOURCE_REPO ||
+                    changedPaths.length >= 3000 || changedPaths.some(matches);
+                }
+              } catch (error) {
+                core.warning(`Could not verify PR relevance; running clang-tidy conservatively: ${error.message}`);
+                relevant = true;
+              }
+            } else if (context.eventName === 'push' && context.payload.before &&
+                       !/^0+$/.test(context.payload.before)) {
+              try {
+                const { data: comparison } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: context.payload.before,
+                  head: process.env.SOURCE_SHA
+                });
+                relevant = comparison.files?.length >= 300 ||
+                  (comparison.files || []).some(file => matches(file.filename));
+              } catch (error) {
+                core.warning(`Could not verify push relevance; running clang-tidy conservatively: ${error.message}`);
+                relevant = true;
+              }
+            }
+            core.setOutput('has_changes', String(relevant));
 
   clang-tidy-check:
     needs: setup
@@ -64,18 +154,18 @@ jobs:
       needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:latest
+      image: >-
+        ghcr.io/framework-r-d/phlex-ci:latest@sha256:d62317baa9f8b886da6db6250bdcc1d97d15bf85fb18b13d9842abafbfd82ce0
 
     steps:
       - name: Checkout code
+        # The source resolver validates event SHAs, selected manual branch heads,
+        # and explicit issue-comment approvals before this immutable checkout.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          ref: ${{ needs.setup.outputs.source_sha }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
-            needs.setup.outputs.repo }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           persist-credentials: false
           # The diff must start at the actual merge base, which may predate the
           # current base SHA for an unrebased pull request.
@@ -194,7 +284,9 @@ jobs:
           DIFF_EXIT=$?
           set -e
 
-          if [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
+          if [ "$TIDY_EXIT" -ne 0 ] || grep -q \
+            "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" \
+            "$BUILD_DIR/clang-tidy.log"; then
             echo "::error::run-clang-tidy failed (see log below)"
             echo "::group::clang-tidy.log (error)"
             cat "$BUILD_DIR/clang-tidy.log"
@@ -227,19 +319,65 @@ jobs:
           mkdir -p "$BUILD_DIR"
           printf '%s\n' "$PR_NUMBER" > "$BUILD_DIR/pr_number.txt"
 
+      - name: Prepare clang-tidy report artifact
+        id: report_artifact
+        if: always() && github.event_name == 'pull_request'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          SOURCE_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import shutil
+          import tempfile
+          from pathlib import Path
+
+          source = Path(os.environ["GITHUB_WORKSPACE"]) / os.environ["BUILD_PATH"]
+          if source.is_symlink() or not source.is_dir():
+              raise SystemExit("The clang-tidy build directory is invalid")
+          artifact = Path(tempfile.mkdtemp(prefix="clang-tidy-report.", dir=os.environ["RUNNER_TEMP"]))
+          limits = {
+              "clang-tidy-analysis-complete.txt": 1024,
+              "clang-tidy-new-issues.txt": 65536,
+              "clang-tidy.log": 16777216,
+          }
+          for name, max_size in limits.items():
+              candidate = source / name
+              if candidate.is_symlink():
+                  raise SystemExit(f"Refusing symlink report data: {name}")
+              if candidate.exists():
+                  if not candidate.is_file() or candidate.stat().st_size > max_size:
+                      raise SystemExit(f"Invalid or oversized report data: {name}")
+                  shutil.copyfile(candidate, artifact / name)
+          (artifact / "pr_number.txt").write_text(os.environ["PR_NUMBER"] + "\n", encoding="utf-8")
+          metadata = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+              "run_attempt": os.environ["RUN_ATTEMPT"],
+          }
+          (artifact / "provenance.json").write_text(
+              json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print(f"path={artifact}")
+          PY
+
       - name: Upload artifacts
-        if: always()
+        if: always() && steps.report_artifact.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: clang-tidy-check
+          name: clang-tidy-check-${{ github.run_attempt }}
           path: |
-            ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
-            ${{ needs.setup.outputs.build_path }}/clang-tidy.log
-            ${{ needs.setup.outputs.build_path }}/clang-tidy-new-issues.txt
-            ${{ needs.setup.outputs.build_path }}/clang-tidy-analysis-complete.txt
-            ${{ needs.setup.outputs.build_path }}/pr_number.txt
+            ${{ steps.report_artifact.outputs.path }}
           retention-days: 7
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   report:
     needs: [setup, clang-tidy-check]

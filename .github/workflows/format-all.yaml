@@ -1,15 +1,14 @@
 name: Format All
 run-name: "${{ github.actor }} fixing all format issues"
 
-on:
+"on":
   issue_comment:
     types:
       - created
 
 permissions:
-  pull-requests: write
-  contents: write
-  issues: write
+  pull-requests: read
+  contents: read
 
 jobs:
   setup:
@@ -21,6 +20,8 @@ jobs:
     outputs:
       ref: ${{ steps.setup.outputs.ref }}
       repo: ${{ steps.setup.outputs.repo }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
     steps:
       - name: Workflow setup
         id: setup
@@ -28,73 +29,137 @@ jobs:
         with:
           mode: fix
 
+      - name: Check out trusted source authorization action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/actions/resolve-fix-snapshot
+          persist-credentials: false
+
+      - name: Resolve approved source snapshot
+        id: source_snapshot
+        uses: ./workflow-tools/.github/actions/resolve-fix-snapshot
+        with:
+          command: format
+          ref: ${{ steps.setup.outputs.ref }}
+          repo: ${{ steps.setup.outputs.repo }}
+
   clang-format:
     needs: setup
     uses: ./.github/workflows/clang-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   cmake-format:
     needs: setup
     uses: ./.github/workflows/cmake-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   header-guards:
     needs: setup
     uses: ./.github/workflows/header-guards-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   jsonnet-format:
     needs: setup
     uses: ./.github/workflows/jsonnet-format-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   markdown:
     needs: setup
     uses: ./.github/workflows/markdown-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   python:
     needs: setup
     uses: ./.github/workflows/python-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   yaml:
     needs: setup
     uses: ./.github/workflows/yaml-fix.yaml
+    # The called report job reads artifacts and posts issue comments.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
+      source-sha: ${{ needs.setup.outputs.source_sha }}
       skip-comment: true
-    secrets: inherit
 
   combine-results:
     needs: [setup, clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
     if: always() && needs.setup.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Collect results
         id: collect
@@ -102,19 +167,69 @@ jobs:
         with:
           results-json: |
             {
-              "clang-format": { "result": "${{ needs.clang-format.result }}", "changes": "${{ needs.clang-format.outputs.changes }}", "pushed": "${{ needs.clang-format.outputs.pushed }}", "sha": "${{ needs.clang-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.clang-format.outputs.patch_name }}" },
-              "cmake-format": { "result": "${{ needs.cmake-format.result }}", "changes": "${{ needs.cmake-format.outputs.changes }}", "pushed": "${{ needs.cmake-format.outputs.pushed }}", "sha": "${{ needs.cmake-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.cmake-format.outputs.patch_name }}" },
-              "header-guards": { "result": "${{ needs.header-guards.result }}", "changes": "${{ needs.header-guards.outputs.changes }}", "pushed": "${{ needs.header-guards.outputs.pushed }}", "sha": "${{ needs.header-guards.outputs.commit_sha_short }}", "patch_name": "${{ needs.header-guards.outputs.patch_name }}" },
-              "jsonnetfmt": { "result": "${{ needs.jsonnet-format.result }}", "changes": "${{ needs.jsonnet-format.outputs.changes }}", "pushed": "${{ needs.jsonnet-format.outputs.pushed }}", "sha": "${{ needs.jsonnet-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.jsonnet-format.outputs.patch_name }}" },
-              "markdownlint": { "result": "${{ needs.markdown.result }}", "changes": "${{ needs.markdown.outputs.changes }}", "pushed": "${{ needs.markdown.outputs.pushed }}", "sha": "${{ needs.markdown.outputs.commit_sha_short }}", "patch_name": "${{ needs.markdown.outputs.patch_name }}" },
-              "ruff": { "result": "${{ needs.python.result }}", "changes": "${{ needs.python.outputs.changes }}", "pushed": "${{ needs.python.outputs.pushed }}", "sha": "${{ needs.python.outputs.commit_sha_short }}", "patch_name": "${{ needs.python.outputs.patch_name }}" },
-              "YAML formatter": { "result": "${{ needs.yaml.result }}", "changes": "${{ needs.yaml.outputs.changes }}", "pushed": "${{ needs.yaml.outputs.pushed }}", "sha": "${{ needs.yaml.outputs.commit_sha_short }}", "patch_name": "${{ needs.yaml.outputs.patch_name }}" }
+              "clang-format": {
+                "result": "${{ needs.clang-format.result }}",
+                "changes": "${{ needs.clang-format.outputs.changes }}",
+                "pushed": "${{ needs.clang-format.outputs.pushed }}",
+                "sha": "${{ needs.clang-format.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.clang-format.outputs.patch_name }}"
+              },
+              "cmake-format": {
+                "result": "${{ needs.cmake-format.result }}",
+                "changes": "${{ needs.cmake-format.outputs.changes }}",
+                "pushed": "${{ needs.cmake-format.outputs.pushed }}",
+                "sha": "${{ needs.cmake-format.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.cmake-format.outputs.patch_name }}"
+              },
+              "header-guards": {
+                "result": "${{ needs.header-guards.result }}",
+                "changes": "${{ needs.header-guards.outputs.changes }}",
+                "pushed": "${{ needs.header-guards.outputs.pushed }}",
+                "sha": "${{ needs.header-guards.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.header-guards.outputs.patch_name }}"
+              },
+              "jsonnetfmt": {
+                "result": "${{ needs.jsonnet-format.result }}",
+                "changes": "${{ needs.jsonnet-format.outputs.changes }}",
+                "pushed": "${{ needs.jsonnet-format.outputs.pushed }}",
+                "sha": "${{ needs.jsonnet-format.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.jsonnet-format.outputs.patch_name }}"
+              },
+              "markdownlint": {
+                "result": "${{ needs.markdown.result }}",
+                "changes": "${{ needs.markdown.outputs.changes }}",
+                "pushed": "${{ needs.markdown.outputs.pushed }}",
+                "sha": "${{ needs.markdown.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.markdown.outputs.patch_name }}"
+              },
+              "ruff": {
+                "result": "${{ needs.python.result }}",
+                "changes": "${{ needs.python.outputs.changes }}",
+                "pushed": "${{ needs.python.outputs.pushed }}",
+                "sha": "${{ needs.python.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.python.outputs.patch_name }}"
+              },
+              "YAML formatter": {
+                "result": "${{ needs.yaml.result }}",
+                "changes": "${{ needs.yaml.outputs.changes }}",
+                "pushed": "${{ needs.yaml.outputs.pushed }}",
+                "sha": "${{ needs.yaml.outputs.commit_sha_short }}",
+                "patch_name": "${{ needs.yaml.outputs.patch_name }}"
+              }
             }
 
       - name: Post combined comment
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
-          message: ${{ steps.collect.outputs.message }}
+          message: |
+            ${{ steps.collect.outputs.message }}
+
+            All formatters used approved source snapshot
+            `${{ needs.setup.outputs.source_sha }}` and did not push changes.
+            Download [patch artifacts][artifacts] from this workflow run.
+            Review and apply each patch only to that exact source snapshot.
+
+            [artifacts]: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
 
       - name: Update PR comment reactions
         uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2

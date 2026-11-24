@@ -1,0 +1,109 @@
+name: Resolve authorized formatter snapshot
+description: Resolve and pin the PR source SHA before a patch-only formatter run.
+
+inputs:
+  command:
+    description: Bot command required for direct issue-comment requests.
+    required: true
+  ref:
+    description: Target branch resolved by the workflow setup action.
+    required: true
+  repo:
+    description: Target repository resolved by the workflow setup action.
+    required: true
+  source-sha:
+    description: Optional exact source SHA from a reusable workflow or manual run.
+    required: false
+
+outputs:
+  source_sha:
+    description: Authorized immutable source SHA.
+    value: ${{ steps.authorize.outputs.source_sha }}
+  source_repo:
+    description: Repository containing the authorized source SHA.
+    value: ${{ steps.authorize.outputs.source_repo }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate source authorization
+      id: authorize
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        COMMAND: ${{ inputs.command }}
+        TARGET_REF: ${{ inputs.ref }}
+        TARGET_REPO: ${{ inputs.repo }}
+        REQUESTED_SHA: ${{ inputs.source-sha }}
+        COMMENT_BODY: ${{ github.event.comment.body }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const currentRepo = `${owner}/${repo}`;
+          const shaPattern = /^[0-9a-f]{40}$/i;
+          const requestedRepo = process.env.TARGET_REPO;
+          const requestedRef = process.env.TARGET_REF;
+          const command = process.env.COMMAND;
+          let sourceSha = process.env.REQUESTED_SHA;
+          let sourceRepo = requestedRepo;
+          if (!requestedRef || requestedRef.startsWith('refs/') || requestedRef.startsWith('-') ||
+              !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(requestedRepo)) {
+            throw new Error('The formatter target repository or branch is invalid.');
+          }
+
+          if (context.eventName === 'issue_comment') {
+            if (!context.payload.issue?.pull_request) {
+              throw new Error('Formatter commands are available only on pull requests.');
+            }
+            if (!sourceSha) {
+              const expected = new RegExp(`^@${repo}bot ${command}(?: --sha=([0-9a-f]{40}))?$`);
+              const match = process.env.COMMENT_BODY.match(expected);
+              if (!match) {
+                throw new Error(`Use @${repo}bot ${command} with no arguments, or append an optional full SHA.`);
+              }
+              sourceSha = match[1];
+            }
+            if (sourceSha && !shaPattern.test(sourceSha)) {
+              throw new Error('Optional formatter SHA must contain exactly 40 hexadecimal characters.');
+            }
+          }
+
+          if (context.payload.pull_request || context.payload.issue?.pull_request) {
+            const pullNumber = context.payload.pull_request?.number || context.payload.issue.number;
+            const { data: pull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pullNumber
+            });
+            if (pull.state !== 'open' || pull.head.ref !== requestedRef ||
+                pull.head.repo?.full_name !== requestedRepo ||
+                (sourceSha && pull.head.sha.toLowerCase() !== sourceSha.toLowerCase())) {
+              throw new Error('The PR head moved or does not match the formatter target.');
+            }
+            sourceSha = pull.head.sha;
+            sourceRepo = pull.head.repo.full_name;
+          } else {
+            if (requestedRepo !== currentRepo) {
+              throw new Error('Non-PR formatter runs must target this repository.');
+            }
+            if (context.eventName === 'workflow_dispatch') {
+              const { data: repository } = await github.rest.repos.get({ owner, repo });
+              if (!process.env.WORKFLOW_REF.endsWith(`@refs/heads/${repository.default_branch}`)) {
+                throw new Error('Manual formatter runs must use the default-branch workflow.');
+              }
+            }
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner,
+              repo,
+              branch: requestedRef
+            });
+            if (sourceSha && !shaPattern.test(sourceSha)) {
+              throw new Error('Optional formatter SHA must contain exactly 40 hexadecimal characters.');
+            }
+            if (sourceSha && branch.commit.sha.toLowerCase() !== sourceSha.toLowerCase()) {
+              throw new Error('The target branch head does not match the approved source SHA.');
+            }
+            sourceSha = branch.commit.sha;
+          }
+          core.setOutput('source_sha', sourceSha);
+          core.setOutput('source_repo', sourceRepo);

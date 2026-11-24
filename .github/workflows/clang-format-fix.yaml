@@ -13,6 +13,10 @@ run-name: "${{ github.actor }} fixing C++ code format"
           repository's default branch."
         required: false
         type: string
+      source-sha:
+        description: "Exact 40-character source SHA to format"
+        required: true
+        type: string
   workflow_call:
     inputs:
       checkout-path:
@@ -32,6 +36,10 @@ run-name: "${{ github.actor }} fixing C++ code format"
         required: false
         type: boolean
         default: false
+      source-sha:
+        description: "Exact 40-character source SHA to format"
+        required: false
+        type: string
     outputs:
       changes:
         description: "Whether any fixes were applied"
@@ -50,9 +58,8 @@ run-name: "${{ github.actor }} fixing C++ code format"
         value: ${{ jobs.apply_formatting.outputs.patch_name }}
 
 permissions:
-  pull-requests: write
-  contents: write
-  issues: write
+  pull-requests: read
+  contents: read
 
 jobs:
   setup:
@@ -69,6 +76,8 @@ jobs:
       ref: ${{ steps.setup.outputs.ref }}
       repo: ${{ steps.setup.outputs.repo }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
     steps:
       - name: Workflow setup
         id: setup
@@ -79,24 +88,56 @@ jobs:
           repo: ${{ inputs.repo }}
           checkout-path: ${{ inputs.checkout-path }}
 
+      - name: Check out trusted workflow tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: |
+            .github/actions/resolve-fix-snapshot
+            scripts/create_fix_patch.py
+          persist-credentials: false
+
+      - name: Resolve approved source snapshot
+        id: source_snapshot
+        uses: ./workflow-tools/.github/actions/resolve-fix-snapshot
+        with:
+          command: clang-fix
+          ref: ${{ steps.setup.outputs.ref }}
+          repo: ${{ steps.setup.outputs.repo }}
+          source-sha: ${{ inputs.source-sha }}
+
   apply_formatting:
     runs-on: ubuntu-latest
     name: Apply formatting
     needs: setup
     if: ${{ needs.setup.result == 'success' }}
     outputs:
-      changes: ${{ steps.handle_commit.outputs.changes }}
-      pushed: ${{ steps.handle_commit.outputs.pushed }}
-      commit_sha: ${{ steps.handle_commit.outputs.commit_sha }}
-      commit_sha_short: ${{ steps.handle_commit.outputs.commit_sha_short }}
-      patch_name: ${{ steps.handle_commit.outputs.patch_name }}
+      changes: ${{ steps.prepare_patch.outputs.changes }}
+      pushed: ${{ steps.prepare_patch.outputs.pushed }}
+      commit_sha: ${{ steps.prepare_patch.outputs.commit_sha }}
+      commit_sha_short: ${{ steps.prepare_patch.outputs.commit_sha_short }}
+      patch_name: ${{ steps.prepare_patch.outputs.patch_name }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out trusted patch tool
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: scripts/create_fix_patch.py
+          persist-credentials: false
+
+      - name: Move trusted patch tool outside the workspace
+        run: mv "$GITHUB_WORKSPACE/workflow-tools" "$RUNNER_TEMP/workflow-tools"
+
+      - name: Check out immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
-          ref: ${{ needs.setup.outputs.ref }}
-          repository: ${{ needs.setup.outputs.repo }}
-          token: ${{ secrets.WORKFLOW_PAT }}
+          ref: ${{ needs.setup.outputs.source_sha }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           persist-credentials: false
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
@@ -106,19 +147,55 @@ jobs:
           inplace: "True"
           extensions: cpp,hpp,cpp.in,hpp.in
 
-      - name: Handle fix commit
-        id: handle_commit
-        uses: Framework-R-D/action-handle-fix-commit@c01368081dd06cbe5ef47b4a085dc6359a657a7f # v2
+      - name: Prepare patch artifact
+        id: prepare_patch
+        env:
+          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          TARGET_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          TOOL: clang-format
+        run: python3 "$RUNNER_TEMP/workflow-tools/scripts/create_fix_patch.py"
+
+      - name: Upload patch artifact
+        if: steps.prepare_patch.outputs.changes == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.prepare_patch.outputs.artifact_name }}
+          path: ${{ steps.prepare_patch.outputs.artifact_path }}
+          retention-days: 7
+          if-no-files-found: error
+
+  report:
+    name: Report patch artifact
+    needs: [setup, apply_formatting]
+    if: >-
+      github.event_name == 'issue_comment' && !inputs.skip-comment && needs.setup.result == 'success' &&
+      needs.apply_formatting.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Check out trusted report action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: workflow-tools
+          sparse-checkout: .github/actions/report-fix-patch
+          persist-credentials: false
+
+      - name: Report immutable patch result
+        uses: ./workflow-tools/.github/actions/report-fix-patch
         with:
           tool: clang-format
-          working-directory: ${{ needs.setup.outputs.checkout_path }}
-          token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.setup.outputs.ref }}
-          pr-info-repo: ${{ needs.setup.outputs.repo }}
-          skip-comment: ${{ inputs.skip-comment }}
-
-      - name: Update PR comment reactions
-        if: always() && github.event_name == 'issue_comment' && !inputs.skip-comment
-        uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2
-        with:
-          status: ${{ job.status }}
+          source-sha: ${{ needs.setup.outputs.source_sha }}
+          changes: ${{ needs.apply_formatting.outputs.changes }}
+          patch-name: ${{ needs.apply_formatting.outputs.patch_name }}
+          run-id: ${{ github.run_id }}

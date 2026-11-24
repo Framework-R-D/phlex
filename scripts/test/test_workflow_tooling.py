@@ -108,17 +108,28 @@ class WorkflowToolingTest(unittest.TestCase):
                 )
                 if tooling is None:
                     continue
-                relocated = next(
-                    index
-                    for index, step in enumerate(steps)
-                    if step.get("name") == "Move trusted workflow tools outside the workspace"
-                )
                 target = next(
-                    index
-                    for index, step in enumerate(steps)
-                    if step.get("with", {}).get("path")
-                    == "${{ needs.setup.outputs.checkout_path }}"
+                    (
+                        index
+                        for index, step in enumerate(steps)
+                        if step.get("with", {}).get("path")
+                        == "${{ needs.setup.outputs.checkout_path }}"
+                    ),
+                    None,
                 )
+                if target is None:
+                    continue
+                relocated = next(
+                    (
+                        index
+                        for index, step in enumerate(steps)
+                        if step.get("name") == "Move trusted workflow tools outside the workspace"
+                    ),
+                    None,
+                )
+                self.assertIsNotNone(relocated, msg=name)
+                if relocated is None:
+                    continue
                 self.assertLess(tooling, relocated, msg=name)
                 self.assertLess(relocated, target, msg=name)
                 checkout = steps[tooling]["with"]
@@ -144,6 +155,34 @@ class WorkflowToolingTest(unittest.TestCase):
                 install["working-directory"],
                 "${{ runner.temp }}/workflow-tools/.github/format-tools",
             )
+
+    def test_clang_tidy_validator_is_outside_source_checkout(self):
+        """Keep the trusted validator separate from the selected source tree."""
+        workflow = yaml.safe_load((ROOT / ".github/workflows/clang-tidy-fix.yaml").read_text())
+        steps = workflow["jobs"]["apply_tidy_fixes"]["steps"]
+        tooling = next(
+            index
+            for index, step in enumerate(steps)
+            if step.get("with", {}).get("path") == "workflow-tools"
+        )
+        relocated = next(
+            index
+            for index, step in enumerate(steps)
+            if step.get("name") == "Move trusted workflow tools outside the workspace"
+        )
+        source = next(
+            index
+            for index, step in enumerate(steps)
+            if step.get("name") == "Checkout reviewed source snapshot"
+        )
+        validation = next(
+            step for step in steps if step.get("name") == "Validate and apply replacements"
+        )
+        self.assertLess(tooling, relocated)
+        self.assertLess(relocated, source)
+        self.assertIn(
+            "$RUNNER_TEMP/workflow-tools/scripts/validate_clang_tidy_fixes.py", validation["run"]
+        )
 
     def test_relevance_filter_covers_tooling_contract_inputs(self):
         """Run tooling checks when their workflow and version inputs change."""
@@ -201,6 +240,20 @@ class WorkflowToolingTest(unittest.TestCase):
         for name in ("python-check", "python-fix"):
             content = (ROOT / f".github/workflows/{name}.yaml").read_text()
             self.assertIn("$RUNNER_TEMP/workflow-tools/pyproject.toml", content)
+
+    def test_untrusted_formatter_workflows_disable_uv_cache(self):
+        """Prevent source-processing jobs from writing reusable uv caches."""
+        for name in ("python-fix", "cmake-format-fix"):
+            workflow = yaml.safe_load((ROOT / f".github/workflows/{name}.yaml").read_text())
+            uv_steps = [
+                step
+                for job in workflow["jobs"].values()
+                for step in job.get("steps", [])
+                if step.get("uses", "").startswith("astral-sh/setup-uv@")
+            ]
+            with self.subTest(workflow=name):
+                self.assertEqual(len(uv_steps), 1)
+                self.assertIs(uv_steps[0].get("with", {}).get("enable-cache"), False)
 
     def test_updater_owns_consumed_lock(self):
         """Verify that exact direct dependencies agree with the maintained lock."""

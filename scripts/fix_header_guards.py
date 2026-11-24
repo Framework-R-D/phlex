@@ -132,6 +132,20 @@ def fix_header_guard(file_path: Path, root: Path) -> bool:
     return modified
 
 
+def _is_safe_header_path(file_path: Path, root: Path) -> bool:
+    """Require every path component to remain a regular path under the source root."""
+    try:
+        relative_path = file_path.relative_to(root)
+    except ValueError:
+        return False
+    current = root
+    for part in relative_path.parts:
+        current /= part
+        if current.is_symlink():
+            return False
+    return current.is_file()
+
+
 def main() -> None:
     """Check or fix header guards in C++ header files."""
     parser = argparse.ArgumentParser(description="Check/fix header guards")
@@ -144,10 +158,15 @@ def main() -> None:
     bad_files = []
 
     for arg in args.paths:
-        path = Path(arg).resolve()
+        path = Path(arg)
+        if path.is_symlink():
+            continue
+        path = path.resolve()
+        if not path.is_relative_to(root):
+            continue
         files = [path] if path.is_file() else [*path.rglob("*.hpp"), *path.rglob("*.h")]
         for f in files:
-            if f.suffix not in {".hpp", ".h"}:
+            if f.suffix not in {".hpp", ".h"} or not _is_safe_header_path(f, root):
                 continue
             if args.check:
                 valid, expected = check_header_guard(f, root)

@@ -302,22 +302,20 @@ association). The bot name is `phlexbot` (derived from the repo name).
 
 | Comment | Effect |
 | ------- | ------ |
-| `@phlexbot format` | Run **all** format fixers in parallel and push a single combined commit |
-| `@phlexbot clang-fix` | clang-format only |
-| `@phlexbot cmake-fix` | gersemi (CMake) only |
-| `@phlexbot python-fix` | ruff (Python) only |
-| `@phlexbot markdown-fix` | markdownlint only |
-| `@phlexbot jsonnet-fix` | jsonnetfmt only |
-| `@phlexbot yaml-fix` | prettier (YAML) only |
-| `@phlexbot header-guards-fix` | Header guard fixer only |
-| `@phlexbot tidy-fix [check1,check2,...]` | Apply clang-tidy fixes (optionally scoped to named checks) |
-| `@phlexbot tidy-check` | Run clang-tidy check (read-only, posts results) |
-| `@phlexbot build` | Trigger cmake-build workflow |
-| `@phlexbot coverage` | Trigger coverage workflow |
+| `@phlexbot format` | Run all formatters in parallel and publish patch artifacts |
+| `@phlexbot clang-fix` | clang-format patch only |
+| `@phlexbot cmake-fix` | gersemi (CMake) patch only |
+| `@phlexbot python-fix` | ruff (Python) patch only |
+| `@phlexbot markdown-fix` | markdownlint patch only |
+| `@phlexbot jsonnet-fix` | jsonnetfmt patch only |
+| `@phlexbot yaml-fix` | prettier (YAML) patch only |
+| `@phlexbot header-guards-fix` | Header guard patch only |
+| `@phlexbot tidy-fix [check1,check2,...]` | Generate clang-tidy fixes (optionally scoped to named checks) |
+| `@phlexbot tidy-check` | Run clang-tidy check against the PR head snapshot |
+| `@phlexbot build [combinations]` | Trigger CMake build for the PR head snapshot |
+| `@phlexbot coverage` | Trigger coverage for the PR head snapshot |
 
-Fix workflows push commits directly to the PR branch and require
-`WORKFLOW_PAT` to be set as a repository secret on the fork. Check workflows
-are read-only and post results as PR comments.
+Authorized PR-comment commands resolve the current PR head once at workflow start, then check out and record that immutable SHA. Formatter workflows publish patch artifacts only and never push; review and apply each patch only if the PR still points to its recorded SHA. Build, coverage, and clang-tidy commands that execute untrusted project code also use the pinned snapshot and skip or reject stale results. Manual dispatches continue to require an explicit full SHA.
 
 ## Local GitHub Actions Testing
 

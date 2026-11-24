@@ -397,6 +397,29 @@ class TestFixHeaderGuard:
 class TestMain:
     """Integration tests for M.main() (check and fix modes)."""
 
+    def test_fix_mode_does_not_follow_symlinked_headers(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Header fixing ignores files and directories that resolve through symlinks."""
+        root = tmp_path / "repo"
+        headers = root / "phlex"
+        headers.mkdir(parents=True)
+        external_file = tmp_path / "outside.hpp"
+        external_content = _wrong_guard_content("EXTERNAL_HEADER")
+        external_file.write_text(external_content, encoding="utf-8")
+        (headers / "escape.hpp").symlink_to(external_file)
+        external_dir = tmp_path / "outside"
+        external_dir.mkdir()
+        (external_dir / "nested.hpp").write_text(external_content, encoding="utf-8")
+        (headers / "linked").symlink_to(external_dir, target_is_directory=True)
+
+        with patch("sys.argv", ["prog", "--root", str(root), str(headers)]):
+            M.main()
+
+        assert external_file.read_text(encoding="utf-8") == external_content
+        assert (external_dir / "nested.hpp").read_text(encoding="utf-8") == external_content
+        assert "No header guards needed fixing" in capsys.readouterr().out
+
     @pytest.mark.parametrize("filename", ["LinkDef.h", "My_LinkDef.h", "Linkdef.h", "linkdef.h"])
     @pytest.mark.parametrize("direct_file", [False, True])
     def test_linkdef_is_exempt(self, tmp_path: Path, filename: str, direct_file: bool) -> None:

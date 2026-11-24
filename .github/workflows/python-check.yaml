@@ -12,8 +12,12 @@ permissions:
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "Branch whose current head must match source-sha. Defaults to the repository's default branch."
         required: false
+        type: string
+      source-sha:
+        description: "Exact 40-character commit SHA to analyze; required for workflow_dispatch."
+        required: true
         type: string
   workflow_call:
     inputs:
@@ -42,6 +46,10 @@ permissions:
         description: "The repository to checkout from"
         required: false
         type: string
+      source-sha:
+        description: "Immutable source commit SHA for the workflow run"
+        required: false
+        type: string
 
 jobs:
   setup:
@@ -53,7 +61,9 @@ jobs:
       base_sha: ${{ steps.setup.outputs.base_sha }}
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
-      has_changes: ${{ steps.setup.outputs.has_changes }}
+      has_changes: ${{ steps.source_relevance.outputs.has_changes }}
+      source_sha: ${{ steps.source_snapshot.outputs.source_sha }}
+      source_repo: ${{ steps.source_snapshot.outputs.source_repo }}
     steps:
       - name: Workflow setup
         id: setup
@@ -74,11 +84,136 @@ jobs:
           repo: ${{ inputs.repo }}
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
+      - name: Resolve immutable source snapshot
+        id: source_snapshot
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          REQUESTED_SHA: ${{ inputs.source-sha }}
+          CALL_SOURCE_SHA: ${{ inputs.pr-head-sha }}
+          TARGET_REF: ${{ steps.setup.outputs.ref }}
+          TARGET_REPO: ${{ steps.setup.outputs.repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const shaPattern = /^[0-9a-f]{40}$/i;
+            let sourceSha;
+            let sourceRepo;
+
+            if (context.eventName === 'pull_request') {
+              const head = context.payload.pull_request.head;
+              if (!head.repo) throw new Error('The PR source repository is unavailable.');
+              sourceSha = head.sha;
+              sourceRepo = head.repo.full_name;
+            } else if (context.eventName === 'push') {
+              sourceSha = context.sha;
+              sourceRepo = `${owner}/${repo}`;
+            } else if (context.eventName === 'workflow_dispatch') {
+              const targetRef = process.env.TARGET_REF.replace(/^refs\/heads\//, '');
+              const selectedRef = context.ref.replace(/^refs\/heads\//, '');
+              if (!shaPattern.test(process.env.REQUESTED_SHA) ||
+                  process.env.TARGET_REPO !== `${owner}/${repo}` ||
+                  !context.ref.startsWith('refs/heads/') || targetRef !== selectedRef ||
+                  process.env.WORKFLOW_REF.split('@').pop() !== context.ref ||
+                  process.env.REQUESTED_SHA.toLowerCase() !== context.sha.toLowerCase()) {
+                throw new Error('Manual runs require this branch, repository, workflow ref, and full source SHA.');
+              }
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: targetRef });
+              if (branch.commit.sha.toLowerCase() !== process.env.REQUESTED_SHA.toLowerCase()) {
+                throw new Error('The selected branch head does not match source-sha.');
+              }
+              sourceSha = branch.commit.sha;
+              sourceRepo = `${owner}/${repo}`;
+            } else {
+              sourceRepo = process.env.TARGET_REPO || `${owner}/${repo}`;
+              const requestedSha = process.env.CALL_SOURCE_SHA || process.env.REQUESTED_SHA;
+              if (requestedSha) {
+                if (!shaPattern.test(requestedSha)) throw new Error('The reusable workflow source SHA is invalid.');
+                sourceSha = requestedSha;
+              } else {
+                const [targetOwner, targetRepo] = sourceRepo.split('/');
+                const { data: branch } = await github.rest.repos.getBranch({
+                  owner: targetOwner,
+                  repo: targetRepo,
+                  branch: process.env.TARGET_REF
+                });
+                sourceSha = branch.commit.sha;
+              }
+            }
+
+            core.setOutput('source_sha', sourceSha);
+            core.setOutput('source_repo', sourceRepo);
+      - name: Detect relevant changes in immutable source snapshot
+        id: source_relevance
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ steps.source_snapshot.outputs.source_sha }}
+          SOURCE_REPO: ${{ steps.source_snapshot.outputs.source_repo }}
+          PR_NUMBER: >-
+            ${{ steps.setup.outputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
+        with:
+          script: |
+            const includesPath = path => [
+              'scripts/', 'ci/', '.devcontainer/', '.github/format-tools/'
+            ].some(prefix => path.startsWith(prefix)) || path === 'pyproject.toml';
+            let relevant = true;
+            const changedPaths = [];
+            if (context.eventName === 'pull_request' || context.eventName === 'issue_comment') {
+              try {
+                const pullNumber = Number(process.env.PR_NUMBER);
+                const { data: before } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pullNumber
+                });
+                if (before.head.sha === process.env.SOURCE_SHA &&
+                    before.head.repo?.full_name === process.env.SOURCE_REPO) {
+                  for (let page = 1; ; page++) {
+                    const { data: files } = await github.rest.pulls.listFiles({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pullNumber,
+                      per_page: 100,
+                      page
+                    });
+                    changedPaths.push(...files.map(file => file.filename));
+                    if (files.length < 100 || page === 30) break;
+                  }
+                  const { data: after } = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pullNumber
+                  });
+                  relevant = after.head.sha !== process.env.SOURCE_SHA ||
+                    after.head.repo?.full_name !== process.env.SOURCE_REPO ||
+                    changedPaths.length >= 3000 || changedPaths.some(includesPath);
+                }
+              } catch (error) {
+                core.warning(`Could not verify PR relevance; running checks conservatively: ${error.message}`);
+                relevant = true;
+              }
+            } else if (context.eventName === 'push' && context.payload.before &&
+                       !/^0+$/.test(context.payload.before)) {
+              try {
+                const { data: comparison } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: context.payload.before,
+                  head: process.env.SOURCE_SHA
+                });
+                relevant = comparison.files?.length >= 300 ||
+                  (comparison.files || []).some(file => includesPath(file.filename));
+              } catch (error) {
+                core.warning(`Could not verify push relevance; running checks conservatively: ${error.message}`);
+                relevant = true;
+              }
+            }
+            core.setOutput('has_changes', String(relevant));
 
   python-check:
     needs: setup
     if: >
-      always() && (
+      always() && needs.setup.result == 'success' && (
         github.event_name == 'workflow_dispatch' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
@@ -105,12 +240,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          ref: ${{ needs.setup.outputs.source_sha }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
-            needs.setup.outputs.repo }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           persist-credentials: false
 
       - name: Install uv
@@ -153,7 +285,7 @@ jobs:
           if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
             echo "✅ Python checks passed."
           else
-            echo "::error::Python checks failed. Comment '@${REPO_NAME}bot python-fix' on the PR to attempt auto-fix."
+            echo "::error::Python checks failed. Comment '@${REPO_NAME}bot python-fix' on the PR to request a fix."
             exit 1
           fi
         # yamllint enable
@@ -161,7 +293,7 @@ jobs:
   scripts-test:
     needs: setup
     if: >
-      always() && (
+      always() && needs.setup.result == 'success' && (
         github.event_name == 'workflow_dispatch' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
@@ -178,11 +310,9 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    name: Scripts tests (${{ matrix.arch }})
     permissions:
       contents: read
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
     steps:
       - name: Check out trusted Python tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -199,12 +329,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          ref: ${{ needs.setup.outputs.source_sha }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository:
-            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
-            needs.setup.outputs.repo }}
+          repository: ${{ needs.setup.outputs.source_repo }}
           persist-credentials: false
 
       - name: Install uv
@@ -227,14 +354,300 @@ jobs:
             --cov-report="xml:${GITHUB_WORKSPACE}/coverage-scripts.xml" \
             --cov-report=term-missing
 
-      - name: Upload scripts coverage to Codecov
+      - name: Prepare scripts coverage artifact
+        id: prepare_coverage
         if: ${{ hashFiles('coverage-scripts.xml') != '' }}
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          if [ -L coverage-scripts.xml ] || [ ! -f coverage-scripts.xml ]; then
+            echo "::error::Scripts coverage output must be a regular file."
+            exit 1
+          fi
+          ARTIFACT_DIR=$(mktemp -d "$RUNNER_TEMP/coverage-scripts.XXXXXXXX")
+          cp -- coverage-scripts.xml "$ARTIFACT_DIR/"
+          python3 - "$ARTIFACT_DIR/provenance.json" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          metadata = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+              "run_attempt": os.environ["RUN_ATTEMPT"],
+              "arch": os.environ["ARCH"],
+          }
+          Path(sys.argv[1]).write_text(json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+          echo "artifact_dir=$ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Upload scripts coverage artifact
+        if: steps.prepare_coverage.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-scripts-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: ${{ steps.prepare_coverage.outputs.artifact_dir }}
+          retention-days: 7
+          if-no-files-found: error
+
+  scripts-coverage-upload:
+    needs: [setup, scripts-test]
+    if: >-
+      always() && needs.setup.result == 'success' && needs.scripts-test.result != 'skipped' && needs.scripts-test.result
+      != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted Codecov CLI version
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.base.sha || github.workflow_sha }}
+          path: codecov-tools
+          sparse-checkout: .github/codecov/requirements.txt
+          persist-credentials: false
+
+      - name: Move trusted Codecov tools outside the workspace
+        run: mv "$GITHUB_WORKSPACE/codecov-tools" "$RUNNER_TEMP/codecov-tools"
+
+      - name: Check out exact source snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.setup.outputs.source_repo }}
+          ref: ${{ needs.setup.outputs.source_sha }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          persist-credentials: false
+
+      - name: Resolve pinned Codecov CLI version
+        id: codecov_cli
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import os
+          import re
+          from pathlib import Path
+
+          requirements = Path(os.environ["RUNNER_TEMP"]) / "codecov-tools/.github/codecov/requirements.txt"
+          version = "v11.3.2"
+          if requirements.is_file():
+              pins = [line.strip() for line in requirements.read_text(encoding="utf-8").splitlines()
+                      if line.strip() and not line.lstrip().startswith("#")]
+              match = (
+                  re.fullmatch(r"codecov-cli==([0-9]+\.[0-9]+\.[0-9]+)", pins[0])
+                  if len(pins) == 1 else None
+              )
+              if match is None:
+                  raise SystemExit("Expected one exact codecov-cli version pin")
+              version = f"v{match.group(1)}"
+          print(f"version={version}")
+          PY
+
+      - name: Create trusted empty Codecov configuration
+        run: printf '{}\n' > "$RUNNER_TEMP/codecov-upload.yml"
+
+      - name: Find successful scripts test producer attempts
+        id: producer_attempts
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            for (const arch of ['amd64', 'arm64']) {
+              let successfulAttempt = '';
+              // Reruns retain artifacts from successful matrix legs in earlier attempts.
+              for (let attempt = context.runAttempt; attempt >= 1; attempt--) {
+                const { data } = await github.rest.actions.listJobsForWorkflowRunAttempt({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: context.runId,
+                  attempt_number: attempt,
+                  per_page: 100
+                });
+                const producer = data.jobs.find(job => job.name === `Scripts tests (${arch})`);
+                if (producer?.status === 'completed' && producer.conclusion === 'success') {
+                  successfulAttempt = String(attempt);
+                  break;
+                }
+              }
+              core.setOutput(`${arch}_attempt`, successfulAttempt);
+            }
+
+      - name: Create fresh scripts coverage staging directory
+        id: artifact_staging
+        run: |
+          staging_root=$(mktemp -d "$RUNNER_TEMP/coverage-scripts.XXXXXXXX")
+          echo "root=$staging_root" >> "$GITHUB_OUTPUT"
+
+      - name: Download amd64 scripts coverage
+        id: download_amd64
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-scripts-amd64-${{ steps.producer_attempts.outputs.amd64_attempt || 'missing-producer' }}
+          path: ${{ steps.artifact_staging.outputs.root }}/amd64
+
+      - name: Download arm64 scripts coverage
+        id: download_arm64
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-scripts-arm64-${{ steps.producer_attempts.outputs.arm64_attempt || 'missing-producer' }}
+          path: ${{ steps.artifact_staging.outputs.root }}/arm64
+
+      - name: Validate scripts coverage artifacts
+        id: coverage_artifacts
+        if: always()
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          RUN_ID: ${{ github.run_id }}
+          AMD64_PRODUCER_ATTEMPT: ${{ steps.producer_attempts.outputs.amd64_attempt }}
+          ARM64_PRODUCER_ATTEMPT: ${{ steps.producer_attempts.outputs.arm64_attempt }}
+          AMD64_DOWNLOAD_OUTCOME: ${{ steps.download_amd64.outcome }}
+          ARM64_DOWNLOAD_OUTCOME: ${{ steps.download_arm64.outcome }}
+          ARTIFACT_ROOT: ${{ steps.artifact_staging.outputs.root }}
+          TEST_RESULT: ${{ needs.scripts-test.result }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          expected_base = {
+              "source_sha": os.environ["SOURCE_SHA"],
+              "source_repo": os.environ["SOURCE_REPO"],
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": os.environ["RUN_ID"],
+          }
+          outputs = []
+          for arch in ("amd64", "arm64"):
+              report_dir = Path(os.environ["ARTIFACT_ROOT"]) / arch
+              manifest = report_dir / "provenance.json"
+              report = report_dir / "coverage-scripts.xml"
+              download_succeeded = os.environ[f"{arch.upper()}_DOWNLOAD_OUTCOME"] == "success"
+              producer_attempt = os.environ[f"{arch.upper()}_PRODUCER_ATTEMPT"]
+              exists = download_succeeded and (report_dir.exists() or report_dir.is_symlink())
+              if not exists or not producer_attempt:
+                  outputs.append(f"{arch}_found=false")
+                  if os.environ["TEST_RESULT"] == "success":
+                      raise SystemExit(f"Successful scripts test job has no {arch} coverage artifact")
+                  continue
+              if report_dir.is_symlink() or manifest.is_symlink() or report.is_symlink():
+                  raise SystemExit(f"Scripts coverage artifact contains a symlink: {arch}")
+              if not manifest.is_file() or not report.is_file() or report.stat().st_size > 536870912:
+                  raise SystemExit(f"Invalid scripts coverage files for {arch}")
+              if {entry.name for entry in report_dir.iterdir()} != {"provenance.json", "coverage-scripts.xml"}:
+                  raise SystemExit(f"Unexpected files in scripts coverage artifact for {arch}")
+              metadata = json.loads(manifest.read_text(encoding="utf-8"))
+              if metadata != {**expected_base, "arch": arch, "run_attempt": producer_attempt}:
+                  raise SystemExit(f"Scripts coverage provenance mismatch for {arch}")
+              outputs.extend((f"{arch}_found=true", f"{arch}_file={report}"))
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write("\n".join(outputs) + "\n")
+          PY
+
+      - name: Verify the source branch is still current
+        id: current_source
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.setup.outputs.source_sha }}
+          SOURCE_REPO: ${{ needs.setup.outputs.source_repo }}
+          TARGET_REF: ${{ needs.setup.outputs.ref }}
+          PR_NUMBER: ${{ needs.setup.outputs.pr_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            let isCurrent = true;
+            if (context.eventName === 'pull_request') {
+              const pull = context.payload.pull_request;
+              const { data } = await github.rest.pulls.get({ owner, repo, pull_number: pull.number });
+              isCurrent = data.head.sha === process.env.SOURCE_SHA &&
+                data.head.ref === pull.head.ref &&
+                data.head.repo?.full_name === process.env.SOURCE_REPO;
+            } else if (context.eventName === 'workflow_dispatch') {
+              const branchName = process.env.TARGET_REF.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({
+                owner,
+                repo,
+                branch: branchName
+              });
+              isCurrent = process.env.SOURCE_REPO === `${owner}/${repo}` &&
+                context.ref === `refs/heads/${branchName}` &&
+                context.sha === process.env.SOURCE_SHA && branch.commit.sha === process.env.SOURCE_SHA;
+            } else if ((context.eventName === 'issue_comment' || context.eventName === 'workflow_call') &&
+                       process.env.PR_NUMBER) {
+              const { data } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: Number(process.env.PR_NUMBER)
+              });
+              isCurrent = data.head.sha === process.env.SOURCE_SHA &&
+                data.head.ref === process.env.TARGET_REF &&
+                data.head.repo?.full_name === process.env.SOURCE_REPO;
+            } else if (context.eventName === 'push' && context.ref.startsWith('refs/heads/')) {
+              const branchName = context.ref.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: branchName });
+              isCurrent = branch.commit.sha === process.env.SOURCE_SHA && context.sha === process.env.SOURCE_SHA;
+            } else if (context.eventName === 'workflow_call') {
+              const [sourceOwner, sourceRepo] = process.env.SOURCE_REPO.split('/');
+              const branchName = process.env.TARGET_REF.replace(/^refs\/heads\//, '');
+              const { data: branch } = await github.rest.repos.getBranch({
+                owner: sourceOwner,
+                repo: sourceRepo,
+                branch: branchName
+              });
+              isCurrent = branch.commit.sha === process.env.SOURCE_SHA;
+            }
+            core.setOutput('is_current', String(isCurrent));
+            if (!isCurrent) console.log('Skipping coverage upload for a moved source branch.');
+
+      - name: Upload amd64 scripts coverage to Codecov
+        if: >-
+          always() && steps.codecov_cli.outcome == 'success' && steps.coverage_artifacts.outputs.amd64_found == 'true'
+          && steps.current_source.outputs.is_current == 'true'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          files: coverage-scripts.xml
-          flags: ${{ matrix.arch }}
-          name: phlex-scripts-coverage-${{ matrix.arch }}
+          version: ${{ steps.codecov_cli.outputs.version }}
+          files: ${{ steps.coverage_artifacts.outputs.amd64_file }}
+          flags: amd64
+          name: phlex-scripts-coverage-amd64
           fail_ci_if_error: false
           verbose: true
-          root_dir: ${{ needs.setup.outputs.checkout_path || '.' }}
-          token: ${{ env.CODECOV_TOKEN }}
+          root_dir: ${{ needs.setup.outputs.checkout_path }}
+          cleanup: true
+          disable_search: true
+          plugins: noop
+          codecov_yml_path: ${{ runner.temp }}/codecov-upload.yml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload arm64 scripts coverage to Codecov
+        if: >-
+          always() && steps.codecov_cli.outcome == 'success' && steps.coverage_artifacts.outputs.arm64_found == 'true'
+          && steps.current_source.outputs.is_current == 'true'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          version: ${{ steps.codecov_cli.outputs.version }}
+          files: ${{ steps.coverage_artifacts.outputs.arm64_file }}
+          flags: arm64
+          name: phlex-scripts-coverage-arm64
+          fail_ci_if_error: false
+          verbose: true
+          root_dir: ${{ needs.setup.outputs.checkout_path }}
+          cleanup: true
+          disable_search: true
+          plugins: noop
+          codecov_yml_path: ${{ runner.temp }}/codecov-upload.yml
+          token: ${{ secrets.CODECOV_TOKEN }}
