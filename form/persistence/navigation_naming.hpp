@@ -66,15 +66,15 @@ namespace form::detail::experimental {
     return name;
   }
 
-  /// Columns of a product dictionary, in the order they are written. Shared by the writer and the
-  /// reader, so the two cannot disagree about the schema.
-  inline constexpr std::array<std::string_view, 7> product_dictionary_columns{"product_name",
-                                                                             "creator",
-                                                                             "stage",
-                                                                             "container_name",
-                                                                             "hierarchy_key",
-                                                                             "navigation_container",
-                                                                             "navigation_column"};
+  /// Product-dictionary columns in write order, shared by the writer and reader.
+  inline constexpr std::array<std::string_view, 7> product_dictionary_columns{
+    "product_name",
+    "creator",
+    "stage",
+    "container_name",
+    "hierarchy_key",
+    "navigation_container",
+    "navigation_column"};
 
   /// Return the product-dictionary name for a technology.
   inline std::string navigation_dictionary_name(form::technology::id tech)

@@ -626,16 +626,17 @@ TEST_CASE("storage_file: a repeated descriptor key is rejected", "[form]")
 
 namespace {
   // A one-row-per-product dictionary, as the writer would record it for `tech`.
-  product_dictionary dictionary_of(std::vector<product_key> const& keys, form::technology::id tech)
+  product_dictionary dictionary_of(std::vector<product_identity> const& keys,
+                                   form::technology::id tech)
   {
     cell_hierarchy const hierarchy{{"event"}};
     product_dictionary dictionary;
     for (auto const& key : keys) {
-      dictionary.product_name.push_back(key.product_name);
+      dictionary.product_name.push_back(key.label);
       dictionary.creator.push_back(key.creator);
       dictionary.stage.push_back(key.stage);
       dictionary.container_name.push_back(
-        build_full_label(build_row_space_name(tech, key.creator, key.stage), key.product_name));
+        build_full_label(build_row_space_name(tech, key.creator, key.stage), key.label));
       dictionary.hierarchy_key.push_back(hierarchy_key(hierarchy));
       dictionary.navigation_container.push_back(navigation_table_name(hierarchy, tech));
       dictionary.navigation_column.push_back(navigation_row_column(key.creator, key.stage));
@@ -669,9 +670,9 @@ TEST_CASE("navigation catalog: products are located through their dictionaries",
   using form::technology::root_rntuple;
   using form::technology::root_ttree;
 
-  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = "stage1"};
-  product_key const later_hits{.product_name = "hits", .creator = "tracker", .stage = "stage2"};
-  product_key const showers{.product_name = "showers", .creator = "shower", .stage = "stage1"};
+  product_identity const hits{.creator = "tracker", .stage = "stage1", .label = "hits"};
+  product_identity const later_hits{.creator = "tracker", .stage = "stage2", .label = "hits"};
+  product_identity const showers{.creator = "shower", .stage = "stage1", .label = "showers"};
 
   navigation_catalog catalog{"catalog.root"};
   catalog.add(root_ttree, dictionary_of({hits, showers}, root_ttree));
@@ -694,7 +695,7 @@ TEST_CASE("navigation catalog: products are located through their dictionaries",
   CHECK(catalog.select(later_hits).technology == root_rntuple);
 
   // A product the file does not hold is reported by name.
-  product_key const missing{.product_name = "tracks", .creator = "tracker", .stage = "stage1"};
+  product_identity const missing{.creator = "tracker", .stage = "stage1", .label = "tracks"};
   CHECK(catalog.locations(missing).empty());
   CHECK_THROWS_WITH(catalog.select(missing),
                     Catch::Matchers::ContainsSubstring("holds no product 'tracks'"));
@@ -704,7 +705,7 @@ TEST_CASE("navigation catalog: a malformed dictionary is refused", "[form]")
 {
   using Catch::Matchers::ContainsSubstring;
   using form::technology::root_ttree;
-  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = "stage1"};
+  product_identity const hits{.creator = "tracker", .stage = "stage1", .label = "hits"};
   navigation_catalog catalog{"malformed.root"};
 
   SECTION("columns of different lengths")

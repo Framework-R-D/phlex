@@ -437,8 +437,7 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
   )
 endif()
 
-# persistence is linked directly, as form_storage does: classes nothing in libphlex_form calls yet
-# are not pulled into it from the static archive.
+# Link persistence directly for now; form does not yet pull in the navigation catalog.
 set(form_basics_test_libraries form persistence)
 if(FORM_USE_ROOT_STORAGE)
   list(APPEND form_basics_test_libraries root_storage)

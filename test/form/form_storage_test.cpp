@@ -1477,27 +1477,6 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
   }
 }
 
-namespace {
-  // Reads one technology's product dictionary from a written file, through FORM's storage layer.
-  product_dictionary read_product_dictionary(std::string const& file_name,
-                                             form::technology::id tech)
-  {
-    form::test::column_reader reader{file_name, tech};
-    std::array<std::vector<std::string>, product_dictionary_columns.size()> columns;
-    for (std::size_t column = 0; column != columns.size(); ++column) {
-      columns.at(column) = reader.column<std::string>(
-        build_full_label(navigation_dictionary_name(tech), product_dictionary_columns.at(column)));
-    }
-    return product_dictionary{.product_name = columns[0],
-                              .creator = columns[1],
-                              .stage = columns[2],
-                              .container_name = columns[3],
-                              .hierarchy_key = columns[4],
-                              .navigation_container = columns[5],
-                              .navigation_column = columns[6]};
-  }
-}
-
 TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[form]")
 {
   using namespace form::experimental::config;
@@ -1528,6 +1507,7 @@ TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[f
     writer->configure_tech_settings(tech_setting_config{});
     for (auto const& [creator, stage, labels, cells] : streams) {
       std::vector<std::pair<placement, std::type_info const*>> containers;
+      containers.reserve(labels.size());
       for (auto const& label : labels) {
         containers.emplace_back(make_placement(file_name, creator, label, technology, stage), type);
       }
@@ -1551,14 +1531,15 @@ TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[f
     writer->finalize();
   }
 
-  navigation_catalog catalog{file_name};
-  catalog.add(technology, read_product_dictionary(file_name, technology));
+  storage_reader storage;
+  form::experimental::config::tech_setting_config const settings{};
+  auto const catalog = load_navigation_catalog(storage, file_name, {technology}, settings);
 
   // Every product the writer recorded is found, at the names the writer built for it.
   for (auto const& [creator, stage, labels, cells] : streams) {
     auto const& hierarchy = cells.front().hierarchy;
     for (auto const& label : labels) {
-      product_key const key{.product_name = label, .creator = creator, .stage = stage};
+      product_identity const key{.creator = creator, .stage = stage, .label = label};
       CAPTURE(label, creator, stage);
       REQUIRE(catalog.locations(key).size() == 1);
       auto const& location = catalog.select(key);
@@ -1572,7 +1553,13 @@ TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[f
   }
 
   // tracks was written only at stage1.
-  CHECK_THROWS(catalog.select({.product_name = "tracks", .creator = "tracker", .stage = "stage2"}));
+  CHECK_THROWS(catalog.select({.creator = "tracker", .stage = "stage2", .label = "tracks"}));
+
+  // A technology without a dictionary in the file is reported by name, not silently skipped.
+  auto const other = technology == form::technology::root_ttree ? form::technology::root_rntuple
+                                                                : form::technology::root_ttree;
+  CHECK_THROWS_WITH(load_navigation_catalog(storage, file_name, {technology, other}, settings),
+                    Catch::Matchers::ContainsSubstring(navigation_dictionary_name(other)));
 }
 
 #ifdef USE_RNTUPLE_STORAGE
@@ -1601,19 +1588,24 @@ TEST_CASE("Navigation catalog: a product held by TTree and RNTuple is read from 
     writer->finalize();
   }
 
-  navigation_catalog catalog{file_name};
-  for (auto const tech : {root_ttree, root_rntuple}) {
-    catalog.add(tech, read_product_dictionary(file_name, tech));
-  }
+  // The production path: the descriptor names the technologies, their dictionaries the products.
+  storage_reader storage;
+  auto const entries = storage.read_descriptor(file_name, form::technology::major::root)
+                         .value_or(descriptor_entries{});
+  auto const technologies = parse_technologies(
+    descriptor_entry(entries, descriptor_technologies_key).value_or(""), file_name);
+  CHECK(technologies.size() == 2);
+  auto const catalog = load_navigation_catalog(
+    storage, file_name, technologies, form::experimental::config::tech_setting_config{});
 
   // hits is in both technologies: both are kept, and RNTuple is the one to read.
-  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = test_stage};
+  product_identity const hits{.creator = "tracker", .stage = test_stage, .label = "hits"};
   CHECK(catalog.locations(hits).size() == 2);
   CHECK(catalog.select(hits).technology == root_rntuple);
   CHECK(catalog.select(hits).container_name == rntuple_hits.container_name());
 
   // tracks is only in TTree, so TTree is read whatever the preference.
-  product_key const tracks{.product_name = "tracks", .creator = "tracker", .stage = test_stage};
+  product_identity const tracks{.creator = "tracker", .stage = test_stage, .label = "tracks"};
   CHECK(catalog.select(tracks).technology == root_ttree);
   CHECK(catalog.select(tracks).container_name == ttree_tracks.container_name());
 }

@@ -3,9 +3,9 @@
 #ifndef FORM_PERSISTENCE_NAVIGATION_CATALOG_HPP
 #define FORM_PERSISTENCE_NAVIGATION_CATALOG_HPP
 
+#include "core/product_identity.hpp"
 #include "core/technology.hpp"
 
-#include <compare>
 #include <map>
 #include <optional>
 #include <set>
@@ -20,16 +20,13 @@
  * can locate a product by what identifies it rather than by job configuration, and can choose a
  * technology when more than one holds the same product.
  */
+namespace form::experimental::config {
+  struct tech_setting_config;
+}
+
 namespace form::detail::experimental {
 
-  /// Identifies a product the way its producer wrote it.
-  struct product_key {
-    std::string product_name;
-    std::string creator;
-    std::string stage;
-
-    auto operator<=>(product_key const&) const = default;
-  };
+  class i_storage_reader;
 
   /// Where one technology in a file holds a product.
   struct product_location {
@@ -58,7 +55,8 @@ namespace form::detail::experimental {
   std::optional<form::technology::id> choose_read_technology(
     std::span<form::technology::id const> holders);
 
-  /// Every product a file's dictionaries record, and where each technology holds it.
+  /// Catalog of products recorded in a file's dictionaries, keyed by the writer's product_identity.
+  /// Complete construction with add() before querying; locations() and select() return references.
   class navigation_catalog {
   public:
     explicit navigation_catalog(std::string file_name);
@@ -67,18 +65,32 @@ namespace form::detail::experimental {
     /// product twice, or if a dictionary for that technology was already added.
     void add(form::technology::id technology, product_dictionary const& dictionary);
 
-    /// Every location holding the product, at most one per technology; empty if the file has
-    /// none.
-    std::vector<product_location> const& locations(product_key const& key) const;
+    /// Every location holding the product, at most one per technology; empty if the file has none.
+    std::vector<product_location> const& locations(product_identity const& key) const;
 
     /// The location to read the product from. Throws if the file holds no such product.
-    product_location const& select(product_key const& key) const;
+    product_location const& select(product_identity const& key) const;
 
   private:
     std::string file_name_;
     std::set<form::technology::id> technologies_;
-    std::map<product_key, std::vector<product_location>> locations_;
+    std::map<product_identity, std::vector<product_location>> locations_;
   };
+
+  /// Reads one technology's product dictionary from a file. Throws, naming the technology, if the
+  /// dictionary cannot be read.
+  product_dictionary read_product_dictionary(
+    i_storage_reader& storage,
+    std::string const& file_name,
+    form::technology::id technology,
+    form::experimental::config::tech_setting_config const& settings);
+
+  /// Builds a file's catalog from the dictionaries of the technologies its descriptor lists.
+  navigation_catalog load_navigation_catalog(
+    i_storage_reader& storage,
+    std::string const& file_name,
+    std::vector<form::technology::id> const& technologies,
+    form::experimental::config::tech_setting_config const& settings);
 
 } // namespace form::detail::experimental
 
