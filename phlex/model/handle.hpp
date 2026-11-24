@@ -97,6 +97,9 @@ namespace phlex {
     }
     std::string_view suffix() const noexcept { return spec_->suffix().text(); }
     std::string_view layer() const noexcept { return std::string_view(index_->layer_name()); }
+    /// @brief Name of the processing stage that created the product.
+    ///
+    /// This is the job's configured stage for products created by transforms, folds, and unfolds.
     std::string_view stage() const noexcept { return std::string_view(*stage_); }
     std::string layer_path() const { return index_->layer_path().to_string(); }
 
