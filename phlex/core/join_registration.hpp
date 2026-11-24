@@ -1,0 +1,40 @@
+#ifndef PHLEX_CORE_JOIN_REGISTRATION_HPP
+#define PHLEX_CORE_JOIN_REGISTRATION_HPP
+
+#include "phlex/core/message.hpp"
+#include "phlex/model/identifier.hpp"
+
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
+
+#include <cstddef>
+#include <functional>
+#include <optional>
+#include <unordered_set>
+#include <vector>
+
+namespace phlex::detail {
+  // Required non-owning receivers for one product repeater or fold accumulator.
+  // The layer identifies storage and invocation-index projection, not an independent count.
+  struct join_participant {
+    phlex::experimental::identifier layer;
+    gsl::not_null<tbb::flow::receiver<index_message>*> index_port;
+    gsl::not_null<tbb::flow::receiver<indexed_end_token>*> completion_port;
+    // Receives the hashes of the cell paths whose products this participant accepts. The router
+    // calls it during finalize(), before any message flows, only when other cells could reach it.
+    std::function<void(std::unordered_set<std::size_t>)> accept_cells;
+    // Set only for a fold's accumulator; the router initializes it at each storage path.
+    tbb::flow::receiver<index_message>* partition_port{nullptr};
+    // Product input ordinal in the owning consumer; unset for a fold's accumulator.
+    std::optional<std::size_t> input_ordinal;
+  };
+
+  // Product inputs drive invocations; all participants constrain their ancestry.
+  // Empty participants mean that no router registration is needed.
+  struct join_registration {
+    std::vector<phlex::experimental::identifier> input_layers;
+    std::vector<join_participant> participants;
+  };
+}
+
+#endif // PHLEX_CORE_JOIN_REGISTRATION_HPP
