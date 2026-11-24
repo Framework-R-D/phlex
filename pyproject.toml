@@ -75,6 +75,7 @@ known-first-party = [
   "fix_header_guards",
   "normalize_coverage_lcov",
   "normalize_coverage_xml",
+  "prepare_formatting_commit",
   "sarif_alerts",
 ]
 
