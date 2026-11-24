@@ -175,8 +175,7 @@ def _paginate_alerts(owner: str, repo: str) -> Iterator[dict]:
             raise GitHubAPIError("Unexpected response when listing alerts (expected a JSON list).")
         if not result:
             return
-        for alert in result:
-            yield alert
+        yield from result
         page += 1
 
 

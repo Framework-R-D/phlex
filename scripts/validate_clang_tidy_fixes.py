@@ -23,7 +23,11 @@ class FixValidationError(ValueError):
 
 
 def _tracked_source_path(value: Any, source_root: Path) -> tuple[Path, int]:
-    """Resolve one replacement target and require a tracked C++ source file."""
+    """Resolve one replacement target and require a tracked C++ source file.
+
+    Returns:
+        The resolved path and its current byte size.
+    """
     if not isinstance(value, str) or not value or "\x00" in value or "\\" in value:
         raise FixValidationError("replacement FilePath must be a non-empty POSIX path")
 
@@ -75,7 +79,11 @@ def _tracked_source_path(value: Any, source_root: Path) -> tuple[Path, int]:
 
 
 def _replacement_entries(document: Any) -> list[dict[str, Any]]:
-    """Find all replacement lists without following YAML alias cycles."""
+    """Find all replacement lists without following YAML alias cycles.
+
+    Returns:
+        All replacement mappings reachable from the document.
+    """
     pending = [document]
     visited: set[int] = set()
     entries: list[dict[str, Any]] = []
@@ -110,7 +118,11 @@ def _replacement_entries(document: Any) -> list[dict[str, Any]]:
 
 
 def validate_and_copy(fixes_file: Path, source_root: Path, output_dir: Path) -> int:
-    """Validate every replacement and copy the sole accepted YAML into staging."""
+    """Validate replacements and copy the accepted YAML into staging.
+
+    Returns:
+        The number of validated replacement entries.
+    """
     source_root = source_root.resolve(strict=True)
     if fixes_file.is_symlink():
         raise FixValidationError("fixes file must not be a symlink")
@@ -173,7 +185,11 @@ def validate_and_copy(fixes_file: Path, source_root: Path, output_dir: Path) -> 
 
 
 def main() -> int:
-    """Validate and stage a fixes document, failing closed on any ambiguity."""
+    """Validate and stage a fixes document, failing closed on any ambiguity.
+
+    Returns:
+        The process exit status.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("fixes_file", type=Path)
     parser.add_argument("--source-root", required=True, type=Path)

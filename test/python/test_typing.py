@@ -82,7 +82,7 @@ class TestTYPING:
         assert normalize_type(None) == "None"
 
         # use of namespaces for evaluation
-        assert ("foo") == "foo"
+        assert "foo" == "foo"
         global foo  # lgtm[py/unused-global-variable]
         foo = np.int64
         assert normalize_type("foo", globals()) == "int64_t"
@@ -97,7 +97,7 @@ class TestTYPING:
         raises(TypeError, normalize_type, ctypes.POINTER(ctypes.c_int))
 
         # ctypes array
-        assert normalize_type((ctypes.c_int * 42)) == "array[int32_t]"
+        assert normalize_type(ctypes.c_int * 42) == "array[int32_t]"
 
         # something unknown
         class SomeType:

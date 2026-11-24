@@ -67,9 +67,9 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     for i in range(4):
         m.transform(
             add,
-            name="reduce%d" % i,
+            name=f"reduce{i}",
             input_family=config["input"],
-            output_product_suffixes=["sum%d" % i],
+            output_product_suffixes=[f"sum{i}"],
         )
 
     # now reduce them pair-wise

@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -236,7 +236,7 @@ def _log(msg: str) -> None:
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         # Use timezone-aware UTC timestamp to avoid deprecation warnings.
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         with open(_LOG_PATH, "a", encoding="utf-8") as fh:
             fh.write(f"{ts} {msg}\n")
     except Exception:
@@ -254,7 +254,7 @@ def _init_log(log_path: Path) -> None:
     _LOG_PATH = log_path
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         with open(_LOG_PATH, "w", encoding="utf-8") as fh:
             fh.write(f"{ts} CodeQL alerts helper log (truncated for new run)\n")
     except Exception:
@@ -281,8 +281,7 @@ def _paginate_alerts_api(
             raise GitHubAPIError("Unexpected response when listing alerts (expected list).")
         if not result:
             return
-        for alert in result:
-            yield alert
+        yield from result
         # GitHub returns fewer than per_page items on the last page
         if len(result) < per_page:
             return
@@ -313,7 +312,11 @@ def _format_physical_location(phys: dict[str, Any]) -> str | None:
 
 
 def _to_alert_api(raw: dict) -> Alert:
-    """Convert a raw code-scanning alert object from the API into Alert dataclass."""
+    """Convert a raw code-scanning alert object from the API into Alert dataclass.
+
+    Returns:
+        The normalized alert representation.
+    """
     rule = raw.get("rule") or {}
     rule_id = str(rule.get("id") or "(rule id unavailable)")
     instance = raw.get("most_recent_instance") or {}
@@ -973,7 +976,11 @@ def set_outputs(
 def _compare_alerts_via_api(
     owner: str, repo: str, ref: str, *, min_level: str = "warning"
 ) -> APIAlertComparison:
-    """Compare alerts between a ref and the main branch using the GitHub API."""
+    """Compare alerts between a ref and the main branch using the GitHub API.
+
+    Returns:
+        The categorized alert comparison.
+    """
     # Fetch PR metadata first so we can use the head SHA when querying PR alerts.
     # The Code Scanning API does not support synthetic merge refs such as
     # refs/pull/N/merge; using that ref returns zero results.  The head SHA is
@@ -1130,7 +1137,11 @@ def _build_multi_section_comment(
     *,
     pr_number: int | None = None,
 ) -> str:
-    """Build a detailed PR comment when multiple comparisons have been made."""
+    """Build a detailed PR comment when multiple comparisons have been made.
+
+    Returns:
+        Markdown containing the comparison sections.
+    """
     lines: list[str] = []
     # Matching summary (always include in PR comment)
     if api_comp.new_vs_base or api_comp.fixed_vs_base:

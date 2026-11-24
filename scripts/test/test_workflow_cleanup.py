@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for PR comment cleanup steps in GitHub workflows.
 
 The workflows add a marker comment and a cleanup step that removes stale

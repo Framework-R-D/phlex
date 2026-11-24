@@ -20,8 +20,9 @@ should match for the inputs).
 # ruff: noqa: E501
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -90,12 +91,12 @@ OUTPUT_KINDS = [
     ),
     OutputKind(
         "numpy",
-        lambda t: None if t.np_dtype is None else npt.NDArray[t.np_dtype],  # type: ignore # noqa: F821
+        lambda t: None if t.np_dtype is None else npt.NDArray[t.np_dtype],  # type: ignore[name-defined]
         lambda t, a, b: np.array([a, b], dtype=t.np_dtype),
     ),
     OutputKind(
         "list",
-        lambda t: None if t.np_dtype is None else list[t.annotation],  # type: ignore # noqa: F821
+        lambda t: None if t.np_dtype is None else list[t.annotation],  # type: ignore[name-defined]
         lambda t, a, b: [a, b],
     ),
 ]

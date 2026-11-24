@@ -20,13 +20,13 @@ def bad_bool(i: int) -> bool:
 
 
 # Invalid long return (float)
-def bad_long(i: int) -> "long":  # type: ignore # noqa: F821
+def bad_long(i: int) -> "long":  # type: ignore  # noqa: F821
     """Return a float instead of an int."""
     return 1.5  # type: ignore
 
 
 # Invalid uint return (negative)
-def bad_uint(i: int) -> "unsigned int":  # type: ignore # noqa: F722
+def bad_uint(i: int) -> "unsigned int":  # type: ignore  # noqa: F722
     """Return a negative value for unsigned int."""
     return -5  # type: ignore
 

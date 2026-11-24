@@ -22,8 +22,8 @@ def sum_array_int32(coll: npt.NDArray[np.int32]) -> int:
 
 
 def collectify_uint32(
-    u1: "unsigned int",  # type: ignore # noqa: F722 # noqa: F821
-    u2: "unsigned int",  # type: ignore # noqa: F722 # noqa: F821
+    u1: "unsigned int",  # type: ignore  # noqa: F722
+    u2: "unsigned int",  # type: ignore  # noqa: F722
 ) -> npt.NDArray[np.uint32]:
     """Create a uint32 array from two integers."""
     return np.array([u1, u2], dtype=np.uint32)
@@ -34,25 +34,28 @@ def sum_array_uint32(coll: npt.NDArray[np.uint32]) -> np.uint32:
     return np.uint32(sum(int(x) for x in coll))
 
 
-def collectify_int64(l1: "long", l2: "long") -> npt.NDArray[np.int64]:  # type: ignore # noqa: F821
+def collectify_int64(
+    l1: "long",  # type: ignore[name-defined]  # noqa: F821
+    l2: "long",  # type: ignore[name-defined]  # noqa: F821
+) -> npt.NDArray[np.int64]:  # type: ignore
     """Create an int64 array from two integers."""
     return np.array([l1, l2], dtype=np.int64)
 
 
-def sum_array_int64(coll: npt.NDArray[np.int64]) -> "int64_t":  # type: ignore # noqa: F821
+def sum_array_int64(coll: npt.NDArray[np.int64]) -> "int64_t":  # type: ignore  # noqa: F821
     """Sum an int64 array."""
     return np.int64(sum(int(x) for x in coll))
 
 
 def collectify_uint64(
-    ul1: "unsigned long",  # type: ignore # noqa: F722 # noqa: F821
-    ul2: "unsigned long",  # type: ignore # noqa: F722 # noqa: F821
+    ul1: "unsigned long",  # type: ignore  # noqa: F722
+    ul2: "unsigned long",  # type: ignore  # noqa: F722
 ) -> npt.NDArray[np.uint64]:
     """Create a uint64 array from two integers."""
     return np.array([ul1, ul2], dtype=np.uint64)
 
 
-def sum_array_uint64(coll: npt.NDArray[np.uint64]) -> "uint64_t":  # type: ignore # noqa: F821
+def sum_array_uint64(coll: npt.NDArray[np.uint64]) -> "uint64_t":  # type: ignore  # noqa: F821
     """Sum a uint64 array."""
     return np.uint64(sum(int(x) for x in coll))
 
@@ -67,7 +70,10 @@ def sum_array_float32(coll: npt.NDArray[np.float32]) -> np.float32:
     return np.float32(sum(coll))
 
 
-def collectify_float64(d1: "double", d2: "double") -> npt.NDArray[np.float64]:  # type: ignore # noqa: F821
+def collectify_float64(
+    d1: "double",  # type: ignore[name-defined]  # noqa: F821
+    d2: "double",  # type: ignore[name-defined]  # noqa: F821
+) -> npt.NDArray[np.float64]:  # type: ignore
     """Create a float64 array from two floats."""
     return np.array([d1, d2], dtype=np.float64)
 
@@ -77,12 +83,15 @@ def collectify_float32_list(f1: float, f2: float) -> list[float]:
     return [f1, f2]
 
 
-def collectify_float64_list(d1: "double", d2: "double") -> list["double"]:  # type: ignore # noqa: F821
+def collectify_float64_list(
+    d1: "double",  # type: ignore[name-defined]  # noqa: F821
+    d2: "double",  # type: ignore[name-defined]  # noqa: F821
+) -> list["double"]:  # type: ignore  # noqa: F821
     """Create a float64 list from two floats."""
     return [d1, d2]
 
 
-def sum_array_float64(coll: npt.NDArray[np.float64]) -> "double":  # type: ignore # noqa: F821
+def sum_array_float64(coll: npt.NDArray[np.float64]) -> "double":  # type: ignore  # noqa: F821
     """Sum a float64 array."""
     return float(sum(coll))
 
@@ -93,22 +102,25 @@ def collectify_int32_list(i: int, j: int) -> list[int]:
 
 
 def collectify_uint32_list(
-    u1: "unsigned int",  # type: ignore # noqa: F722 # noqa: F821
-    u2: "unsigned int",  # type: ignore # noqa: F722 # noqa: F821
-) -> list["unsigned int"]:  # type: ignore # noqa: F722 # noqa: F821
+    u1: "unsigned int",  # type: ignore  # noqa: F722
+    u2: "unsigned int",  # type: ignore  # noqa: F722
+) -> list["unsigned int"]:  # type: ignore  # noqa: F722
     """Create a uint32 list from two integers."""
     return [np.uint32(u1), np.uint32(u2)]
 
 
-def collectify_int64_list(l1: "long", l2: "long") -> "list[int64_t]":  # type: ignore # noqa: F821
+def collectify_int64_list(
+    l1: "long",  # type: ignore[name-defined]  # noqa: F821
+    l2: "long",  # type: ignore[name-defined]  # noqa: F821
+) -> "list[int64_t]":  # type: ignore  # noqa: F821
     """Create an int64 list from two integers."""
     return [l1, l2]
 
 
 def collectify_uint64_list(
-    ul1: "unsigned long",  # type: ignore # noqa: F722 # noqa: F821
-    ul2: "unsigned long",  # type: ignore # noqa: F722 # noqa: F821
-) -> "list[uint64_t]":  # type: ignore # noqa: F821
+    ul1: "unsigned long",  # type: ignore  # noqa: F722
+    ul2: "unsigned long",  # type: ignore  # noqa: F722
+) -> "list[uint64_t]":  # type: ignore  # noqa: F821
     """Create a uint64 list from two integers."""
     return [np.uint64(ul1), np.uint64(ul2)]
 
@@ -118,17 +130,17 @@ def sum_list_int32(coll: list[int]) -> int:
     return sum(coll)
 
 
-def sum_list_uint32(coll: "list[uint32_t]") -> "uint32_t":  # type: ignore # noqa: F821
+def sum_list_uint32(coll: "list[uint32_t]") -> "uint32_t":  # type: ignore  # noqa: F821
     """Sum a list of uints."""
     return sum(coll)
 
 
-def sum_list_int64(coll: "list[int64_t]") -> "int64_t":  # type: ignore # noqa: F821
+def sum_list_int64(coll: "list[int64_t]") -> "int64_t":  # type: ignore  # noqa: F821
     """Sum a list of longs."""
     return sum(coll)
 
 
-def sum_list_uint64(coll: "list[uint64_t]") -> "uint64_t":  # type: ignore # noqa: F821
+def sum_list_uint64(coll: "list[uint64_t]") -> "uint64_t":  # type: ignore  # noqa: F821
     """Sum a list of ulongs."""
     return sum(coll)
 
@@ -138,7 +150,7 @@ def sum_list_float(coll: list[float]) -> np.float32:
     return np.float32(sum(coll))
 
 
-def sum_list_double(coll: list["double"]) -> "double":  # type: ignore # noqa: F821
+def sum_list_double(coll: list["double"]) -> "double":  # type: ignore  # noqa: F821
     """Sum a list of doubles."""
     return sum(coll)
 

@@ -71,11 +71,17 @@ select = [
   "B",  # flake8-bugbear
   "C4", # flake8-comprehensions
   "D",  # pydocstyle
+  "DOC201", # require Returns sections for documented return values
   "E",  # pycodestyle errors
   "F",  # pyflakes
   "I",  # isort
+  "PGH004", # require specific noqa codes
+  "RUF100", # reject unused noqa directives
+  "UP", # pyupgrade
   "W",  # pycodestyle warnings
 ]
+preview = true
+explicit-preview-rules = true
 ignore = []
 extend-ignore = [
     "E731", # do not assign a lambda expression, use a def
@@ -102,6 +108,13 @@ known-first-party = [
   "sarif_alerts",
   "validate_clang_tidy_fixes",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore missing docstring requirements for test files and typing stubs
+"test/**/*" = ["D", "DOC201"]
+"scripts/test/**/*" = ["D", "DOC201"]
+"test/python/test_typing.py" = ["UP006", "UP035"]
+"*.pyi" = ["D", "DOC201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

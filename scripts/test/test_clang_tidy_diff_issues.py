@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # sys.path is set up by scripts/test/conftest.py.
-from clang_tidy_diff_issues import (  # noqa: E402
+from clang_tidy_diff_issues import (
     filter_issues,
     filter_new_issues,
     parse_diff,

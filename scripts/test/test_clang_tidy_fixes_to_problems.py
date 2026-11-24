@@ -22,7 +22,7 @@ import pytest
 import yaml
 
 # sys.path is set up by scripts/test/conftest.py.
-import clang_tidy_fixes_to_problems as M  # noqa: E402
+import clang_tidy_fixes_to_problems as M
 
 # ---------------------------------------------------------------------------
 # Helpers
