@@ -1,11 +1,26 @@
 [tool.mypy]
-ignore_missing_imports = true
+python_version = "3.12"
+check_untyped_defs = true
+exclude_gitignore = true
+explicit_package_bases = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/plugins/python/python:$MYPY_CONFIG_FILE_DIR/scripts:$MYPY_CONFIG_FILE_DIR/test/python"
 no_implicit_optional = true
 plugins = [
 ]
 show_error_codes = true
 warn_unreachable = true
 disable_error_code = "annotation-unchecked"
+
+[[tool.mypy.overrides]]
+module = [
+    "cppyy",
+    "cppyy.*",
+    "numba",
+    "numba.*",
+    "spack",
+    "spack.*",
+]
+ignore_missing_imports = true
 
 [tool.pyright]
 # NOTE: this table is Pylance/Pyright's highest-precedence configuration
@@ -17,13 +32,18 @@ disable_error_code = "annotation-unchecked"
 # here. The Spack-specific absolute paths only exist inside the phlex-dev
 # devcontainer and are harmless no-ops elsewhere.
 
-diagnosticMode = "workspace"
+include = [
+    "scripts",
+    "ci",
+    ".devcontainer",
+    "plugins/python/python",
+    "test/python",
+    "docs/source/conf.py",
+]
+pythonVersion = "3.12"
 extraPaths = [
     "plugins/python/python",
     "scripts",
-    "build/_deps",
-    "out/build/default/_deps",
-    "out/build/clang-tidy/_deps",
     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
     "/spack/lib/spack"
@@ -31,8 +51,10 @@ extraPaths = [
 exclude = [
     "**/.venv/**",
     "**/py_virtual_env/**",
-    "**/build/_deps/**",
-    "**/out/build/*/_deps/**"
+    "**/build/**",
+    "**/out/**",
+    "**/_deps/**",
+    "**/node_modules/**",
 ]
 ignore = [
     "**/.venv/**",

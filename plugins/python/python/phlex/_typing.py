@@ -235,7 +235,7 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
     return repr(tp)
 
 
-def count_optional_arguments(pycall: Callable[..., Any]) -> int:
+def count_optional_arguments(pycall: object) -> int:
     """Count the number of optional arguments that the callable will accept.
 
     Uses the inspect module to determine the number of defaulted optional
@@ -250,12 +250,12 @@ def count_optional_arguments(pycall: Callable[..., Any]) -> int:
         Number of optional arguments.
     """
     try:
-        pycall = pycall.phlex_callable  # type: ignore[attr-defined]
+        pycall = typing.cast(Any, pycall).phlex_callable
     except AttributeError:
         pass  # not a Variant-style type callable
 
     try:
-        sig = inspect.signature(pycall)
+        sig = inspect.signature(typing.cast(Callable[..., Any], pycall))
     except (ValueError, TypeError):
         return 0  # unknown or not a callable
 
