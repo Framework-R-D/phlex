@@ -49,6 +49,22 @@ namespace {
       return [](data_cell_yielder const /*yielder*/) {};
     }
   };
+
+  class split {
+  public:
+    explicit split(unsigned int count) : count_{count} {}
+    static unsigned int initial_value() { return 0; }
+    bool predicate(unsigned int i) const { return i < count_; }
+    static auto unfold(unsigned int i) { return std::make_pair(i + 1, 1u); }
+
+  private:
+    unsigned int count_;
+  };
+
+  class split_with_run : public split {
+  public:
+    split_with_run(unsigned int count, unsigned int /*run*/) : split{count} {}
+  };
 }
 
 TEST_CASE("Catch STL exceptions", "[graph]")
@@ -422,5 +438,72 @@ TEST_CASE("Leaf-only hierarchy joins ancestor products and completes folds", "[g
   // Destroy the graph before checking for cached-entry warnings.
   auto const sums = run_graph(hierarchy);
   CHECK(sums == std::vector<unsigned int>{30});
+  CHECK_FALSE(output.str().contains("Cached"));
+}
+
+TEST_CASE("Leaf-only hierarchy resolves dependent multilayer unfolds", "[graph][unfold][issue955]")
+{
+  auto const [description, hierarchy] =
+    GENERATE(Catch::Generators::table<char const*, fixed_hierarchy>(
+      {{"Implicit job prefix", fixed_hierarchy{{"run", "spill"}}},
+       {"Explicit job prefix", fixed_hierarchy{{"job", "run", "spill"}}}}));
+  CAPTURE(description);
+
+  std::ostringstream output;
+  auto logger = test::use_ostream_logger(output);
+  auto const run_graph = [](fixed_hierarchy const& hierarchy) {
+    std::vector<unsigned int> sums;
+    auto g = phlex::detail::framework_graph::without_driver("test");
+    g.add_driver(g.driver_proxy({}).driver(hierarchy, [](data_cell_cursor job) {
+      for (auto r = 0u; r != 2; ++r) {
+        auto run = job.yield_child("run", r);
+        for (auto s = 0u; s != 3; ++s) {
+          run.yield_child("spill", s);
+        }
+      }
+    }));
+    g.provide(
+       "run_number", [](data_cell_index const&) { return 2u; }, concurrency::unlimited)
+      .output_product("input", "run_number", "run");
+    g.provide(
+       "spill_number", [](data_cell_index const&) { return 3u; }, concurrency::unlimited)
+      .output_product("input", "spill_number", "spill");
+
+    // The dependent name sorts before its producer and consumes an implicit ancestor prefix.
+    g.unfold<split_with_run>("a_split",
+                             &split_with_run::predicate,
+                             &split_with_run::unfold,
+                             concurrency::unlimited,
+                             "unit")
+      .input_family(product_selector{.creator = "z_split", .layer = "piece", .suffix = "number"},
+                    product_selector{.creator = "input", .layer = "run", .suffix = "run_number"})
+      .output_product_suffixes("number");
+    g.unfold<split>("z_split", &split::predicate, &split::unfold, concurrency::unlimited, "piece")
+      .input_family(
+        product_selector{.creator = "input", .layer = "spill", .suffix = "spill_number"})
+      .output_product_suffixes("number");
+
+    g.fold(
+       "sum",
+       [](std::atomic<unsigned int>& sum, unsigned int number) { sum += number; },
+       concurrency::unlimited,
+       "job",
+       0u)
+      .input_family(product_selector{.creator = "a_split", .layer = "unit", .suffix = "number"})
+      .output_product_suffixes("sum");
+    g.observe(
+       "collect_sum", [&sums](unsigned int sum) { sums.push_back(sum); }, concurrency::serial)
+      .input_family(product_selector{.creator = "sum", .layer = "job", .suffix = "sum"});
+
+    g.execute();
+    CHECK(g.execution_count("z_split") == 6);
+    CHECK(g.execution_count("a_split") == 18);
+    CHECK(g.execution_count("sum") == 18);
+    CHECK(g.execution_count("collect_sum") == 1);
+    return sums;
+  };
+  // Destroy the graph before checking for cached-entry warnings.
+  auto const sums = run_graph(hierarchy);
+  CHECK(sums == std::vector<unsigned int>{18});
   CHECK_FALSE(output.str().contains("Cached"));
 }
