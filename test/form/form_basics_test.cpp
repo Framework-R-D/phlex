@@ -546,6 +546,17 @@ TEST_CASE("storage_reader basic operations", "[form]")
   CHECK_THROWS_AS(storage->get_index(product_token, "[event:1]", settings), std::runtime_error);
 }
 
+TEST_CASE("storage_reader read columns: a backend without rows yields empty columns", "[form]")
+{
+  auto reader = create_storage_reader();
+  REQUIRE(reader != nullptr);
+  form::experimental::config::tech_setting_config const settings;
+  token const column{"file.root", "table/column", form::technology::id{}};
+
+  CHECK(reader->read_uint64_column(column, settings).empty());
+  CHECK(reader->read_string_column(column, settings).empty());
+}
+
 TEST_CASE("storage_writer basic operations", "[form]")
 {
   auto storage = create_storage_writer();
