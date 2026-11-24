@@ -7,13 +7,13 @@
 #include "form/config.hpp"
 #include "storage/factories.hpp"
 #include "storage/istorage.hpp"
+#include "util/error.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <utility>
@@ -84,6 +84,42 @@ std::optional<std::vector<std::pair<std::string, std::string>>> storage_reader::
   return create_file(technology, file_name, 'i')->read_descriptor();
 }
 
+i_storage_read_container& storage_reader::container_for(
+  token const& token, form::experimental::config::tech_setting_config const& settings)
+{
+  auto const cont_key = std::make_pair(token.file_name(), token.container_name());
+  if (auto const found = read_containers_.find(cont_key); found != read_containers_.end()) {
+    return *found->second;
+  }
+  auto const& file = open_file(token.file_name(), token.technology(), settings);
+  auto container = create_read_container(token.technology(), token.container_name());
+  container->set_file(file);
+  for (auto const& [key, value] :
+       get_container_table(settings, token.technology(), token.container_name())) {
+    container->set_attribute(key, value);
+  }
+  // Cache the container only after its settings have been applied successfully.
+  return *read_containers_.emplace(cont_key, std::move(container)).first->second;
+}
+
+template <typename T>
+std::vector<T> storage_reader::read_column(
+  token const& token, form::experimental::config::tech_setting_config const& settings)
+{
+  auto& container = container_for(token, settings);
+  std::vector<T> values;
+  void const* raw = nullptr;
+  for (std::uint64_t row = 0; container.read(row, &raw, typeid(T)); ++row) {
+    std::unique_ptr<T const> const value{static_cast<T const*>(raw)};
+    if (!value) {
+      error("row " + std::to_string(row) + " of container: " + token.container_name() +
+            " of file: " + token.file_name() + " was read but holds no value");
+    }
+    values.push_back(*value);
+  }
+  return values;
+}
+
 std::uint64_t storage_reader::get_index(
   token const& token,
   std::string const& id,
@@ -102,20 +138,7 @@ void storage_reader::prime(token const& token,
                            std::type_info const& type,
                            form::experimental::config::tech_setting_config const& settings)
 {
-  auto cont_key = std::make_pair(token.file_name(), token.container_name());
-  auto cont = read_containers_.find(cont_key);
-  if (cont == read_containers_.end()) {
-    auto const& file = open_file(token.file_name(), token.technology(), settings);
-    cont = read_containers_
-             .insert({cont_key, create_read_container(token.technology(), token.container_name())})
-             .first;
-    cont->second->set_file(file);
-    for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.container_name())) {
-      cont->second->set_attribute(key, value);
-    }
-  }
-  cont->second->prime(type);
+  container_for(token, settings).prime(type);
 }
 
 std::vector<std::string> storage_reader::list_indices(
@@ -137,27 +160,11 @@ std::map<std::string, std::uint64_t> const& storage_reader::index_map(
     return built->second;
   }
 
-  auto cont = read_containers_.find(cont_key);
-  if (cont == read_containers_.end()) {
-    auto const& file = open_file(token.file_name(), token.technology(), settings);
-    cont = read_containers_
-             .insert({cont_key, create_read_container(token.technology(), token.container_name())})
-             .first;
-    for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.container_name())) {
-      cont->second->set_attribute(key, value);
-    }
-    cont->second->set_file(file);
-  }
-
   std::map<std::string, std::uint64_t> index;
-  auto const& type = typeid(std::string);
   std::uint64_t row = 0;
-  void const* raw_data = nullptr;
-  while (cont->second->read(row, &raw_data, type)) {
-    std::unique_ptr<std::string const> const id(static_cast<std::string const*>(raw_data));
-    if (!index.emplace(*id, row).second) {
-      error("Index id " + *id + " appears more than once in container: " + token.container_name() +
+  for (auto& id : read_column<std::string>(token, settings)) {
+    if (!index.try_emplace(std::move(id), row).second) {
+      error("Index id " + id + " appears more than once in container: " + token.container_name() +
             " of file: " + token.file_name());
     }
     ++row;
@@ -174,18 +181,17 @@ void storage_reader::read_container(token const& token,
                                     std::type_info const& type,
                                     form::experimental::config::tech_setting_config const& settings)
 {
-  auto cont_key = std::make_pair(token.file_name(), token.container_name());
-  auto cont = read_containers_.find(cont_key);
-  if (cont == read_containers_.end()) {
-    auto const& file = open_file(token.file_name(), token.technology(), settings);
-    cont = read_containers_
-             .insert({cont_key, create_read_container(token.technology(), token.container_name())})
-             .first;
-    cont->second->set_file(file);
-    for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.container_name())) {
-      cont->second->set_attribute(key, value);
-    }
-  }
-  cont->second->read(token.id(), data, type);
+  container_for(token, settings).read(token.id(), data, type);
+}
+
+std::vector<std::uint64_t> storage_reader::read_uint64_column(
+  token const& token, form::experimental::config::tech_setting_config const& settings)
+{
+  return read_column<std::uint64_t>(token, settings);
+}
+
+std::vector<std::string> storage_reader::read_string_column(
+  token const& token, form::experimental::config::tech_setting_config const& settings)
+{
+  return read_column<std::string>(token, settings);
 }

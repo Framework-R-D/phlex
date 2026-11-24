@@ -9,6 +9,7 @@
 #include "form/config.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
+#include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "root_storage/root_descriptor.hpp"
 #include "root_storage/root_tfile.hpp"
@@ -1005,6 +1006,82 @@ TEST_CASE("storage_reader get_index: the job cell resolves through the index", "
   storage_reader reader;
   CHECK(reader.get_index(index_token_of(file_name, creator), "[]", {}) == 0);
   CHECK(read_cell(reader, file_name, creator, "[]").empty());
+}
+
+TEST_CASE("storage_reader read columns: navigation table and product dictionary", "[form]")
+{
+  std::string const file_name =
+    "storage_reader_columns_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "columns_creator";
+  // Written out of cell order; the navigation table is ordered by layer values.
+  std::vector<cell_index> const cells{make_cell(3, 1), make_cell(1, 2), make_cell(2, 0)};
+  write_cells(file_name, creator, cells);
+
+  storage_reader reader;
+  form::experimental::config::tech_setting_config const settings{};
+  auto const column = [&file_name](std::string const& container, std::string const& name) {
+    return token{file_name, build_full_label(container, name), technology};
+  };
+
+  SECTION("navigation table")
+  {
+    auto const table = navigation_table_name(cells.front().hierarchy, technology);
+    auto const events = reader.read_uint64_column(column(table, "event"), settings);
+    auto const segments = reader.read_uint64_column(column(table, "segment"), settings);
+    auto const rows = reader.read_uint64_column(
+      column(table, navigation_row_column(creator, test_stage)), settings);
+
+    CHECK(events == std::vector<std::uint64_t>{1, 2, 3});
+    CHECK(segments == std::vector<std::uint64_t>{2, 0, 1});
+    // Each cell's payload row is the position it was written at.
+    CHECK(rows == std::vector<std::uint64_t>{1, 2, 0});
+
+    // The navigated row holds the payload of the cell named by the layer columns.
+    for (std::size_t i = 0; i != rows.size(); ++i) {
+      void const* raw = nullptr;
+      reader.read_container(
+        token{file_name, build_full_label(row_space(creator), "prod"), technology, rows[i]},
+        &raw,
+        typeid(std::vector<int>),
+        settings);
+      std::unique_ptr<std::vector<int> const> const payload{
+        static_cast<std::vector<int> const*>(raw)};
+      REQUIRE(payload != nullptr);
+      CHECK(*payload ==
+            std::vector<int>{static_cast<int>(events[i]), static_cast<int>(segments[i])});
+    }
+  }
+
+  SECTION("product dictionary")
+  {
+    auto const dictionary = navigation_dictionary_name(technology);
+    auto const entry = [&](std::string const& name) {
+      return reader.read_string_column(column(dictionary, name), settings);
+    };
+    using strings = std::vector<std::string>;
+    CHECK(entry("product_name") == strings{"prod"});
+    CHECK(entry("creator") == strings{creator});
+    CHECK(entry("stage") == strings{test_stage});
+    CHECK(entry("container_name") == strings{build_full_label(row_space(creator), "prod")});
+    CHECK(entry("hierarchy_key") == strings{"event_segment"});
+    CHECK(entry("navigation_container") ==
+          strings{navigation_table_name(cells.front().hierarchy, technology)});
+    CHECK(entry("navigation_column") == strings{navigation_row_column(creator, test_stage)});
+  }
+
+  SECTION("index container")
+  {
+    auto const index = column(row_space(creator), "index");
+    CHECK(reader.read_string_column(index, settings) == ids_of(cells));
+    CHECK(reader.list_indices(index, settings) == ids_of(cells));
+  }
+
+  SECTION("a missing table or column throws")
+  {
+    auto const table = navigation_table_name(cells.front().hierarchy, technology);
+    CHECK_THROWS(reader.read_uint64_column(column(table, "no_such_column"), settings));
+    CHECK_THROWS(reader.read_string_column(column("nav_no_such_table", "product_name"), settings));
+  }
 }
 
 TEST_CASE("storage_reader get_index: index maps are kept per file", "[form]")

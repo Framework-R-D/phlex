@@ -35,6 +35,10 @@ namespace form::detail::experimental {
                         void const** data,
                         std::type_info const& type,
                         form::experimental::config::tech_setting_config const& settings) override;
+    std::vector<std::uint64_t> read_uint64_column(
+      token const& token, form::experimental::config::tech_setting_config const& settings) override;
+    std::vector<std::string> read_string_column(
+      token const& token, form::experimental::config::tech_setting_config const& settings) override;
     std::optional<std::vector<std::pair<std::string, std::string>>> read_descriptor(
       std::string const& file_name, form::technology::major technology) override;
 
@@ -43,6 +47,12 @@ namespace form::detail::experimental {
       std::string const& file_name,
       form::technology::id technology,
       form::experimental::config::tech_setting_config const& settings);
+
+    i_storage_read_container& container_for(
+      token const& token, form::experimental::config::tech_setting_config const& settings);
+    template <typename T>
+    std::vector<T> read_column(token const& token,
+                               form::experimental::config::tech_setting_config const& settings);
     std::map<std::string, std::uint64_t> const& index_map(
       token const& token, form::experimental::config::tech_setting_config const& settings);
 
