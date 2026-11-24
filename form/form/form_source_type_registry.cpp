@@ -2,8 +2,6 @@
 
 #include "form_source_type_registry.hpp"
 
-#include "util/error.hpp"
-
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -33,8 +31,7 @@ namespace form::experimental {
                                   form_source_product_from_data_fn product_from_data_fn)
   {
     if (!product_from_data_fn) {
-      form::detail::experimental::error(
-        "Cannot register FORM product type with empty conversion function");
+        throw std::runtime_error("form: Cannot register FORM product type with empty conversion function");
     }
 
     std::scoped_lock const lock(form_type_registry_mutex());
