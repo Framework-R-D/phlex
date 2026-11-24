@@ -1076,6 +1076,27 @@ TEST_CASE("storage_reader read columns: navigation table and product dictionary"
     CHECK(reader.list_indices(index, settings) == ids_of(cells));
   }
 
+  SECTION("a column is read only as the type it stores")
+  {
+    auto const table = navigation_table_name(cells.front().hierarchy, technology);
+    auto const numbers = column(table, "event");
+    auto const names = column(navigation_dictionary_name(technology), "product_name");
+    std::vector<std::uint64_t> const events{1, 2, 3};
+
+    // A matching read first, then a mismatched one, then the matching type again.
+    storage_reader first_match;
+    CHECK(first_match.read_uint64_column(numbers, settings) == events);
+    CHECK_THROWS(first_match.read_string_column(numbers, settings));
+    CHECK(first_match.read_uint64_column(numbers, settings) == events);
+
+    // A mismatched read first must not leave anything behind for a later read.
+    storage_reader first_mismatch;
+    CHECK_THROWS(first_mismatch.read_string_column(numbers, settings));
+    CHECK(first_mismatch.read_uint64_column(numbers, settings) == events);
+    CHECK_THROWS(first_mismatch.read_uint64_column(names, settings));
+    CHECK(first_mismatch.read_string_column(names, settings) == std::vector<std::string>{"prod"});
+  }
+
   SECTION("a missing table or column throws")
   {
     auto const table = navigation_table_name(cells.front().hierarchy, technology);

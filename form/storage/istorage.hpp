@@ -45,6 +45,7 @@ namespace form::detail::experimental {
     // Read all rows of a column in row order. The token identifies the column's container (e.g., a
     // navigation table or product dictionary); its row id is ignored. Throws if the column cannot
     // be read. Backends that store no rows (e.g., generic) return an empty column.
+    // Intended only for the navigation container, not for data product containers.
     virtual std::vector<std::uint64_t> read_uint64_column(
       token const& token, form::experimental::config::tech_setting_config const& settings) = 0;
     virtual std::vector<std::string> read_string_column(

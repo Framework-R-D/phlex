@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <typeinfo>
 
 // NOLINTBEGIN(readability-identifier-naming)
 // Forward declarations of ROOT classes
@@ -44,7 +45,11 @@ namespace form::detail::experimental {
     std::shared_ptr<TFile> tfile_;
     std::unique_ptr<ROOT::RNTupleReader> reader_;
     std::unique_ptr<ROOT::RNTupleView<void>> view_;
+    /// The type view_ was created and checked for; every later read must request the same type.
+    std::type_info const* view_type_ = nullptr;
 
+    /// Creates the view on first use, or throws if `type` differs from the type it was created for.
+    void ensure_view(std::type_info const& type);
     void create_view(std::type_info const& type);
   };
 }

@@ -78,9 +78,7 @@ namespace form::detail::experimental {
       }
     }
 
-    if (!view_) {
-      create_view(type);
-    }
+    ensure_view(type);
 
     if (!TDictionary::GetDictionary(type)) {
       error("unsupported type");
@@ -95,9 +93,7 @@ namespace form::detail::experimental {
     try {
 
       //Connect to file at the last possible moment at the cost of a little run-time branching
-      if (!view_) {
-        create_view(type);
-      }
+      ensure_view(type);
 
       if (std::cmp_greater_equal(id, reader_->GetNEntries())) {
         return false;
@@ -144,6 +140,16 @@ namespace form::detail::experimental {
     return static_cast<std::uint64_t>(reader_->GetNEntries());
   }
 
+  void root_rfield_read_container_imp::ensure_view(std::type_info const& type)
+  {
+    if (!view_) {
+      create_view(type);
+    } else if (*view_type_ != type) {
+      error("type " + demangle_name(type) + " requested for a field named " + col_name() +
+            " that is already read as " + demangle_name(*view_type_));
+    }
+  }
+
   void root_rfield_read_container_imp::create_view(std::type_info const& type)
   {
     if (!reader_) { //First time this RNTuple is read this job
@@ -160,22 +166,26 @@ namespace form::detail::experimental {
       }
     }
 
+    // Keep the new view local until it passes the type check, so a rejected type leaves no view
+    // behind for a later read to reuse unchecked.
+    std::unique_ptr<ROOT::RNTupleView<void>> view;
     try {
-      view_ =
-        std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, type));
+      view = std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, type));
     } catch (ROOT::RException const& e) {
       //RNTupleView<void> will fail to create a field for fields written in streamer mode or for which type does not match the field's type on disk.  Passing an empty string for type forces it to create the same type of field as the object on disk.  Do this to handle streamer fields, then perform our own type check.
-      view_ = std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, ""));
+      view = std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, ""));
       //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
       if (!TDictionary::GetDictionary(type) ||
-          !TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str()) ||
-          (strcmp(TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str())->GetName(),
+          !TDictionary::GetDictionary(view->GetField().GetTypeName().c_str()) ||
+          (strcmp(TDictionary::GetDictionary(view->GetField().GetTypeName().c_str())->GetName(),
                   TDictionary::GetDictionary(type)->GetName()) != 0)) {
         handle_rexception(
           "type " + demangle_name(type) + " requested for a field named " + col_name() +
-            " does not match the type in the file: " + view_->GetField().GetTypeName(),
+            " does not match the type in the file: " + view->GetField().GetTypeName(),
           e);
       }
     }
+    view_ = std::move(view);
+    view_type_ = &type;
   }
 }
