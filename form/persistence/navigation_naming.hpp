@@ -7,6 +7,7 @@
 #include "core/container_naming.hpp"
 #include "core/technology.hpp"
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -64,6 +65,16 @@ namespace form::detail::experimental {
     name += hierarchy_key(hierarchy);
     return name;
   }
+
+  /// Columns of a product dictionary, in the order they are written. Shared by the writer and the
+  /// reader, so the two cannot disagree about the schema.
+  inline constexpr std::array<std::string_view, 7> product_dictionary_columns{"product_name",
+                                                                             "creator",
+                                                                             "stage",
+                                                                             "container_name",
+                                                                             "hierarchy_key",
+                                                                             "navigation_container",
+                                                                             "navigation_column"};
 
   /// Return the product-dictionary name for a technology.
   inline std::string navigation_dictionary_name(form::technology::id tech)

@@ -518,14 +518,6 @@ void persistence_writer::write_descriptors()
 void persistence_writer::write_product_dictionaries()
 {
   // Technology is encoded in the dictionary container name.
-  static constexpr std::array<std::string_view, 7> column_names{"product_name",
-                                                                "creator",
-                                                                "stage",
-                                                                "container_name",
-                                                                "hierarchy_key",
-                                                                "navigation_container",
-                                                                "navigation_column"};
-
   for (auto const& [place, entries] : dictionaries_) {
     if (entries.empty()) {
       continue;
@@ -533,8 +525,8 @@ void persistence_writer::write_product_dictionaries()
     auto const& [file_name, tech] = place;
 
     std::vector<std::string> columns;
-    columns.reserve(column_names.size());
-    for (auto const column : column_names) {
+    columns.reserve(product_dictionary_columns.size());
+    for (auto const column : product_dictionary_columns) {
       columns.emplace_back(column);
     }
 
@@ -542,13 +534,14 @@ void persistence_writer::write_product_dictionaries()
       file_name, tech, navigation_dictionary_name(tech), columns, typeid(std::string));
 
     for (auto const& [dict_key, entry] : entries) {
-      std::array<std::string const*, column_names.size()> const values{&entry.product_name,
-                                                                       &entry.creator,
-                                                                       &entry.stage,
-                                                                       &entry.container_name,
-                                                                       &entry.hierarchy_key,
-                                                                       &entry.navigation_container,
-                                                                       &entry.navigation_column};
+      std::array<std::string const*, product_dictionary_columns.size()> const values{
+        &entry.product_name,
+        &entry.creator,
+        &entry.stage,
+        &entry.container_name,
+        &entry.hierarchy_key,
+        &entry.navigation_container,
+        &entry.navigation_column};
       for (std::size_t column = 0; column < values.size(); ++column) {
         store_writer_->fill_container(places.at(column), values.at(column), typeid(std::string));
       }

@@ -9,6 +9,7 @@
 #include "form/config.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
+#include "persistence/navigation_catalog.hpp"
 #include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "root_storage/root_descriptor.hpp"
@@ -38,6 +39,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -1474,6 +1476,148 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
     CHECK(container->entries() == 1);
   }
 }
+
+namespace {
+  // Reads one technology's product dictionary from a written file, through FORM's storage layer.
+  product_dictionary read_product_dictionary(std::string const& file_name,
+                                             form::technology::id tech)
+  {
+    form::test::column_reader reader{file_name, tech};
+    std::array<std::vector<std::string>, product_dictionary_columns.size()> columns;
+    for (std::size_t column = 0; column != columns.size(); ++column) {
+      columns.at(column) = reader.column<std::string>(
+        build_full_label(navigation_dictionary_name(tech), product_dictionary_columns.at(column)));
+    }
+    return product_dictionary{.product_name = columns[0],
+                              .creator = columns[1],
+                              .stage = columns[2],
+                              .container_name = columns[3],
+                              .hierarchy_key = columns[4],
+                              .navigation_container = columns[5],
+                              .navigation_column = columns[6]};
+  }
+}
+
+TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "navigation_catalog_" + form::technology::to_string(technology) + ".root";
+  auto const* const type = &typeid(std::vector<int>);
+
+  struct stream {
+    std::string creator;
+    std::string stage;
+    std::vector<std::string> labels;
+    std::vector<cell_index> cells;
+  };
+  std::vector<stream> const streams{
+    {.creator = "tracker",
+     .stage = "stage1",
+     .labels = {"hits", "tracks"},
+     .cells = {make_cell(1, 0), make_cell(1, 1)}},
+    {.creator = "tracker", .stage = "stage2", .labels = {"hits"}, .cells = {make_cell(1, 0)}},
+    {.creator = "shower",
+     .stage = "stage1",
+     .labels = {"showers"},
+     .cells = {event_cell(1), event_cell(2)}}};
+
+  {
+    auto writer = create_persistence_writer();
+    writer->configure_tech_settings(tech_setting_config{});
+    for (auto const& [creator, stage, labels, cells] : streams) {
+      std::vector<std::pair<placement, std::type_info const*>> containers;
+      for (auto const& label : labels) {
+        containers.emplace_back(make_placement(file_name, creator, label, technology, stage), type);
+      }
+      writer->create_containers(containers);
+    }
+    for (auto const& [creator, stage, labels, cells] : streams) {
+      for (auto const& cell : cells) {
+        std::vector<std::vector<int>> record;
+        record.reserve(labels.size());
+        for (auto const& label : labels) {
+          record.push_back(payload_of(cell));
+          writer->register_write(identity(creator, label, stage),
+                                 make_placement(file_name, creator, label, technology, stage),
+                                 &record.back(),
+                                 *type);
+        }
+        writer->commit_place(make_placement(file_name, creator, labels.front(), technology, stage),
+                             cell);
+      }
+    }
+    writer->finalize();
+  }
+
+  navigation_catalog catalog{file_name};
+  catalog.add(technology, read_product_dictionary(file_name, technology));
+
+  // Every product the writer recorded is found, at the names the writer built for it.
+  for (auto const& [creator, stage, labels, cells] : streams) {
+    auto const& hierarchy = cells.front().hierarchy;
+    for (auto const& label : labels) {
+      product_key const key{.product_name = label, .creator = creator, .stage = stage};
+      CAPTURE(label, creator, stage);
+      REQUIRE(catalog.locations(key).size() == 1);
+      auto const& location = catalog.select(key);
+      CHECK(location.technology == technology);
+      CHECK(location.container_name ==
+            make_placement(file_name, creator, label, technology, stage).container_name());
+      CHECK(location.hierarchy_key == hierarchy_key(hierarchy));
+      CHECK(location.navigation_container == navigation_table_name(hierarchy, technology));
+      CHECK(location.navigation_column == navigation_row_column(creator, stage));
+    }
+  }
+
+  // tracks was written only at stage1.
+  CHECK_THROWS(catalog.select({.product_name = "tracks", .creator = "tracker", .stage = "stage2"}));
+}
+
+#ifdef USE_RNTUPLE_STORAGE
+TEST_CASE("Navigation catalog: a product held by TTree and RNTuple is read from RNTuple", "[form]")
+{
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+
+  std::string const file_name =
+    "navigation_catalog_mixed_" + form::technology::to_string(technology) + ".root";
+  auto const* const type = &typeid(std::vector<int>);
+  auto const ttree_hits = make_placement(file_name, "tracker", "hits", root_ttree);
+  auto const ttree_tracks = make_placement(file_name, "tracker", "tracks", root_ttree);
+  auto const rntuple_hits = make_placement(file_name, "tracker", "hits", root_rntuple);
+  {
+    auto writer = create_persistence_writer();
+    writer->configure_tech_settings(form::experimental::config::tech_setting_config{});
+    writer->create_containers({{ttree_hits, type}, {ttree_tracks, type}, {rntuple_hits, type}});
+    auto const cell = event_cell(1);
+    auto const payload = payload_of(cell);
+    writer->register_write(identity("tracker", "hits"), ttree_hits, &payload, *type);
+    writer->register_write(identity("tracker", "tracks"), ttree_tracks, &payload, *type);
+    writer->commit_place(ttree_hits, cell);
+    writer->register_write(identity("tracker", "hits"), rntuple_hits, &payload, *type);
+    writer->commit_place(rntuple_hits, cell);
+    writer->finalize();
+  }
+
+  navigation_catalog catalog{file_name};
+  for (auto const tech : {root_ttree, root_rntuple}) {
+    catalog.add(tech, read_product_dictionary(file_name, tech));
+  }
+
+  // hits is in both technologies: both are kept, and RNTuple is the one to read.
+  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = test_stage};
+  CHECK(catalog.locations(hits).size() == 2);
+  CHECK(catalog.select(hits).technology == root_rntuple);
+  CHECK(catalog.select(hits).container_name == rntuple_hits.container_name());
+
+  // tracks is only in TTree, so TTree is read whatever the preference.
+  product_key const tracks{.product_name = "tracks", .creator = "tracker", .stage = test_stage};
+  CHECK(catalog.select(tracks).technology == root_ttree);
+  CHECK(catalog.select(tracks).container_name == ttree_tracks.container_name());
+}
+#endif
 
 TEST_CASE("Stage round-trip: a reader locates a product by creator and stage", "[form]")
 {

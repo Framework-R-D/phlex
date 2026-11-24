@@ -11,6 +11,7 @@
 #include "form/product_with_name.hpp"
 #include "persistence/ipersistence_reader.hpp"
 #include "persistence/ipersistence_writer.hpp"
+#include "persistence/navigation_catalog.hpp"
 #include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
@@ -621,6 +622,108 @@ TEST_CASE("storage_file: a repeated descriptor key is rejected", "[form]")
   CHECK_THROWS_WITH(file.write_descriptor(repeated),
                     Catch::Matchers::ContainsSubstring("appears more than once"));
   CHECK_FALSE(file.read_descriptor().has_value());
+}
+
+namespace {
+  // A one-row-per-product dictionary, as the writer would record it for `tech`.
+  product_dictionary dictionary_of(std::vector<product_key> const& keys, form::technology::id tech)
+  {
+    cell_hierarchy const hierarchy{{"event"}};
+    product_dictionary dictionary;
+    for (auto const& key : keys) {
+      dictionary.product_name.push_back(key.product_name);
+      dictionary.creator.push_back(key.creator);
+      dictionary.stage.push_back(key.stage);
+      dictionary.container_name.push_back(
+        build_full_label(build_row_space_name(tech, key.creator, key.stage), key.product_name));
+      dictionary.hierarchy_key.push_back(hierarchy_key(hierarchy));
+      dictionary.navigation_container.push_back(navigation_table_name(hierarchy, tech));
+      dictionary.navigation_column.push_back(navigation_row_column(key.creator, key.stage));
+    }
+    return dictionary;
+  }
+}
+
+TEST_CASE("navigation catalog: RNTuple is preferred when several technologies hold a product",
+          "[form]")
+{
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+  using holders = std::vector<form::technology::id>;
+
+  CHECK(choose_read_technology(holders{}) == std::nullopt);
+  CHECK(choose_read_technology(holders{root_ttree}) == root_ttree);
+  CHECK(choose_read_technology(holders{root_rntuple}) == root_rntuple);
+  CHECK(choose_read_technology(holders{root_ttree, root_rntuple}) == root_rntuple);
+  CHECK(choose_read_technology(holders{root_rntuple, root_ttree}) == root_rntuple);
+
+  // A single holder is used whatever it is; a preference only decides between several.
+  CHECK(choose_read_technology(holders{form::technology::id{}}) == form::technology::id{});
+  // Several holders with no preference between them are refused rather than guessed.
+  CHECK_THROWS_AS(choose_read_technology(holders{form::technology::id{}, form::technology::hdf5}),
+                  std::runtime_error);
+}
+
+TEST_CASE("navigation catalog: products are located through their dictionaries", "[form]")
+{
+  using form::technology::root_rntuple;
+  using form::technology::root_ttree;
+
+  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = "stage1"};
+  product_key const later_hits{.product_name = "hits", .creator = "tracker", .stage = "stage2"};
+  product_key const showers{.product_name = "showers", .creator = "shower", .stage = "stage1"};
+
+  navigation_catalog catalog{"catalog.root"};
+  catalog.add(root_ttree, dictionary_of({hits, showers}, root_ttree));
+  catalog.add(root_rntuple, dictionary_of({hits, later_hits}, root_rntuple));
+
+  // A location is exactly what its own dictionary recorded.
+  REQUIRE(catalog.locations(showers).size() == 1);
+  auto const& shower_location = catalog.select(showers);
+  CHECK(shower_location.technology == root_ttree);
+  CHECK(shower_location.container_name ==
+        build_full_label(build_row_space_name(root_ttree, "shower", "stage1"), "showers"));
+  CHECK(shower_location.navigation_column == navigation_row_column("shower", "stage1"));
+
+  // The same product in both technologies: both locations are kept, and RNTuple is read.
+  CHECK(catalog.locations(hits).size() == 2);
+  CHECK(catalog.select(hits).technology == root_rntuple);
+
+  // Stage is part of a product's identity, so stage2's hits are a different product.
+  CHECK(catalog.locations(later_hits).size() == 1);
+  CHECK(catalog.select(later_hits).technology == root_rntuple);
+
+  // A product the file does not hold is reported by name.
+  product_key const missing{.product_name = "tracks", .creator = "tracker", .stage = "stage1"};
+  CHECK(catalog.locations(missing).empty());
+  CHECK_THROWS_WITH(catalog.select(missing),
+                    Catch::Matchers::ContainsSubstring("holds no product 'tracks'"));
+}
+
+TEST_CASE("navigation catalog: a malformed dictionary is refused", "[form]")
+{
+  using Catch::Matchers::ContainsSubstring;
+  using form::technology::root_ttree;
+  product_key const hits{.product_name = "hits", .creator = "tracker", .stage = "stage1"};
+  navigation_catalog catalog{"malformed.root"};
+
+  SECTION("columns of different lengths")
+  {
+    auto dictionary = dictionary_of({hits}, root_ttree);
+    dictionary.navigation_column.clear();
+    CHECK_THROWS_WITH(catalog.add(root_ttree, dictionary), ContainsSubstring("different lengths"));
+  }
+  SECTION("a product listed twice")
+  {
+    CHECK_THROWS_WITH(catalog.add(root_ttree, dictionary_of({hits, hits}, root_ttree)),
+                      ContainsSubstring("more than once"));
+  }
+  SECTION("one technology's dictionary added twice")
+  {
+    catalog.add(root_ttree, dictionary_of({hits}, root_ttree));
+    CHECK_THROWS_WITH(catalog.add(root_ttree, dictionary_of({}, root_ttree)),
+                      ContainsSubstring("added twice"));
+  }
 }
 
 TEST_CASE("persistence_reader basic operations", "[form]")
