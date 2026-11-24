@@ -2,6 +2,8 @@
 
 #include "form_source_type_registry.hpp"
 
+#include "util/error.hpp"
+
 #include <mutex>
 #include <stdexcept>
 #include <string>
