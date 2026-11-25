@@ -73,7 +73,7 @@ namespace phlex {
   bool product_selector::creator_match(experimental::algorithm_name const& alg) const
   {
     if (!creator) {
-      return true; // empty creator matches everything
+      return true; // an omitted creator criterion matches everything
     }
     experimental::identifier const& creator{*(this->creator)};
     return alg.plugin() == creator || alg.algorithm() == creator;
