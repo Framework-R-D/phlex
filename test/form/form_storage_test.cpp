@@ -1542,7 +1542,7 @@ TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[f
       product_identity const key{.creator = creator, .stage = stage, .label = label};
       CAPTURE(label, creator, stage);
       REQUIRE(catalog.locations(key).size() == 1);
-      auto const& location = catalog.select(key);
+      auto const& location = catalog.select(key, hierarchy);
       CHECK(location.technology == technology);
       CHECK(location.container_name ==
             make_placement(file_name, creator, label, technology, stage).container_name());
@@ -1553,13 +1553,53 @@ TEST_CASE("Navigation catalog: built from the dictionary a writer recorded", "[f
   }
 
   // tracks was written only at stage1.
-  CHECK_THROWS(catalog.select({.creator = "tracker", .stage = "stage2", .label = "tracks"}));
+  CHECK_THROWS(catalog.select({.creator = "tracker", .stage = "stage2", .label = "tracks"},
+                              streams.front().cells.front().hierarchy));
 
   // A technology without a dictionary in the file is reported by name, not silently skipped.
   auto const other = technology == form::technology::root_ttree ? form::technology::root_rntuple
                                                                 : form::technology::root_ttree;
   CHECK_THROWS_WITH(load_navigation_catalog(storage, file_name, {technology, other}, settings),
                     Catch::Matchers::ContainsSubstring(navigation_dictionary_name(other)));
+}
+
+TEST_CASE("Navigation catalog: one product written for two hierarchies", "[form]")
+{
+  std::string const file_name =
+    "navigation_catalog_hierarchies_" + form::technology::to_string(technology) + ".root";
+  auto const place = make_placement(file_name, "tracker", "hits", technology);
+  // The same product, alternating between [event] and [event, segment] cells.
+  std::vector<cell_index> const cells{
+    event_cell(1), make_cell(1, 0), event_cell(2), make_cell(1, 1)};
+  {
+    auto writer = create_persistence_writer();
+    writer->configure_tech_settings(form::experimental::config::tech_setting_config{});
+    writer->create_containers({{place, &typeid(std::vector<int>)}});
+    for (auto const& cell : cells) {
+      auto const payload = payload_of(cell);
+      writer->register_write(
+        identity("tracker", "hits"), place, &payload, typeid(std::vector<int>));
+      writer->commit_place(place, cell);
+    }
+    writer->finalize();
+  }
+
+  storage_reader storage;
+  auto const catalog = load_navigation_catalog(
+    storage, file_name, {technology}, form::experimental::config::tech_setting_config{});
+
+  // Both hierarchy locations share the payload container but use separate navigation tables.
+  product_identity const hits{.creator = "tracker", .stage = test_stage, .label = "hits"};
+  CHECK(catalog.locations(hits).size() == 2);
+  for (auto const& hierarchy : {cells[0].hierarchy, cells[1].hierarchy}) {
+    CAPTURE(hierarchy_key(hierarchy));
+    auto const& location = catalog.select(hits, hierarchy);
+    CHECK(location.technology == technology);
+    CHECK(location.container_name == place.container_name());
+    CHECK(location.hierarchy_key == hierarchy_key(hierarchy));
+    CHECK(location.navigation_container == navigation_table_name(hierarchy, technology));
+    CHECK(location.navigation_column == navigation_row_column("tracker", test_stage));
+  }
 }
 
 #ifdef USE_RNTUPLE_STORAGE
@@ -1598,16 +1638,18 @@ TEST_CASE("Navigation catalog: a product held by TTree and RNTuple is read from 
   auto const catalog = load_navigation_catalog(
     storage, file_name, technologies, form::experimental::config::tech_setting_config{});
 
+  cell_hierarchy const events{{"event"}};
+
   // hits is in both technologies: both are kept, and RNTuple is the one to read.
   product_identity const hits{.creator = "tracker", .stage = test_stage, .label = "hits"};
   CHECK(catalog.locations(hits).size() == 2);
-  CHECK(catalog.select(hits).technology == root_rntuple);
-  CHECK(catalog.select(hits).container_name == rntuple_hits.container_name());
+  CHECK(catalog.select(hits, events).technology == root_rntuple);
+  CHECK(catalog.select(hits, events).container_name == rntuple_hits.container_name());
 
   // tracks is only in TTree, so TTree is read whatever the preference.
   product_identity const tracks{.creator = "tracker", .stage = test_stage, .label = "tracks"};
-  CHECK(catalog.select(tracks).technology == root_ttree);
-  CHECK(catalog.select(tracks).container_name == ttree_tracks.container_name());
+  CHECK(catalog.select(tracks, events).technology == root_ttree);
+  CHECK(catalog.select(tracks, events).container_name == ttree_tracks.container_name());
 }
 #endif
 

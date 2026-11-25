@@ -2,6 +2,7 @@
 
 #include "navigation_catalog.hpp"
 
+#include "core/cell_index.hpp"
 #include "core/container_naming.hpp"
 #include "core/product_identity.hpp"
 #include "core/technology.hpp"
@@ -16,6 +17,7 @@
 #include <cstddef>
 #include <exception>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -102,9 +104,15 @@ namespace form::detail::experimental {
                                  .stage = dictionary.stage[row],
                                  .label = dictionary.product_name[row]};
       auto& found = locations_[key];
-      if (std::ranges::find(found, technology, &product_location::technology) != found.end()) {
+      // One technology may hold a product for several hierarchies, but only once per hierarchy.
+      auto const same_hierarchy = [&](product_location const& location) {
+        return location.technology == technology &&
+               location.hierarchy_key == dictionary.hierarchy_key[row];
+      };
+      if (std::ranges::any_of(found, same_hierarchy)) {
         error("the product dictionary for '" + token + "' in file '" + file_name_ + "' lists " +
-              describe(key) + " more than once");
+              describe(key) + " more than once for hierarchy '" + dictionary.hierarchy_key[row] +
+              "'");
       }
       found.push_back(product_location{.technology = technology,
                                        .container_name = dictionary.container_name[row],
@@ -122,21 +130,29 @@ namespace form::detail::experimental {
     return found == locations_.end() ? none : found->second;
   }
 
-  product_location const& navigation_catalog::select(product_identity const& key) const
+  product_location const& navigation_catalog::select(product_identity const& key,
+                                                     cell_hierarchy const& hierarchy) const
   {
-    auto const& found = locations(key);
-    if (found.empty()) {
-      error("file '" + file_name_ + "' holds no " + describe(key));
-    }
+    auto const wanted = hierarchy_key(hierarchy);
+    auto const at_hierarchy = [&wanted](product_location const& location) {
+      return location.hierarchy_key == wanted;
+    };
 
+    auto const& found = locations(key);
     std::vector<form::technology::id> holders;
-    holders.reserve(found.size());
-    for (auto const& location : found) {
+    for (auto const& location : found | std::views::filter(at_hierarchy)) {
       holders.push_back(location.technology);
     }
-    // `found` is not empty, so a technology is always chosen.
-    auto const chosen = choose_read_technology(holders).value_or(found.front().technology);
-    return *std::ranges::find(found, chosen, &product_location::technology);
+    if (holders.empty()) {
+      error("file '" + file_name_ + "' holds no " + describe(key) + " for hierarchy '" + wanted +
+            "'");
+    }
+
+    // `holders` is not empty, so a technology is always chosen.
+    auto const chosen = choose_read_technology(holders).value_or(holders.front());
+    return *std::ranges::find_if(found, [&](product_location const& location) {
+      return at_hierarchy(location) && location.technology == chosen;
+    });
   }
 
   product_dictionary read_product_dictionary(

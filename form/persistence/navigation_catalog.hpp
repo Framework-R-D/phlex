@@ -3,6 +3,7 @@
 #ifndef FORM_PERSISTENCE_NAVIGATION_CATALOG_HPP
 #define FORM_PERSISTENCE_NAVIGATION_CATALOG_HPP
 
+#include "core/cell_index.hpp"
 #include "core/product_identity.hpp"
 #include "core/technology.hpp"
 
@@ -28,7 +29,7 @@ namespace form::detail::experimental {
 
   class i_storage_reader;
 
-  /// Where one technology in a file holds a product.
+  /// Where a product is stored for a given technology and hierarchy.
   struct product_location {
     form::technology::id technology;
     std::string container_name;
@@ -61,15 +62,17 @@ namespace form::detail::experimental {
   public:
     explicit navigation_catalog(std::string file_name);
 
-    /// Records one technology's dictionary. Throws if its columns differ in length, if it lists a
-    /// product twice, or if a dictionary for that technology was already added.
+    /// Adds a technology's dictionary. Throws on inconsistent column lengths, duplicate products
+    /// within a hierarchy, or if the technology has already been added.
     void add(form::technology::id technology, product_dictionary const& dictionary);
 
-    /// Every location holding the product, at most one per technology; empty if the file has none.
+    /// All locations of the product, unique per (technology, hierarchy); empty if none.
     std::vector<product_location> const& locations(product_identity const& key) const;
 
-    /// The location to read the product from. Throws if the file holds no such product.
-    product_location const& select(product_identity const& key) const;
+    /// The location to read the product from for cells of `hierarchy`, preferring RNTuple when
+    /// several technologies hold it there. Throws if the file holds no such product there.
+    product_location const& select(product_identity const& key,
+                                   cell_hierarchy const& hierarchy) const;
 
   private:
     std::string file_name_;
