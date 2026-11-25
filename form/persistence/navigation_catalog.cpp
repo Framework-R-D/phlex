@@ -18,6 +18,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -34,17 +35,6 @@ namespace {
     return "product '" + key.label + "' from creator '" + key.creator + "' at stage '" + key.stage +
            "'";
   }
-
-  // The member each column of product_dictionary_columns is read into, in the same order.
-  constexpr std::array<std::vector<std::string> product_dictionary::*,
-                       product_dictionary_columns.size()>
-    dictionary_members{&product_dictionary::product_name,
-                       &product_dictionary::creator,
-                       &product_dictionary::stage,
-                       &product_dictionary::container_name,
-                       &product_dictionary::hierarchy_key,
-                       &product_dictionary::navigation_container,
-                       &product_dictionary::navigation_column};
 
   std::string token_list(std::span<form::technology::id const> technologies)
   {
@@ -158,12 +148,17 @@ namespace form::detail::experimental {
     auto const table = navigation_dictionary_name(technology);
     product_dictionary dictionary;
     try {
-      for (std::size_t column = 0; column != product_dictionary_columns.size(); ++column) {
-        dictionary.*dictionary_members.at(column) = storage.read_string_column(
-          token{
-            file_name, build_full_label(table, product_dictionary_columns.at(column)), technology},
-          settings);
-      }
+      auto const column = [&](std::string_view const name) {
+        return storage.read_string_column(
+          token{file_name, build_full_label(table, name), technology}, settings);
+      };
+      dictionary.product_name = column(dictionary_product_name_column);
+      dictionary.creator = column(dictionary_creator_column);
+      dictionary.stage = column(dictionary_stage_column);
+      dictionary.container_name = column(dictionary_container_name_column);
+      dictionary.hierarchy_key = column(dictionary_hierarchy_key_column);
+      dictionary.navigation_container = column(dictionary_navigation_container_column);
+      dictionary.navigation_column = column(dictionary_navigation_column_column);
     } catch (std::exception const& e) {
       error("file '" + file_name + "' lists '" +
             std::string{form::technology::on_disk_token(technology)} +
