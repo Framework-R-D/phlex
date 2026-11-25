@@ -7,6 +7,7 @@
 #include "core/container_naming.hpp"
 #include "core/technology.hpp"
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -64,6 +65,25 @@ namespace form::detail::experimental {
     name += hierarchy_key(hierarchy);
     return name;
   }
+
+  /// Shared product-dictionary column names by writer and reader to keep the schema consistent.
+  inline constexpr std::string_view dictionary_product_name_column = "product_name";
+  inline constexpr std::string_view dictionary_creator_column = "creator";
+  inline constexpr std::string_view dictionary_stage_column = "stage";
+  inline constexpr std::string_view dictionary_container_name_column = "container_name";
+  inline constexpr std::string_view dictionary_hierarchy_key_column = "hierarchy_key";
+  inline constexpr std::string_view dictionary_navigation_container_column = "navigation_container";
+  inline constexpr std::string_view dictionary_navigation_column_column = "navigation_column";
+
+  /// Every product-dictionary column, in the order the writer creates them.
+  inline constexpr std::array<std::string_view, 7> product_dictionary_columns{
+    dictionary_product_name_column,
+    dictionary_creator_column,
+    dictionary_stage_column,
+    dictionary_container_name_column,
+    dictionary_hierarchy_key_column,
+    dictionary_navigation_container_column,
+    dictionary_navigation_column_column};
 
   /// Return the product-dictionary name for a technology.
   inline std::string navigation_dictionary_name(form::technology::id tech)

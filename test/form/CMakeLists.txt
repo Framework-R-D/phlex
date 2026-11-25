@@ -437,7 +437,8 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
   )
 endif()
 
-set(form_basics_test_libraries form)
+# Link persistence directly for now; form does not yet pull in the navigation catalog.
+set(form_basics_test_libraries form persistence)
 if(FORM_USE_ROOT_STORAGE)
   list(APPEND form_basics_test_libraries root_storage)
 endif()
